@@ -1,41 +1,71 @@
+import AVFoundation
 import SwiftUI
 
-struct Voice: Identifiable, Codable {
-    let id: Int
+struct Voice: Identifiable {
+    let id: String
     let name: String
     let language: String
-    let gender: Gender
-    let grade: Grade
-    var avatarColor: String
+    let quality: Quality
 
-    enum Gender: String, Codable {
-        case female, male
+    enum Quality: String, Comparable {
+        case premium = "Premium"
+        case enhanced = "Enhanced"
+        case standard = "Standard"
+
+        private var sortOrder: Int {
+            switch self {
+            case .premium: 0
+            case .enhanced: 1
+            case .standard: 2
+            }
+        }
+
+        static func < (lhs: Quality, rhs: Quality) -> Bool {
+            lhs.sortOrder < rhs.sortOrder
+        }
     }
 
-    enum Grade: String, Codable {
-        case a, aMinus, bMinus, cPlus
+    static func availableVoices() -> [Voice] {
+        let allEnglish = AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.starts(with: "en") }
+
+        let highQuality = allEnglish.filter { $0.quality == .premium || $0.quality == .enhanced }
+        let voicesToShow = highQuality.isEmpty ? allEnglish : highQuality
+
+        return voicesToShow
+            .map { voice in
+                let quality: Quality = switch voice.quality {
+                case .premium: .premium
+                case .enhanced: .enhanced
+                default: .standard
+                }
+                return Voice(
+                    id: voice.identifier,
+                    name: voice.name,
+                    language: voice.language,
+                    quality: quality
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.quality != rhs.quality {
+                    return lhs.quality < rhs.quality
+                }
+                return lhs.name < rhs.name
+            }
     }
 
-    static let curated: [Voice] = [
-        Voice(id: 3, name: "Heart", language: "en-US", gender: .female, grade: .a, avatarColor: "accent"),
-        Voice(id: 2, name: "Bella", language: "en-US", gender: .female, grade: .aMinus, avatarColor: "success"),
-        Voice(id: 6, name: "Nicole", language: "en-US", gender: .female, grade: .bMinus, avatarColor: "info"),
-        Voice(id: 21, name: "Emma", language: "en-GB", gender: .female, grade: .bMinus, avatarColor: "teal"),
-        Voice(id: 18, name: "Puck", language: "en-US", gender: .male, grade: .cPlus, avatarColor: "warning"),
-        Voice(id: 14, name: "Fenrir", language: "en-US", gender: .male, grade: .cPlus, avatarColor: "tan"),
-        Voice(id: 16, name: "Michael", language: "en-US", gender: .male, grade: .cPlus, avatarColor: "green"),
+    private static let palette: [Color] = [
+        Piperly.Colors.accent,
+        Piperly.Colors.success,
+        Piperly.Colors.info,
+        Piperly.Colors.teal,
+        Piperly.Colors.warning,
+        Piperly.Colors.tan,
+        Piperly.Colors.green,
     ]
 
     var color: Color {
-        switch avatarColor {
-        case "accent": Piperly.Colors.accent
-        case "success": Piperly.Colors.success
-        case "info": Piperly.Colors.info
-        case "teal": Piperly.Colors.teal
-        case "warning": Piperly.Colors.warning
-        case "tan": Piperly.Colors.tan
-        case "green": Piperly.Colors.green
-        default: Piperly.Colors.accent
-        }
+        let hash = abs(name.hashValue)
+        return Self.palette[hash % Self.palette.count]
     }
 }

@@ -1,5 +1,5 @@
 {
-  "originHash" : "8f5d0b2ae5d1f1a1f7296231537a154d5ddcf09cb3a3656375a128b1998a4d24",
+  "originHash" : "23270f8ef23c776eff1a6fc9efd508cd849cbbdb4c250e4acbb3faa0ae922cf5",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -35,15 +35,6 @@
       "state" : {
         "revision" : "584db89a4c3c3be27206cce6afde037b2b6e38d8",
         "version" : "4.0.1"
-      }
-    },
-    {
-      "identity" : "sherpa-onnx-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/fdddf/sherpa-onnx-spm",
-      "state" : {
-        "revision" : "c5621145a797ebce3b6f077c20cf144719841f6d",
-        "version" : "1.12.23"
       }
     },
     {

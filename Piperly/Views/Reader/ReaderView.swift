@@ -15,8 +15,8 @@ struct ReaderView: View {
     @State private var showingVoicePicker = false
     @State private var tappedWord: String?
     @State private var showWordBubble = false
-    @AppStorage("selectedVoiceID") private var selectedVoiceID: Int = 3
-    @AppStorage("ttsSpeed") private var ttsSpeed: Double = 0.9
+    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
+    @AppStorage("speechRate") private var speechRate: Double = 0.45
     @StateObject private var wordTapCoordinator = WordTapCoordinator()
 
     var body: some View {
@@ -85,23 +85,22 @@ struct ReaderView: View {
             wordTapCoordinator.onWordTapped = { word in
                 tappedWord = word
                 showWordBubble = true
-
-                Task {
-                    try? await ttsEngine.speak(
-                        word: word,
-                        voiceID: selectedVoiceID,
-                        speed: Float(ttsSpeed)
-                    )
-                }
-
                 Task { @MainActor in
                     try? await Task.sleep(for: .seconds(1.5))
                     showWordBubble = false
                 }
             }
         }
+        .onChange(of: wordTapCoordinator.lastTappedWord) { _, word in
+            guard let word else { return }
+            ttsEngine.speak(
+                word: word,
+                voiceIdentifier: selectedVoiceIdentifier,
+                rate: Float(speechRate)
+            )
+        }
         .sheet(isPresented: $showingVoicePicker) {
-            VoicePickerSheet()
+            VoicePickerSheet(ttsEngine: ttsEngine)
         }
     }
 

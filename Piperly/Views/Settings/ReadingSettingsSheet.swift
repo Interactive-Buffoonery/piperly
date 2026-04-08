@@ -4,7 +4,7 @@ struct ReadingSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("readerFontSize") private var fontSize: Double = 22
     @AppStorage("readerUseSerif") private var useSerif: Bool = false
-    @AppStorage("ttsSpeed") private var ttsSpeed: Double = 0.9
+    @AppStorage("speechRate") private var speechRate: Double = 0.45
 
     var body: some View {
         NavigationStack {
@@ -49,7 +49,7 @@ struct ReadingSettingsSheet: View {
                         HStack {
                             Image(systemName: "tortoise")
                                 .foregroundStyle(Piperly.Colors.textTertiary)
-                            Slider(value: $ttsSpeed, in: 0.6...1.2, step: 0.1)
+                            Slider(value: $speechRate, in: 0.30...0.60, step: 0.05)
                                 .tint(Piperly.Colors.accent)
                             Image(systemName: "hare")
                                 .foregroundStyle(Piperly.Colors.textPrimary)

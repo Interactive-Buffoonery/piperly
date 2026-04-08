@@ -67,6 +67,41 @@ class BookStore: ObservableObject {
         }
     }
 
+    func importSampleBooksIfNeeded() async {
+        let hasImportedSamples = UserDefaults.standard.bool(forKey: "piperly_samples_imported")
+        guard !hasImportedSamples else { return }
+
+        let sampleFiles = Bundle.main.urls(forResourcesWithExtension: "epub", subdirectory: nil) ?? []
+        for url in sampleFiles {
+            _ = try? await importBundledBook(from: url)
+        }
+
+        UserDefaults.standard.set(true, forKey: "piperly_samples_imported")
+    }
+
+    private func importBundledBook(from bundleURL: URL) async throws -> Book {
+        let fileName = bundleURL.lastPathComponent
+        let destURL = documentsURL.appendingPathComponent(fileName)
+
+        if !FileManager.default.fileExists(atPath: destURL.path) {
+            try FileManager.default.copyItem(at: bundleURL, to: destURL)
+        }
+
+        let (title, author) = await parseMetadata(from: destURL)
+
+        let book = Book(
+            title: title ?? fileName.replacingOccurrences(of: ".epub", with: ""),
+            author: author ?? "Unknown Author",
+            fileName: fileName
+        )
+
+        if !books.contains(where: { $0.fileName == fileName }) {
+            books.append(book)
+            saveBooks()
+        }
+        return book
+    }
+
     func deleteBook(_ book: Book) {
         let url = bookURL(for: book)
         try? FileManager.default.removeItem(at: url)

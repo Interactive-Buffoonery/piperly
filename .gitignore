@@ -15,8 +15,5 @@ Packages/
 *.swp
 *~
 
-# Kokoro model files (too large for git)
-Piperly/Resources/Models/
-
 # Claude
 .claude/
