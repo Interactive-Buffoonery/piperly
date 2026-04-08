@@ -51,6 +51,7 @@ struct ReaderView: View {
                         publication: publication,
                         initialLocator: restoredLocator,
                         wordTapCoordinator: wordTapCoordinator,
+                        preferences: readerPreferences,
                         onProgressChanged: { progress in
                             bookStore.updateProgress(for: book.id, progression: progress)
                         },
@@ -181,8 +182,6 @@ struct ReaderView: View {
         .sheet(isPresented: $showingSettings) {
             ReadingSettingsSheet()
         }
-        .onChange(of: fontSize) { _, _ in updateReaderPreferences() }
-        .onChange(of: useSerif) { _, _ in updateReaderPreferences() }
     }
 
     private var currentProgression: Double {
@@ -218,8 +217,8 @@ struct ReaderView: View {
         )
     }
 
-    private func updateReaderPreferences() {
-        let prefs = EPUBPreferences(
+    private var readerPreferences: EPUBPreferences {
+        EPUBPreferences(
             backgroundColor: ReadiumNavigator.Color(hex: "#1C1C2E"),
             fontFamily: useSerif ? .serif : .sansSerif,
             fontSize: fontSize / 22.0,
@@ -229,7 +228,6 @@ struct ReaderView: View {
             scroll: false,
             textColor: ReadiumNavigator.Color(hex: "#E8E8F0")
         )
-        navigator?.submitPreferences(prefs)
     }
 
     private var restoredLocator: Locator? {

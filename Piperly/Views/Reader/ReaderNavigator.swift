@@ -8,22 +8,14 @@ struct ReaderNavigator: UIViewControllerRepresentable {
     let publication: Publication
     let initialLocator: Locator?
     let wordTapCoordinator: WordTapCoordinator
+    let preferences: EPUBPreferences
     var onProgressChanged: ((Double) -> Void)?
     var onNavigatorReady: ((EPUBNavigatorViewController) -> Void)?
     var onLocationChanged: ((Locator) -> Void)?
 
     func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
-        let prefs = EPUBPreferences(
-            backgroundColor: ReadiumNavigator.Color(hex: "#1C1C2E"),
-            hyphens: false,
-            lineHeight: 1.7,
-            publisherStyles: false,
-            scroll: false,
-            textColor: ReadiumNavigator.Color(hex: "#E8E8F0")
-        )
-
         let config = EPUBNavigatorViewController.Configuration(
-            preferences: prefs,
+            preferences: preferences,
             editingActions: []
         )
 
@@ -46,7 +38,9 @@ struct ReaderNavigator: UIViewControllerRepresentable {
         }
     }
 
-    func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {
+        uiViewController.submitPreferences(preferences)
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
