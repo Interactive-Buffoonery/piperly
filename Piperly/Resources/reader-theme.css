@@ -4,11 +4,11 @@ body {
 }
 
 a {
-    color: #7C9FD4 !important;
+    color: var(--piperly-accent, #7CD4C8) !important;
 }
 
 h1, h2, h3, h4, h5, h6 {
-    color: #E8E8F0 !important;
+    color: var(--piperly-text, #E8E8F0) !important;
 }
 
 img {

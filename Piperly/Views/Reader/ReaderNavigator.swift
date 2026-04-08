@@ -9,6 +9,7 @@ struct ReaderNavigator: UIViewControllerRepresentable {
     let initialLocator: Locator?
     let wordTapCoordinator: WordTapCoordinator
     let preferences: EPUBPreferences
+    let readerTheme: ReaderTheme
     var onProgressChanged: ((Double) -> Void)?
     var onNavigatorReady: ((EPUBNavigatorViewController) -> Void)?
     var onLocationChanged: ((Locator) -> Void)?
@@ -56,6 +57,10 @@ struct ReaderNavigator: UIViewControllerRepresentable {
 
         func navigator(_ navigator: EPUBNavigatorViewController, setupUserScripts userContentController: WKUserContentController) {
             userContentController.add(parent.wordTapCoordinator, name: "wordTapped")
+
+            userContentController.addUserScript(
+                WKUserScript(source: parent.readerTheme.cssVariablesScript, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+            )
 
             if let cssURL = Bundle.main.url(forResource: "reader-theme", withExtension: "css"),
                let css = try? String(contentsOf: cssURL, encoding: .utf8) {

@@ -3,8 +3,12 @@ import SwiftUI
 struct ReadingSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("readerFontSize") private var fontSize: Double = 22
-    @AppStorage("readerUseSerif") private var useSerif: Bool = false
+    @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
     @AppStorage("speechRate") private var speechRate: Double = 0.45
+
+    private var theme: ReaderTheme {
+        ReaderTheme(rawValue: selectedTheme) ?? .piperly
+    }
 
     var body: some View {
         NavigationStack {
@@ -12,6 +16,47 @@ struct ReadingSettingsSheet: View {
                 Piperly.Colors.background.ignoresSafeArea()
 
                 VStack(spacing: 32) {
+                    // Reader theme
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Reader Theme")
+                            .font(Piperly.Typography.caption)
+                            .foregroundStyle(Piperly.Colors.textSecondary)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(ReaderTheme.allCases) { t in
+                                    Button {
+                                        selectedTheme = t.rawValue
+                                    } label: {
+                                        VStack(spacing: 8) {
+                                            Circle()
+                                                .fill(Color(hex: t.backgroundColor))
+                                                .frame(width: 64, height: 64)
+                                                .overlay {
+                                                    Text("Aa")
+                                                        .font(t.fontFamily == .serif
+                                                            ? .system(size: 20, weight: .medium, design: .serif)
+                                                            : .system(size: 20, weight: .medium, design: .default))
+                                                        .foregroundStyle(Color(hex: t.textColor))
+                                                }
+                                                .overlay {
+                                                    Circle()
+                                                        .stroke(Piperly.Colors.accent, lineWidth: 3)
+                                                        .opacity(theme == t ? 1 : 0)
+                                                }
+                                                .shadow(color: t.isDark ? .clear : .black.opacity(0.15), radius: 4, y: 2)
+                                            Text(t.displayName)
+                                                .font(.system(size: 12, weight: theme == t ? .semibold : .regular))
+                                                .foregroundStyle(theme == t ? Piperly.Colors.accent : Piperly.Colors.textSecondary)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 4)
+                        }
+                    }
+
                     // Font size
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Font Size")
@@ -27,18 +72,6 @@ struct ReadingSettingsSheet: View {
                                 .font(.system(size: 24))
                                 .foregroundStyle(Piperly.Colors.textPrimary)
                         }
-                    }
-
-                    // Font style
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Font Style")
-                            .font(Piperly.Typography.caption)
-                            .foregroundStyle(Piperly.Colors.textSecondary)
-                        Picker("Font", selection: $useSerif) {
-                            Text("Sans-serif").tag(false)
-                            Text("Serif").tag(true)
-                        }
-                        .pickerStyle(.segmented)
                     }
 
                     // TTS Speed

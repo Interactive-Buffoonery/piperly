@@ -10,6 +10,12 @@ extension Color {
             opacity: opacity
         )
     }
+
+    init(hex string: String, opacity: Double = 1.0) {
+        let hex = string.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        let value = UInt32(hex, radix: 16) ?? 0
+        self.init(hex: value, opacity: opacity)
+    }
 }
 
 enum Piperly {
@@ -26,7 +32,7 @@ enum Piperly {
         static let textTertiary = Color(hex: 0x606078)
 
         // Semantic
-        static let accent = Color(hex: 0x7C9FD4)
+        static let accent = Color(hex: 0x7CD4C8)
         static let success = Color(hex: 0x7BC8A4)
         static let warning = Color(hex: 0xD4A76A)
         static let error = Color(hex: 0xD47C7C)

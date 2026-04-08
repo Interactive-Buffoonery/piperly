@@ -19,10 +19,12 @@ struct ReaderView: View {
     @State private var showingSettings = false
     @State private var tappedWord: String?
     @State private var showWordBubble = false
+    @State private var isNewWord = false
+    @State private var showingWordList = false
     @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
     @AppStorage("speechRate") private var speechRate: Double = 0.45
     @AppStorage("readerFontSize") private var fontSize: Double = 22
-    @AppStorage("readerUseSerif") private var useSerif: Bool = false
+    @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
     @StateObject private var wordTapCoordinator = WordTapCoordinator()
     @State private var navigator: EPUBNavigatorViewController?
     @State private var currentLocator: Locator?
@@ -43,6 +45,7 @@ struct ReaderView: View {
                         onBookmarkToggle: { toggleBookmark() },
                         onBookmarkList: { showingBookmarks = true },
                         onTableOfContents: { showingTOC = true },
+                        onWordList: { showingWordList = true },
                         onSettings: { showingSettings = true },
                         onVoice: { showingVoicePicker = true }
                     )
@@ -52,6 +55,7 @@ struct ReaderView: View {
                         initialLocator: restoredLocator,
                         wordTapCoordinator: wordTapCoordinator,
                         preferences: readerPreferences,
+                        readerTheme: theme,
                         onProgressChanged: { progress in
                             bookStore.updateProgress(for: book.id, progression: progress)
                         },
@@ -65,6 +69,7 @@ struct ReaderView: View {
                             }
                         }
                     )
+                    .id(selectedTheme)
 
                     // Progress bar
                     HStack(spacing: 8) {
@@ -125,20 +130,33 @@ struct ReaderView: View {
             if showWordBubble, let word = tappedWord {
                 VStack {
                     Spacer()
-                    Text(word)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(Piperly.Colors.textPrimary)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 14)
-                        .background(Piperly.Colors.surfaceElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Piperly.Colors.accent.opacity(0.5), lineWidth: 1)
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
-                        .transition(.scale.combined(with: .opacity))
-                        .padding(.bottom, 40)
+                    VStack(spacing: 4) {
+                        Text(word)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(Piperly.Colors.textPrimary)
+
+                        if isNewWord {
+                            HStack(spacing: 4) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 13))
+                                Text("Collected!")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundStyle(Piperly.Colors.accent)
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .background(Piperly.Colors.surfaceElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isNewWord ? Piperly.Colors.accent : Piperly.Colors.accent.opacity(0.5), lineWidth: isNewWord ? 2 : 1)
+                    )
+                    .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
+                    .transition(.scale.combined(with: .opacity))
+                    .padding(.bottom, 40)
                 }
                 .animation(.spring(duration: 0.3), value: showWordBubble)
             }
@@ -148,10 +166,12 @@ struct ReaderView: View {
         }
         .onAppear {
             wordTapCoordinator.onWordTapped = { word in
+                let newWord = bookStore.saveWordReturningIsNew(word, bookID: book.id, bookTitle: book.title)
                 tappedWord = word
+                isNewWord = newWord
                 showWordBubble = true
                 Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(1.5))
+                    try? await Task.sleep(for: .seconds(newWord ? 1.8 : 1.5))
                     showWordBubble = false
                 }
             }
@@ -181,6 +201,9 @@ struct ReaderView: View {
         }
         .sheet(isPresented: $showingSettings) {
             ReadingSettingsSheet()
+        }
+        .sheet(isPresented: $showingWordList) {
+            WordListSheet(bookID: book.id, ttsEngine: ttsEngine)
         }
     }
 
@@ -217,17 +240,12 @@ struct ReaderView: View {
         )
     }
 
+    private var theme: ReaderTheme {
+        ReaderTheme(rawValue: selectedTheme) ?? .piperly
+    }
+
     private var readerPreferences: EPUBPreferences {
-        EPUBPreferences(
-            backgroundColor: ReadiumNavigator.Color(hex: "#1C1C2E"),
-            fontFamily: useSerif ? .serif : .sansSerif,
-            fontSize: fontSize / 22.0,
-            hyphens: false,
-            lineHeight: 1.7,
-            publisherStyles: false,
-            scroll: false,
-            textColor: ReadiumNavigator.Color(hex: "#E8E8F0")
-        )
+        theme.epubPreferences(fontSize: fontSize)
     }
 
     private var restoredLocator: Locator? {

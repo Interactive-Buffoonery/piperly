@@ -49,7 +49,7 @@
     " { cursor: pointer; border-radius: 3px; transition: background 0.15s; }" +
     "." +
     WORD_CLASS +
-    ".tapped { background: rgba(124, 159, 212, 0.3); }";
+    ".tapped { background: var(--piperly-highlight, rgba(124, 212, 200, 0.3)); }";
   document.head.appendChild(style);
 
   document.addEventListener("click", function (e) {
