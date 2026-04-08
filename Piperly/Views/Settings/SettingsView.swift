@@ -47,6 +47,7 @@ struct SettingsView: View {
             }
             .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .presentationDetents([.large])
         .presentationBackground(Piperly.Colors.background)
@@ -102,7 +103,7 @@ struct SettingsView: View {
                 Text("Server URL")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundStyle(Piperly.Colors.textSecondary)
-                TextField("http://192.168.1.100:13378/opds/v1.2/catalog", text: $serverURL)
+                TextField("http://192.168.1.100:13378/opds/v1.2/catalog", text: $serverURL, prompt: Text("Server URL").foregroundStyle(Piperly.Colors.textTertiary))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)

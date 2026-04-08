@@ -73,6 +73,7 @@ struct WordsView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .colorScheme(.dark)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)

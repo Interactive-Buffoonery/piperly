@@ -37,6 +37,7 @@ struct ContentView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .colorScheme(.dark)
                     .frame(width: 340)
 
                     Spacer()

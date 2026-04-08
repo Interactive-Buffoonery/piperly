@@ -28,6 +28,7 @@ struct BookmarkListSheet: View {
             }
             .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .presentationDetents([.medium, .large])
         .presentationBackground(Piperly.Colors.background)
