@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piperly — App Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
+<style>
+/* ========================================
+   PIPERLY MOCKUP — iPad Ebook Reader
+   ======================================== */
+
+:root {
+  /* Surfaces */
+  --bg: #1C1C2E;
+  --surface: #252540;
+  --surface-el: #2E2E4A;
+  --border: #3A3A55;
+
+  /* Text */
+  --text-1: #E8E8F0;
+  --text-2: #9090A8;
+  --text-3: #606078;
+
+  /* Semantic */
+  --accent: #7C9FD4;
+  --success: #7BC8A4;
+  --warning: #D4A76A;
+  --error: #D47C7C;
+  --info: #9B8EC4;
+
+  /* Extended */
+  --teal: #7CD4C8;
+  --tan: #C8A87B;
+  --green: #8BC47B;
+
+  /* Voice avatar colors */
+  --v-heart: #D47C7C;
+  --v-bella: #9B8EC4;
+  --v-nicole: #7CD4C8;
+  --v-emma: #D4A76A;
+  --v-puck: #7BC8A4;
+  --v-fenrir: #7C9FD4;
+  --v-michael: #C8A87B;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0E0E1A;
+  color: var(--text-1);
+  font-family: 'Nunito', -apple-system, system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ========================================
+   SCREEN NAVIGATION
+   ======================================== */
+
+.screen-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 20px;
+  background: linear-gradient(180deg, rgba(14,14,26,0.95) 60%, transparent);
+}
+
+.screen-nav button {
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.screen-nav button:hover {
+  background: var(--surface-el);
+  color: var(--text-1);
+}
+
+.screen-nav button.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+/* ========================================
+   IPAD FRAME
+   ======================================== */
+
+.ipad-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 80px 40px 60px;
+  min-height: 100vh;
+}
+
+.ipad-frame {
+  width: 1024px;
+  height: 750px;
+  background: var(--bg);
+  border-radius: 24px;
+  border: 3px solid #2A2A44;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03),
+    0 30px 80px rgba(0,0,0,0.6),
+    0 10px 30px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  overflow: hidden;
+  position: relative;
+}
+
+.screen { display: none; height: 100%; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ========================================
+   SCREEN 1: LIBRARY
+   ======================================== */
+
+.library {
+  padding: 0;
+}
+
+.library-header {
+  padding: 36px 44px 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.library-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.library-title .logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--info));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 16px rgba(124,159,212,0.3);
+}
+
+.library-title h1 {
+  font-family: 'Nunito', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-1);
+  letter-spacing: -0.5px;
+}
+
+.library-subtitle {
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.add-book-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--border);
+  background: transparent;
+  color: var(--accent);
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-book-btn:hover {
+  background: rgba(124,159,212,0.08);
+  border-color: var(--accent);
+}
+
+.add-book-btn svg { width: 18px; height: 18px; }
+
+/* Continue reading banner */
+.continue-banner {
+  margin: 28px 44px 0;
+  padding: 20px 24px;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.continue-banner:hover {
+  background: var(--surface-el);
+  border-color: rgba(124,159,212,0.3);
+  transform: translateY(-1px);
+}
+
+.continue-cover {
+  width: 52px;
+  height: 72px;
+  border-radius: 8px;
+  background: linear-gradient(150deg, #3D2E5C, #5B3A7D, #7B4DA0);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.continue-cover span {
+  font-family: 'Literata', serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  text-align: center;
+  line-height: 1.2;
+  padding: 4px;
+}
+
+.continue-info { flex: 1; }
+
+.continue-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.continue-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 2px;
+}
+
+.continue-author {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.continue-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.progress-ring {
+  width: 44px;
+  height: 44px;
+  position: relative;
+}
+
+.progress-ring svg {
+  transform: rotate(-90deg);
+  width: 44px;
+  height: 44px;
+}
+
+.progress-ring .track {
+  fill: none;
+  stroke: var(--surface-el);
+  stroke-width: 3;
+}
+
+.progress-ring .fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 113;
+  stroke-dashoffset: 40;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.progress-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-1);
+}
+
+.continue-arrow {
+  color: var(--text-3);
+  font-size: 20px;
+  margin-left: 8px;
+}
+
+/* Book Grid */
+.section-label {
+  padding: 28px 44px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-3);
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  padding: 0 44px 40px;
+  flex: 1;
+  align-content: start;
+}
+
+.book-card {
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border-radius: 14px;
+}
+
+.book-card:hover {
+  transform: translateY(-4px);
+}
+
+.book-cover {
+  aspect-ratio: 2/3;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.book-cover .cover-text {
+  font-family: 'Literata', serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  text-align: center;
+  padding: 12px 10px;
+  line-height: 1.3;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.book-cover .cover-author {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 8px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.book-cover-1 { background: linear-gradient(150deg, #3D2E5C, #5B3A7D, #7B4DA0); }
+.book-cover-2 { background: linear-gradient(150deg, #2E4A3D, #3A6B52, #4A8A6A); }
+.book-cover-3 { background: linear-gradient(150deg, #4A2E2E, #6B3A3A, #8A4A4A); }
+.book-cover-4 { background: linear-gradient(150deg, #2E3A4A, #3A5270, #4A6A90); }
+.book-cover-5 { background: linear-gradient(150deg, #4A3D2E, #6B5B3A, #8A7A4A); }
+
+.book-progress-bar {
+  height: 3px;
+  background: var(--surface-el);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.book-progress-bar .fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.book-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.book-author {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-top: 1px;
+}
+
+/* ========================================
+   SCREEN 2: READER
+   ======================================== */
+
+.reader {
+  position: relative;
+}
+
+/* Reader toolbar */
+.reader-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.reader-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background: var(--surface-el);
+  color: var(--text-1);
+}
+
+.toolbar-btn.active {
+  background: rgba(124,159,212,0.12);
+  border-color: rgba(124,159,212,0.3);
+  color: var(--accent);
+}
+
+.reader-book-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.reader-chapter {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 1px;
+}
+
+.reader-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface-el);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.voice-chip:hover {
+  border-color: rgba(124,159,212,0.3);
+}
+
+.voice-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--bg);
+}
+
+.voice-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.voice-chip-arrow {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-left: 2px;
+}
+
+/* Reader content */
+.reader-content {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.reader-page-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 80px;
+  position: relative;
+}
+
+.page-content {
+  max-width: 600px;
+  width: 100%;
+  font-family: 'Literata', Georgia, serif;
+  font-size: 20px;
+  line-height: 1.75;
+  color: var(--text-1);
+  font-optical-sizing: auto;
+}
+
+.page-content p {
+  margin-bottom: 1.2em;
+  text-indent: 1.5em;
+}
+
+.page-content p:first-child {
+  text-indent: 0;
+}
+
+.page-content p:first-child::first-letter {
+  font-size: 3.2em;
+  float: left;
+  line-height: 0.85;
+  margin-right: 8px;
+  margin-top: 4px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Tappable words */
+.word {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s ease, color 0.15s ease;
+  padding: 1px 0;
+}
+
+.word:hover {
+  background: rgba(124,159,212,0.08);
+}
+
+.word.tapped {
+  background: rgba(124,159,212,0.25);
+  color: #fff;
+}
+
+/* Word tooltip */
+.word-tooltip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.word-tooltip.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-110%);
+}
+
+.word-tooltip-inner {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  white-space: nowrap;
+}
+
+.tooltip-word {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.tooltip-speaker {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(124,159,212,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-speaker 1s ease infinite;
+}
+
+@keyframes pulse-speaker {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.tooltip-speaker svg { width: 14px; height: 14px; color: var(--accent); }
+
+/* Page turn hints */
+.page-turn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+}
+
+.page-turn:hover {
+  opacity: 1;
+  background: var(--surface-el);
+  color: var(--text-1);
+}
+
+.page-turn.left { left: 20px; }
+.page-turn.right { right: 20px; }
+
+/* Reader footer */
+.reader-footer {
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+}
+
+.reader-progress-track {
+  flex: 1;
+  height: 3px;
+  background: var(--surface-el);
+  border-radius: 2px;
+  margin: 0 20px;
+  overflow: hidden;
+}
+
+.reader-progress-fill {
+  height: 100%;
+  width: 35%;
+  background: linear-gradient(90deg, var(--accent), var(--info));
+  border-radius: 2px;
+}
+
+.reader-page-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  min-width: 70px;
+}
+
+.reader-page-num.right { text-align: right; }
+
+/* ========================================
+   SCREEN 3: VOICE PICKER
+   ======================================== */
+
+.voice-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Reuse reader toolbar for voice screen but dim the content */
+.voice-screen .reader-toolbar {
+  opacity: 0.4;
+}
+
+.voice-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.voice-bg-content {
+  flex: 1;
+  opacity: 0.15;
+  padding: 36px 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-bg-content .page-content {
+  filter: blur(1px);
+}
+
+/* Voice sheet */
+.voice-sheet {
+  width: 380px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.voice-sheet-header {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.voice-sheet-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.voice-sheet-subtitle {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.voice-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.voice-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.voice-card:hover {
+  background: var(--surface-el);
+}
+
+.voice-card.selected {
+  background: var(--surface-el);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(124,159,212,0.15);
+}
+
+.voice-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--bg);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.voice-card.selected .voice-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+}
+
+.voice-info {
+  flex: 1;
+}
+
+.voice-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 1px;
+}
+
+.voice-meta {
+  font-size: 12px;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.voice-grade {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.grade-a { background: rgba(123,200,164,0.15); color: var(--success); }
+.grade-b { background: rgba(124,159,212,0.15); color: var(--accent); }
+.grade-c { background: rgba(144,144,168,0.15); color: var(--text-2); }
+
+.voice-preview-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.voice-preview-btn:hover {
+  background: rgba(124,159,212,0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.voice-speed-section {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.speed-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-3);
+  margin-bottom: 12px;
+}
+
+.speed-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.speed-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent);
+  min-width: 36px;
+  text-align: center;
+}
+
+.speed-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--surface-el);
+  border-radius: 2px;
+  outline: none;
+}
+
+.speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(124,159,212,0.4);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.book-card {
+  animation: fade-in-up 0.5s ease backwards;
+}
+
+.book-card:nth-child(1) { animation-delay: 0.05s; }
+.book-card:nth-child(2) { animation-delay: 0.1s; }
+.book-card:nth-child(3) { animation-delay: 0.15s; }
+.book-card:nth-child(4) { animation-delay: 0.2s; }
+.book-card:nth-child(5) { animation-delay: 0.25s; }
+
+.continue-banner { animation: fade-in-up 0.4s ease backwards; }
+
+/* Word tap animation */
+@keyframes word-glow {
+  0% { background: rgba(124,159,212,0.3); box-shadow: 0 0 0 0 rgba(124,159,212,0.3); }
+  50% { background: rgba(124,159,212,0.2); box-shadow: 0 0 12px 2px rgba(124,159,212,0.15); }
+  100% { background: transparent; box-shadow: none; }
+}
+
+.word.animate-tap {
+  animation: word-glow 0.8s ease forwards;
+}
+
+/* Tooltip pulse for speaker */
+@keyframes speaker-ring {
+  0% { box-shadow: 0 0 0 0 rgba(124,159,212,0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(124,159,212,0); }
+  100% { box-shadow: 0 0 0 0 rgba(124,159,212,0); }
+}
+
+.tooltip-speaker.playing {
+  animation: speaker-ring 0.8s ease;
+}
+
+/* ========================================
+   RESPONSIVE (FOR VIEWING ON SMALLER SCREENS)
+   ======================================== */
+
+@media (max-width: 1100px) {
+  .ipad-frame {
+    width: 100%;
+    height: 700px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .ipad-container { padding: 70px 0 20px; }
+}
+
+/* ========================================
+   SUBTLE TEXTURE
+   ======================================== */
+
+.ipad-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(124,159,212,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(155,142,196,0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.library, .reader, .voice-screen { position: relative; z-index: 1; }
+
+</style>
+</head>
+<body>
+
+<!-- Screen Navigation -->
+<nav class="screen-nav">
+  <button class="active" onclick="showScreen('library')">Library</button>
+  <button onclick="showScreen('reader')">Reader</button>
+  <button onclick="showScreen('voices')">Voice Picker</button>
+</nav>
+
+<!-- iPad Frame -->
+<div class="ipad-container">
+<div class="ipad-frame">
+
+  <!-- ============ LIBRARY SCREEN ============ -->
+  <div id="screen-library" class="screen library active">
+
+    <div class="library-header">
+      <div class="library-title">
+        <div class="logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1C2E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h4"/></svg>
+        </div>
+        <div>
+          <h1>Piperly</h1>
+          <div class="library-subtitle">Tap a word. Hear it.</div>
+        </div>
+      </div>
+      <button class="add-book-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Book
+      </button>
+    </div>
+
+    <!-- Continue Reading -->
+    <div class="continue-banner" onclick="showScreen('reader')">
+      <div class="continue-cover book-cover-1">
+        <span>Alice in<br>Wonderland</span>
+      </div>
+      <div class="continue-info">
+        <div class="continue-label">Continue Reading</div>
+        <div class="continue-title">Alice's Adventures in Wonderland</div>
+        <div class="continue-author">Lewis Carroll</div>
+      </div>
+      <div class="continue-progress">
+        <div class="progress-ring">
+          <svg viewBox="0 0 40 40">
+            <circle class="track" cx="20" cy="20" r="18" />
+            <circle class="fill" cx="20" cy="20" r="18" />
+          </svg>
+          <span class="progress-pct">65%</span>
+        </div>
+      </div>
+      <span class="continue-arrow">&rsaquo;</span>
+    </div>
+
+    <!-- Book Grid -->
+    <div class="section-label">Your Books</div>
+    <div class="book-grid">
+
+      <div class="book-card" onclick="showScreen('reader')">
+        <div class="book-cover book-cover-1">
+          <span class="cover-author">Lewis Carroll</span>
+          <span class="cover-text">Alice's<br>Adventures in<br>Wonderland</span>
+        </div>
+        <div class="book-progress-bar"><div class="fill" style="width: 65%"></div></div>
+        <div class="book-title">Alice in Wonderland</div>
+        <div class="book-author">Lewis Carroll</div>
+      </div>
+
+      <div class="book-card">
+        <div class="book-cover book-cover-2">
+          <span class="cover-author">Rudyard Kipling</span>
+          <span class="cover-text">The<br>Jungle<br>Book</span>
+        </div>
+        <div class="book-progress-bar"><div class="fill" style="width: 22%"></div></div>
+        <div class="book-title">The Jungle Book</div>
+        <div class="book-author">Rudyard Kipling</div>
+      </div>
+
+      <div class="book-card">
+        <div class="book-cover book-cover-3">
+          <span class="cover-author">Brothers Grimm</span>
+          <span class="cover-text">Grimm's<br>Fairy<br>Tales</span>
+        </div>
+        <div class="book-progress-bar"><div class="fill" style="width: 0%"></div></div>
+        <div class="book-title">Grimm's Fairy Tales</div>
+        <div class="book-author">Brothers Grimm</div>
+      </div>
+
+      <div class="book-card">
+        <div class="book-cover book-cover-4">
+          <span class="cover-author">L. Frank Baum</span>
+          <span class="cover-text">The<br>Wonderful<br>Wizard of Oz</span>
+        </div>
+        <div class="book-progress-bar"><div class="fill" style="width: 0%"></div></div>
+        <div class="book-title">The Wizard of Oz</div>
+        <div class="book-author">L. Frank Baum</div>
+      </div>
+
+      <div class="book-card">
+        <div class="book-cover book-cover-5">
+          <span class="cover-author">Kenneth Grahame</span>
+          <span class="cover-text">The Wind<br>in the<br>Willows</span>
+        </div>
+        <div class="book-progress-bar"><div class="fill" style="width: 10%"></div></div>
+        <div class="book-title">The Wind in the Willows</div>
+        <div class="book-author">Kenneth Grahame</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ READER SCREEN ============ -->
+  <div id="screen-reader" class="screen reader">
+
+    <div class="reader-toolbar">
+      <div class="reader-toolbar-left">
+        <button class="toolbar-btn" onclick="showScreen('library')" title="Back to Library">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="reader-book-title">Alice's Adventures in Wonderland</div>
+          <div class="reader-chapter">Chapter 1 &mdash; Down the Rabbit-Hole</div>
+        </div>
+      </div>
+      <div class="reader-toolbar-right">
+        <div class="voice-chip" onclick="showScreen('voices')" title="Change Voice">
+          <div class="voice-dot" style="background: var(--v-heart);">H</div>
+          <span class="voice-chip-name">Heart</span>
+          <span class="voice-chip-arrow">&#9662;</span>
+        </div>
+        <button class="toolbar-btn" title="Reading Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="reader-content">
+      <button class="page-turn left">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+
+      <div class="reader-page-area">
+        <div class="page-content" id="page-text">
+          <p><span class="word">Alice</span> <span class="word">was</span> <span class="word">beginning</span> <span class="word">to</span> <span class="word">get</span> <span class="word">very</span> <span class="word">tired</span> <span class="word">of</span> <span class="word">sitting</span> <span class="word">by</span> <span class="word">her</span> <span class="word">sister</span> <span class="word">on</span> <span class="word">the</span> <span class="word">bank,</span> <span class="word">and</span> <span class="word">of</span> <span class="word">having</span> <span class="word">nothing</span> <span class="word">to</span> <span class="word">do:</span> <span class="word">once</span> <span class="word">or</span> <span class="word">twice</span> <span class="word">she</span> <span class="word">had</span> <span class="word">peeped</span> <span class="word">into</span> <span class="word">the</span> <span class="word">book</span> <span class="word">her</span> <span class="word">sister</span> <span class="word">was</span> <span class="word">reading,</span> <span class="word">but</span> <span class="word">it</span> <span class="word">had</span> <span class="word">no</span> <span class="word" id="demo-word">pictures</span> <span class="word">or</span> <span class="word">conversations</span> <span class="word">in</span> <span class="word">it,</span> <span class="word">&ldquo;and</span> <span class="word">what</span> <span class="word">is</span> <span class="word">the</span> <span class="word">use</span> <span class="word">of</span> <span class="word">a</span> <span class="word">book,&rdquo;</span> <span class="word">thought</span> <span class="word">Alice</span> <span class="word">&ldquo;without</span> <span class="word">pictures</span> <span class="word">or</span> <span class="word">conversations?&rdquo;</span></p>
+          <p><span class="word">So</span> <span class="word">she</span> <span class="word">was</span> <span class="word">considering</span> <span class="word">in</span> <span class="word">her</span> <span class="word">own</span> <span class="word">mind</span> <span class="word">(as</span> <span class="word">well</span> <span class="word">as</span> <span class="word">she</span> <span class="word">could,</span> <span class="word">for</span> <span class="word">the</span> <span class="word">hot</span> <span class="word">day</span> <span class="word">made</span> <span class="word">her</span> <span class="word">feel</span> <span class="word">very</span> <span class="word">sleepy</span> <span class="word">and</span> <span class="word">stupid),</span> <span class="word">whether</span> <span class="word">the</span> <span class="word">pleasure</span> <span class="word">of</span> <span class="word">making</span> <span class="word">a</span> <span class="word">daisy-chain</span> <span class="word">would</span> <span class="word">be</span> <span class="word">worth</span> <span class="word">the</span> <span class="word">trouble</span> <span class="word">of</span> <span class="word">getting</span> <span class="word">up</span> <span class="word">and</span> <span class="word">picking</span> <span class="word">the</span> <span class="word">daisies,</span> <span class="word">when</span> <span class="word">suddenly</span> <span class="word">a</span> <span class="word">White</span> <span class="word">Rabbit</span> <span class="word">with</span> <span class="word">pink</span> <span class="word">eyes</span> <span class="word">ran</span> <span class="word">close</span> <span class="word">by</span> <span class="word">her.</span></p>
+        </div>
+
+        <!-- Tooltip (shown on word tap) -->
+        <div class="word-tooltip" id="word-tooltip">
+          <div class="word-tooltip-inner">
+            <div class="tooltip-speaker" id="tooltip-speaker">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            </div>
+            <span class="tooltip-word" id="tooltip-text">pictures</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="page-turn right">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <div class="reader-footer">
+      <span class="reader-page-num">Page 1</span>
+      <div class="reader-progress-track">
+        <div class="reader-progress-fill"></div>
+      </div>
+      <span class="reader-page-num right">of 45</span>
+    </div>
+  </div>
+
+  <!-- ============ VOICE PICKER SCREEN ============ -->
+  <div id="screen-voices" class="screen voice-screen">
+
+    <div class="reader-toolbar">
+      <div class="reader-toolbar-left">
+        <button class="toolbar-btn" onclick="showScreen('reader')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="reader-book-title">Alice's Adventures in Wonderland</div>
+          <div class="reader-chapter">Chapter 1 &mdash; Down the Rabbit-Hole</div>
+        </div>
+      </div>
+      <div class="reader-toolbar-right">
+        <button class="toolbar-btn" title="Reading Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="voice-layout">
+      <!-- Dimmed reader content behind -->
+      <div class="voice-bg-content">
+        <div class="page-content">
+          <p>Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it...</p>
+          <p>So she was considering in her own mind (as well as she could, for the hot day made her feel very sleepy and stupid), whether the pleasure of making a daisy-chain would be worth the trouble...</p>
+        </div>
+      </div>
+
+      <!-- Voice selection panel -->
+      <div class="voice-sheet">
+        <div class="voice-sheet-header">
+          <div class="voice-sheet-title">Choose a Voice</div>
+          <div class="voice-sheet-subtitle">Tap the play button to preview</div>
+        </div>
+
+        <div class="voice-list">
+
+          <div class="voice-card selected" onclick="selectVoice(this)">
+            <div class="voice-avatar" style="background: var(--v-heart);">H</div>
+            <div class="voice-info">
+              <div class="voice-name">Heart</div>
+              <div class="voice-meta">
+                American English
+                <span class="voice-grade grade-a">A</span>
+              </div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice(this)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+          </div>
+
+          <div class="voice-card" onclick="selectVoice(this)">
+            <div class="voice-avatar" style="background: var(--v-bella);">B</div>
+            <div class="voice-info">
+              <div class="voice-name">Bella</div>
+              <div class="voice-meta">
+                American English
+                <span class="voice-grade grade-a">A-</span>
+              </div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice(this)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+          </div>
+
+          <div class="voice-card" onclick="selectVoice(this)">
+            <div class="voice-avatar" style="background: var(--v-nicole);">N</div>
+            <div class="voice-info">
+              <div class="voice-name">Nicole</div>
+              <div class="voice-meta">
+                American English
+                <span class="voice-grade grade-b">B-</span>
+              </div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice(this)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+          </div>
+
+          <div class="voice-card" onclick="selectVoice(this)">
+            <div class="voice-avatar" style="background: var(--v-emma);">E</div>
+            <div class="voice-info">
+              <div class="voice-name">Emma</div>
+              <div class="voice-meta">
+                British English
+                <span class="voice-grade grade-b">B-</span>
+              </div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice(this)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+          </div>
+
+          <div class="voice-card" onclick="selectVoice(this)">
+            <div class="voice-avatar" style="background: var(--v-puck);">P</div>
+            <div class="voice-info">
+              <div class="voice-name">Puck</div>
+              <div class="voice-meta">
+                American English
+                <span class="voice-grade grade-c">C+</span>
+              </div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice(this)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+          </div>
+
+          <div class="voice-card" onclick="selectVoice(this)">
+            <div class="voice-avatar" style="background: var(--v-fenrir);">F</div>
+            <div class="voice-info">
+              <div class="voice-name">Fenrir</div>
+              <div class="voice-meta">
+                American English
+                <span class="voice-grade grade-c">C+</span>
+              </div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice(this)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+          </div>
+
+          <div class="voice-card" onclick="selectVoice(this)">
+            <div class="voice-avatar" style="background: var(--v-michael);">M</div>
+            <div class="voice-info">
+              <div class="voice-name">Michael</div>
+              <div class="voice-meta">
+                American English
+                <span class="voice-grade grade-c">C+</span>
+              </div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice(this)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+          </div>
+
+        </div>
+
+        <div class="voice-speed-section">
+          <div class="speed-label">Speaking Speed</div>
+          <div class="speed-slider-row">
+            <span class="speed-val">0.9x</span>
+            <input type="range" class="speed-slider" min="60" max="120" value="90"
+              oninput="this.previousElementSibling.textContent = (this.value/100).toFixed(1) + 'x'">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /ipad-frame -->
+</div><!-- /ipad-container -->
+
+<script>
+// Screen navigation
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.screen-nav button').forEach(b => b.classList.remove('active'));
+  const labels = { library: 0, reader: 1, voices: 2 };
+  document.querySelectorAll('.screen-nav button')[labels[name]].classList.add('active');
+}
+
+// Word tap interaction
+const tooltip = document.getElementById('word-tooltip');
+const tooltipText = document.getElementById('tooltip-text');
+const tooltipSpeaker = document.getElementById('tooltip-speaker');
+let activeWord = null;
+
+document.querySelectorAll('#page-text .word').forEach(word => {
+  word.addEventListener('click', function(e) {
+    e.stopPropagation();
+
+    // Remove previous
+    if (activeWord) {
+      activeWord.classList.remove('tapped');
+    }
+
+    // Highlight this word
+    this.classList.add('tapped');
+    activeWord = this;
+
+    // Clean word text
+    let text = this.textContent.replace(/[^a-zA-Z\u00C0-\u024F'-]/g, '');
+
+    // Position and show tooltip
+    const rect = this.getBoundingClientRect();
+    const pageArea = this.closest('.reader-page-area').getBoundingClientRect();
+
+    tooltip.style.top = (rect.top - pageArea.top + 4) + 'px';
+    tooltip.style.left = (rect.left - pageArea.left + rect.width / 2) + 'px';
+    tooltipText.textContent = text;
+    tooltip.classList.add('visible');
+
+    // Speaker pulse
+    tooltipSpeaker.classList.remove('playing');
+    void tooltipSpeaker.offsetWidth;
+    tooltipSpeaker.classList.add('playing');
+
+    // Use browser TTS for the demo
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.8;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Auto-hide
+    setTimeout(() => {
+      tooltip.classList.remove('visible');
+      if (activeWord === this) {
+        this.classList.remove('tapped');
+        activeWord = null;
+      }
+    }, 1500);
+  });
+});
+
+// Click elsewhere to dismiss
+document.addEventListener('click', function() {
+  tooltip.classList.remove('visible');
+  if (activeWord) {
+    activeWord.classList.remove('tapped');
+    activeWord = null;
+  }
+});
+
+// Voice selection
+function selectVoice(card) {
+  document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+}
+
+function previewVoice(btn) {
+  const card = btn.closest('.voice-card');
+  const name = card.querySelector('.voice-name').textContent;
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance("Hi, I'm " + name + "!");
+    utterance.rate = 0.85;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+// Auto-demo: tap "pictures" after a moment on reader screen
+let demoRan = false;
+const observer = new MutationObserver(() => {
+  const readerScreen = document.getElementById('screen-reader');
+  if (readerScreen.classList.contains('active') && !demoRan) {
+    demoRan = true;
+    setTimeout(() => {
+      const demoWord = document.getElementById('demo-word');
+      if (demoWord) demoWord.click();
+    }, 800);
+  }
+});
+observer.observe(document.getElementById('screen-reader'), { attributes: true, attributeFilter: ['class'] });
+</script>
+
+</body>
+</html>

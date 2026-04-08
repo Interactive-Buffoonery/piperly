@@ -1,0 +1,22 @@
+body {
+    background: #1C1C2E !important;
+    color: #E8E8F0 !important;
+    font-size: 22px !important;
+    line-height: 1.7 !important;
+    hyphens: none !important;
+    max-width: 35em;
+    margin: 0 auto;
+}
+
+a {
+    color: #7C9FD4 !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #E8E8F0 !important;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}

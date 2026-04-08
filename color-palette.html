@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Palette</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1C1C2E;
+    color: #E8E8F0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 40px;
+  }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  .subtitle { color: #9090A8; margin-bottom: 40px; }
+  h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #606078;
+    margin-bottom: 16px;
+    margin-top: 40px;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .swatch {
+    width: 200px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #3A3A55;
+  }
+  .swatch-color {
+    height: 80px;
+    display: flex;
+    align-items: flex-end;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .swatch-label {
+    background: #252540;
+    padding: 12px 14px;
+  }
+  .swatch-label .name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .swatch-label .desc {
+    font-size: 12px;
+    color: #9090A8;
+  }
+
+  .text-demo {
+    background: #252540;
+    border-radius: 10px;
+    padding: 24px;
+    border: 1px solid #3A3A55;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+    max-width: 500px;
+  }
+  .text-demo span { font-size: 16px; }
+
+  .chart-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .chart-swatch {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    gap: 4px;
+  }
+  .chart-swatch .hex { opacity: 0.9; font-size: 11px; }
+
+  .preview {
+    background: #252540;
+    border-radius: 10px;
+    padding: 24px;
+    border: 1px solid #3A3A55;
+    max-width: 600px;
+    margin-bottom: 12px;
+  }
+  .preview h3 { font-size: 18px; margin-bottom: 16px; }
+  .preview .card {
+    background: #2E2E4A;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #3A3A55;
+  }
+  .preview .card .title { font-weight: 600; margin-bottom: 4px; }
+  .preview .card .meta { color: #9090A8; font-size: 13px; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 6px;
+    margin-top: 8px;
+  }
+  .badge-success { background: rgba(123,200,164,0.15); color: #7BC8A4; }
+  .badge-warning { background: rgba(212,167,106,0.15); color: #D4A76A; }
+  .badge-error   { background: rgba(212,124,124,0.15); color: #D47C7C; }
+  .badge-info    { background: rgba(155,142,196,0.15); color: #9B8EC4; }
+  .badge-accent  { background: rgba(124,159,212,0.15); color: #7C9FD4; }
+
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 120px;
+    margin-top: 16px;
+    padding-top: 8px;
+  }
+  .bar {
+    width: 36px;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+  }
+  .bar span {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: #9090A8;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<h1>Color Palette</h1>
+<p class="subtitle">Dark theme swatches on the actual background</p>
+
+<h2>Surfaces</h2>
+<div class="row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#1C1C2E; color:#9090A8;">#1C1C2E</div>
+    <div class="swatch-label"><div class="name">Background</div><div class="desc">Deep navy-charcoal</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#252540; color:#9090A8;">#252540</div>
+    <div class="swatch-label"><div class="name">Surface</div><div class="desc">Cards, panels</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#2E2E4A; color:#9090A8;">#2E2E4A</div>
+    <div class="swatch-label"><div class="name">Surface Elevated</div><div class="desc">Hover, selected items</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#3A3A55; color:#9090A8;">#3A3A55</div>
+    <div class="swatch-label"><div class="name">Border</div><div class="desc">Subtle borders</div></div>
+  </div>
+</div>
+
+<h2>Text</h2>
+<div class="text-demo">
+  <span style="color:#E8E8F0;">Primary Text — #E8E8F0 — near-white with slight warmth</span>
+  <span style="color:#9090A8;">Secondary Text — #9090A8 — labels, timestamps</span>
+  <span style="color:#606078;">Tertiary Text — #606078 — disabled, hints</span>
+</div>
+
+<h2>Semantic Colors</h2>
+<div class="row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#7C9FD4; color:#1C1C2E;">#7C9FD4</div>
+    <div class="swatch-label"><div class="name">Accent / Primary</div><div class="desc">Links, selected items</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#7BC8A4; color:#1C1C2E;">#7BC8A4</div>
+    <div class="swatch-label"><div class="name">Success</div><div class="desc">Healthy, clean, up-to-date</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#D4A76A; color:#1C1C2E;">#D4A76A</div>
+    <div class="swatch-label"><div class="name">Warning</div><div class="desc">Needs attention</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#D47C7C; color:#1C1C2E;">#D47C7C</div>
+    <div class="swatch-label"><div class="name">Error</div><div class="desc">Errors, dead servers</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#9B8EC4; color:#1C1C2E;">#9B8EC4</div>
+    <div class="swatch-label"><div class="name">Info</div><div class="desc">Informational badges</div></div>
+  </div>
+</div>
+
+<h2>Chart Colors</h2>
+<div class="chart-row">
+  <div class="chart-swatch" style="background:#7C9FD4; color:#1C1C2E;">1<span class="hex">#7C9FD4</span></div>
+  <div class="chart-swatch" style="background:#7BC8A4; color:#1C1C2E;">2<span class="hex">#7BC8A4</span></div>
+  <div class="chart-swatch" style="background:#D4A76A; color:#1C1C2E;">3<span class="hex">#D4A76A</span></div>
+  <div class="chart-swatch" style="background:#D47C7C; color:#1C1C2E;">4<span class="hex">#D47C7C</span></div>
+  <div class="chart-swatch" style="background:#9B8EC4; color:#1C1C2E;">5<span class="hex">#9B8EC4</span></div>
+  <div class="chart-swatch" style="background:#7CD4C8; color:#1C1C2E;">6<span class="hex">#7CD4C8</span></div>
+  <div class="chart-swatch" style="background:#C8A87B; color:#1C1C2E;">7<span class="hex">#C8A87B</span></div>
+  <div class="chart-swatch" style="background:#8BC47B; color:#1C1C2E;">8<span class="hex">#8BC47B</span></div>
+</div>
+
+<h2>In Context</h2>
+<div class="preview">
+  <h3>Sample Card Layout</h3>
+  <div class="card">
+    <div class="title">Server: prod-web-01</div>
+    <div class="meta">Last checked 2 minutes ago</div>
+    <span class="badge badge-success">Healthy</span>
+    <span class="badge badge-info">v3.2.1</span>
+  </div>
+  <div class="card">
+    <div class="title">Server: prod-db-02</div>
+    <div class="meta">Last checked 5 minutes ago</div>
+    <span class="badge badge-warning">High CPU</span>
+    <span class="badge badge-accent">Primary</span>
+  </div>
+  <div class="card">
+    <div class="title">Server: staging-api-01</div>
+    <div class="meta">Last checked 12 minutes ago</div>
+    <span class="badge badge-error">Unreachable</span>
+  </div>
+
+  <div class="bar-chart">
+    <div class="bar" style="height:90%; background:#7C9FD4;"><span>Mon</span></div>
+    <div class="bar" style="height:60%; background:#7BC8A4;"><span>Tue</span></div>
+    <div class="bar" style="height:75%; background:#D4A76A;"><span>Wed</span></div>
+    <div class="bar" style="height:40%; background:#D47C7C;"><span>Thu</span></div>
+    <div class="bar" style="height:85%; background:#9B8EC4;"><span>Fri</span></div>
+    <div class="bar" style="height:55%; background:#7CD4C8;"><span>Sat</span></div>
+    <div class="bar" style="height:70%; background:#C8A87B;"><span>Sun</span></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,40 @@
+import SwiftUI
+
+extension Color {
+    init(hex: UInt32, opacity: Double = 1.0) {
+        self.init(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255.0,
+            green: Double((hex >> 8) & 0xFF) / 255.0,
+            blue: Double(hex & 0xFF) / 255.0,
+            opacity: opacity
+        )
+    }
+}
+
+enum Piperly {
+    enum Colors {
+        // Surfaces
+        static let background = Color(hex: 0x1C1C2E)
+        static let surface = Color(hex: 0x252540)
+        static let surfaceElevated = Color(hex: 0x2E2E4A)
+        static let border = Color(hex: 0x3A3A55)
+
+        // Text
+        static let textPrimary = Color(hex: 0xE8E8F0)
+        static let textSecondary = Color(hex: 0x9090A8)
+        static let textTertiary = Color(hex: 0x606078)
+
+        // Semantic
+        static let accent = Color(hex: 0x7C9FD4)
+        static let success = Color(hex: 0x7BC8A4)
+        static let warning = Color(hex: 0xD4A76A)
+        static let error = Color(hex: 0xD47C7C)
+        static let info = Color(hex: 0x9B8EC4)
+
+        // Extended palette
+        static let teal = Color(hex: 0x7CD4C8)
+        static let tan = Color(hex: 0xC8A87B)
+        static let green = Color(hex: 0x8BC47B)
+    }
+}
