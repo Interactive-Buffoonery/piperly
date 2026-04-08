@@ -11,7 +11,6 @@ struct SettingsView: View {
     @State private var showSetPIN = false
     @State private var showChangePIN = false
     @State private var showRemovePIN = false
-    @State private var newPIN = ""
 
     @AppStorage("readerFontSize") private var fontSize: Double = 22
     @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
@@ -330,15 +329,10 @@ struct SettingsView: View {
         }
 
         Task {
+            let config = OPDSServerConfig(url: url, username: username, password: password)
             var request = URLRequest(url: url)
-            if !username.isEmpty {
-                let credentials = "\(username):\(password)"
-                if let data = credentials.data(using: .utf8) {
-                    request.setValue(
-                        "Basic \(data.base64EncodedString())",
-                        forHTTPHeaderField: "Authorization"
-                    )
-                }
+            if let authValue = config.authorizationHeaderValue() {
+                request.setValue(authValue, forHTTPHeaderField: "Authorization")
             }
 
             do {

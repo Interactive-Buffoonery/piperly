@@ -78,7 +78,7 @@ struct ContentView: View {
                 }
             }
             .background(Piperly.Colors.background.ignoresSafeArea())
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .fullScreenCover(item: $selectedBook) { book in
                 ReaderView(book: book, ttsEngine: ttsEngine)
                     .environmentObject(bookStore)

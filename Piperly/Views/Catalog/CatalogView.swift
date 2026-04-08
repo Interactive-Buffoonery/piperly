@@ -179,12 +179,19 @@ struct CatalogView: View {
     }
 
     private func isDownloaded(_ item: CatalogItem) -> Bool {
-        bookStore.books.contains { $0.title == item.title }
+        let expectedFileName = item.title.replacingOccurrences(of: "/", with: "-") + ".epub"
+        return bookStore.books.contains { $0.fileName == expectedFileName }
     }
 
     private func downloadItem(_ item: CatalogItem) {
         Task {
-            try? await opdsService.downloadBook(item, to: bookStore)
+            do {
+                try await opdsService.downloadBook(item, to: bookStore)
+            } catch let error as OPDSError {
+                opdsService.error = error
+            } catch {
+                opdsService.error = .downloadFailed(error.localizedDescription)
+            }
         }
     }
 }

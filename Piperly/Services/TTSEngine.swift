@@ -1,4 +1,7 @@
 import AVFoundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.piperly", category: "TTSEngine")
 
 @MainActor
 final class TTSEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
@@ -37,7 +40,7 @@ final class TTSEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             )
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            print("Audio session configuration failed: \(error)")
+            logger.error("Audio session configuration failed: \(error.localizedDescription)")
         }
     }
 
