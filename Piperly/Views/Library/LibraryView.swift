@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @EnvironmentObject var bookStore: BookStore
     @Binding var selectedBook: Book?
-    @State private var showingImporter = false
+    @Binding var showingImporter: Bool
 
     private let columns = [
         GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 24)
@@ -22,23 +22,16 @@ struct LibraryView: View {
                         ForEach(bookStore.books) { book in
                             BookCard(book: book)
                                 .onTapGesture { selectedBook = book }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        bookStore.deleteBook(book)
+                                    } label: {
+                                        Label("Delete Book", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                     .padding(24)
-                }
-            }
-        }
-        .navigationTitle("Piperly")
-        .toolbarBackground(Piperly.Colors.background, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingImporter = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(Piperly.Colors.accent)
                 }
             }
         }

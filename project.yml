@@ -74,6 +74,8 @@ targets:
         product: ReadiumStreamer
       - package: ReadiumSwiftToolkit
         product: ReadiumNavigator
+      - package: ReadiumSwiftToolkit
+        product: ReadiumOPDS
 
   PiperlyTests:
     type: bundle.unit-test

@@ -3,6 +3,8 @@ import SwiftUI
 @main
 struct PiperlyApp: App {
     @StateObject private var bookStore = BookStore()
+    @StateObject private var pinManager = PINManager()
+    @StateObject private var opdsService = OPDSService()
     private let ttsEngine = TTSEngine()
     @AppStorage("hasCompletedVoiceSetup") private var hasCompletedVoiceSetup = false
     @State private var showVoiceSetup = false
@@ -11,6 +13,8 @@ struct PiperlyApp: App {
         WindowGroup {
             ContentView(ttsEngine: ttsEngine)
                 .environmentObject(bookStore)
+                .environmentObject(pinManager)
+                .environmentObject(opdsService)
                 .task {
                     await bookStore.importSampleBooksIfNeeded()
                 }
