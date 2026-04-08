@@ -47,8 +47,9 @@ struct ReaderNavigator: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {
         uiViewController.submitPreferences(preferences)
+        let script = readerTheme.cssVariablesScript
         Task { @MainActor in
-            uiViewController.evaluateJavaScript(readerTheme.cssVariablesScript)
+            _ = await uiViewController.evaluateJavaScript(script)
         }
     }
 
