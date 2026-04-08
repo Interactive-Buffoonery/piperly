@@ -30,7 +30,10 @@ struct ReaderNavigator: UIViewControllerRepresentable {
                 config: config
             )
             navigator.delegate = context.coordinator
-            context.coordinator.parent.onNavigatorReady?(navigator)
+            let callback = onNavigatorReady
+            DispatchQueue.main.async {
+                callback?(navigator)
+            }
             return navigator
         } catch {
             logger.error("EPUBNavigatorViewController init failed: \(error.localizedDescription)")
@@ -47,9 +50,12 @@ struct ReaderNavigator: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {
         uiViewController.submitPreferences(preferences)
-        let script = readerTheme.cssVariablesScript
-        Task { @MainActor in
-            _ = await uiViewController.evaluateJavaScript(script)
+        if readerTheme != context.coordinator.lastTheme {
+            context.coordinator.lastTheme = readerTheme
+            let script = readerTheme.cssVariablesScript
+            Task { @MainActor in
+                _ = await uiViewController.evaluateJavaScript(script)
+            }
         }
     }
 
@@ -60,9 +66,11 @@ struct ReaderNavigator: UIViewControllerRepresentable {
     @MainActor
     class Coordinator: NSObject, EPUBNavigatorDelegate {
         let parent: ReaderNavigator
+        var lastTheme: ReaderTheme
 
         init(parent: ReaderNavigator) {
             self.parent = parent
+            self.lastTheme = parent.readerTheme
         }
 
         func navigator(_ navigator: EPUBNavigatorViewController, setupUserScripts userContentController: WKUserContentController) {

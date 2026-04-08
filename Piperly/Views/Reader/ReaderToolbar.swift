@@ -29,9 +29,15 @@ struct ReaderToolbar: View {
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
             .accessibilityLabel(isBookmarked ? "Remove bookmark" : "Add bookmark")
-            .onLongPressGesture {
-                onBookmarkList()
+
+            Button(action: onBookmarkList) {
+                Image(systemName: "bookmark.square")
+                    .font(.title3)
+                    .foregroundStyle(Piperly.Colors.accent)
             }
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+            .accessibilityLabel("View bookmarks")
 
             Button(action: onTableOfContents) {
                 Image(systemName: "list.bullet")

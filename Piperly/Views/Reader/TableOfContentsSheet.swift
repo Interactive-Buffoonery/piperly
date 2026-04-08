@@ -75,10 +75,11 @@ struct TableOfContentsSheet: View {
         let isCurrent = isCurrentChapter(item.link)
 
         return Button {
-            Task {
+            dismiss()
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(300))
                 await navigator?.go(to: item.link)
             }
-            dismiss()
         } label: {
             HStack(spacing: 12) {
                 if item.depth > 0 {

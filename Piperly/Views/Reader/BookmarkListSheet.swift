@@ -64,7 +64,7 @@ struct BookmarkListSheet: View {
                             .frame(width: 32)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(bookmark.title ?? "Untitled")
+                            Text(bookmark.title ?? "Page at \(Int(bookmark.progression * 100))%")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundStyle(Piperly.Colors.textPrimary)
                             HStack(spacing: 8) {
@@ -100,9 +100,10 @@ struct BookmarkListSheet: View {
 
     private func navigateTo(_ bookmark: Bookmark) {
         guard let locator = try? Locator(jsonString: bookmark.locatorJSON) else { return }
-        Task {
+        dismiss()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
             await navigator?.go(to: locator)
         }
-        dismiss()
     }
 }
