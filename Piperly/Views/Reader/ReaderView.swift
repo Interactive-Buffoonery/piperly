@@ -7,6 +7,7 @@ struct ReaderView: View {
     @Environment(\.dismiss) private var dismiss
 
     let book: Book
+    let ttsEngine: TTSEngine
 
     @State private var publication: Publication?
     @State private var isLoading = true
@@ -14,6 +15,8 @@ struct ReaderView: View {
     @State private var showingVoicePicker = false
     @State private var tappedWord: String?
     @State private var showWordBubble = false
+    @AppStorage("selectedVoiceID") private var selectedVoiceID: Int = 3
+    @AppStorage("ttsSpeed") private var ttsSpeed: Double = 0.9
     @StateObject private var wordTapCoordinator = WordTapCoordinator()
 
     var body: some View {
@@ -40,6 +43,19 @@ struct ReaderView: View {
                         }
                     )
                 }
+            } else if let errorMessage {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 48))
+                        .foregroundStyle(Piperly.Colors.error)
+                    Text(errorMessage)
+                        .font(Piperly.Typography.body)
+                        .foregroundStyle(Piperly.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            }
+
             // Word tap bubble overlay
             if showWordBubble, let word = tappedWord {
                 VStack {
@@ -61,19 +77,6 @@ struct ReaderView: View {
                 }
                 .animation(.spring(duration: 0.3), value: showWordBubble)
             }
-
-            } else if let errorMessage {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 48))
-                        .foregroundStyle(Piperly.Colors.error)
-                    Text(errorMessage)
-                        .font(Piperly.Typography.body)
-                        .foregroundStyle(Piperly.Colors.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-            }
         }
         .task {
             await loadPublication()
@@ -82,6 +85,15 @@ struct ReaderView: View {
             wordTapCoordinator.onWordTapped = { word in
                 tappedWord = word
                 showWordBubble = true
+
+                Task {
+                    try? await ttsEngine.speak(
+                        word: word,
+                        voiceID: selectedVoiceID,
+                        speed: Float(ttsSpeed)
+                    )
+                }
+
                 Task { @MainActor in
                     try? await Task.sleep(for: .seconds(1.5))
                     showWordBubble = false

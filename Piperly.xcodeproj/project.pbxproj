@@ -13,6 +13,7 @@
 		3AC16D4D89F0CBC50AC41C91 /* PiperlyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEE3796984A778CA18D6B83F /* PiperlyTests.swift */; };
 		48B1869DE73286878F0EABC7 /* WordTapCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE753ECD378C1FB1B62B5BEE /* WordTapCoordinator.swift */; };
 		4FF6E8B0F50C76A327C6F2F8 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505AE8E196D11F1F4CEC38BA /* Book.swift */; };
+		509EE15C974BA348E532B3FA /* TTSEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */; };
 		552ECE15A6B18EA34CCCD77F /* PiperlyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4D52458E36471558AFE41A /* PiperlyUITests.swift */; };
 		5FC02FE57992316415BAA4FF /* VoicePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F33AE51FAB9D371EE0F1F67 /* VoicePickerSheet.swift */; };
 		73ACA44C6478B51A602B48B4 /* word-tap.js in Resources */ = {isa = PBXBuildFile; fileRef = AEC8DDABC8527ECA9066D42E /* word-tap.js */; };
@@ -20,6 +21,7 @@
 		80F2409594CBAF3AA74C2614 /* Voice.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9B6B19370415EA2352127 /* Voice.swift */; };
 		85E7D31D4BC3F2ABD744D802 /* ReadingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9A84DE0100E1E51EFA366F /* ReadingProgress.swift */; };
 		876B3E27B8C741FF25C8D629 /* ImportButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 907A4ACDFF28240D2A04EC58 /* ImportButton.swift */; };
+		902853FDC93BE0846CF773C8 /* sherpa-onnx-spm in Frameworks */ = {isa = PBXBuildFile; productRef = EC6319343BD962E5E44ED075 /* sherpa-onnx-spm */; };
 		96A0782B38BA02C7827B1F6F /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B5EA42469618622432905D /* Typography.swift */; };
 		A4D9861B907C32BA65FA94BA /* ReaderToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */; };
 		A9B8672F77616A3D902F1BB5 /* BookCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020FF465ED5DAE55F3F23078 /* BookCard.swift */; };
@@ -66,6 +68,7 @@
 		AA3C687F79D0D61F50394188 /* PiperlyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PiperlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AEC8DDABC8527ECA9066D42E /* word-tap.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "word-tap.js"; sourceTree = "<group>"; };
 		B0B5EA42469618622432905D /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSEngine.swift; sourceTree = "<group>"; };
 		CD4617B4737EF21A2663B076 /* BookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookStore.swift; sourceTree = "<group>"; };
 		CEE3796984A778CA18D6B83F /* PiperlyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyTests.swift; sourceTree = "<group>"; };
 		CFADC6967714E5F36F446A79 /* ReadingSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingSettingsSheet.swift; sourceTree = "<group>"; };
@@ -85,6 +88,7 @@
 				DC10B557D03A8F34EB5681B6 /* ReadiumShared in Frameworks */,
 				0C485B6CB7E6999A9D18C4FC /* ReadiumStreamer in Frameworks */,
 				3999B9FA53792DA07DC6F6A2 /* ReadiumNavigator in Frameworks */,
+				902853FDC93BE0846CF773C8 /* sherpa-onnx-spm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -229,6 +233,7 @@
 			isa = PBXGroup;
 			children = (
 				CD4617B4737EF21A2663B076 /* BookStore.swift */,
+				B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -271,6 +276,7 @@
 				FB84F84F12F294A465FEFEB0 /* ReadiumShared */,
 				006A5070094A4C3395683919 /* ReadiumStreamer */,
 				17B713292E77005A7751B9DC /* ReadiumNavigator */,
+				EC6319343BD962E5E44ED075 /* sherpa-onnx-spm */,
 			);
 			productName = Piperly;
 			productReference = 5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */;
@@ -322,6 +328,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				86C4B9EECA9D167FFB4F3C4C /* XCRemoteSwiftPackageReference "swift-toolkit" */,
+				32E32F96FAAE7D156385533A /* XCRemoteSwiftPackageReference "sherpa-onnx-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2E5FEB14B04227E678872434 /* Products */;
@@ -381,6 +388,7 @@
 				E6C03BC61FD764CBCFB96B15 /* ReaderView.swift in Sources */,
 				85E7D31D4BC3F2ABD744D802 /* ReadingProgress.swift in Sources */,
 				F50D09433408CF970C4DB0FE /* ReadingSettingsSheet.swift in Sources */,
+				509EE15C974BA348E532B3FA /* TTSEngine.swift in Sources */,
 				96A0782B38BA02C7827B1F6F /* Typography.swift in Sources */,
 				80F2409594CBAF3AA74C2614 /* Voice.swift in Sources */,
 				5FC02FE57992316415BAA4FF /* VoicePickerSheet.swift in Sources */,
@@ -677,6 +685,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		32E32F96FAAE7D156385533A /* XCRemoteSwiftPackageReference "sherpa-onnx-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/fdddf/sherpa-onnx-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.12.19;
+			};
+		};
 		86C4B9EECA9D167FFB4F3C4C /* XCRemoteSwiftPackageReference "swift-toolkit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/readium/swift-toolkit";
@@ -697,6 +713,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 86C4B9EECA9D167FFB4F3C4C /* XCRemoteSwiftPackageReference "swift-toolkit" */;
 			productName = ReadiumNavigator;
+		};
+		EC6319343BD962E5E44ED075 /* sherpa-onnx-spm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 32E32F96FAAE7D156385533A /* XCRemoteSwiftPackageReference "sherpa-onnx-spm" */;
+			productName = "sherpa-onnx-spm";
 		};
 		FB84F84F12F294A465FEFEB0 /* ReadiumShared */ = {
 			isa = XCSwiftPackageProductDependency;

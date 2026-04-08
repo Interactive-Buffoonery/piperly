@@ -10,6 +10,9 @@ packages:
   ReadiumSwiftToolkit:
     url: https://github.com/readium/swift-toolkit
     from: "3.2.0"
+  SherpaOnnxSPM:
+    url: https://github.com/fdddf/sherpa-onnx-spm
+    from: "1.12.19"
 
 targets:
   Piperly:
@@ -78,6 +81,8 @@ targets:
         product: ReadiumStreamer
       - package: ReadiumSwiftToolkit
         product: ReadiumNavigator
+      - package: SherpaOnnxSPM
+        product: sherpa-onnx-spm
 
   PiperlyTests:
     type: bundle.unit-test
