@@ -5,9 +5,11 @@ import ReadiumStreamer
 @MainActor
 class BookStore: ObservableObject {
     @Published var books: [Book] = []
+    @Published var bookmarks: [Bookmark] = []
 
     private let documentsURL: URL
     private let booksKey = "piperly_books"
+    private let bookmarksKey = "piperly_bookmarks"
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -15,6 +17,7 @@ class BookStore: ObservableObject {
 
         try? FileManager.default.createDirectory(at: documentsURL, withIntermediateDirectories: true)
         loadBooks()
+        loadBookmarks()
     }
 
     func loadBooks() {
@@ -65,6 +68,58 @@ class BookStore: ObservableObject {
             books[index].lastReadProgression = progression
             saveBooks()
         }
+    }
+
+    func updateLocator(for bookID: UUID, locatorJSON: String) {
+        if let index = books.firstIndex(where: { $0.id == bookID }) {
+            books[index].lastReadLocatorJSON = locatorJSON
+            saveBooks()
+        }
+    }
+
+    // MARK: - Bookmarks
+
+    func loadBookmarks() {
+        guard let data = UserDefaults.standard.data(forKey: bookmarksKey),
+              let saved = try? JSONDecoder().decode([Bookmark].self, from: data) else {
+            return
+        }
+        bookmarks = saved
+    }
+
+    func saveBookmarks() {
+        if let data = try? JSONEncoder().encode(bookmarks) {
+            UserDefaults.standard.set(data, forKey: bookmarksKey)
+        }
+    }
+
+    func addBookmark(for bookID: UUID, locatorJSON: String, title: String?, progression: Double, sticker: BookmarkSticker) {
+        let bookmark = Bookmark(
+            bookID: bookID,
+            locatorJSON: locatorJSON,
+            title: title,
+            progression: progression,
+            sticker: sticker
+        )
+        bookmarks.append(bookmark)
+        saveBookmarks()
+    }
+
+    func removeBookmark(_ id: UUID) {
+        bookmarks.removeAll { $0.id == id }
+        saveBookmarks()
+    }
+
+    func bookmarks(for bookID: UUID) -> [Bookmark] {
+        bookmarks.filter { $0.bookID == bookID }.sorted { $0.progression < $1.progression }
+    }
+
+    func isBookmarked(bookID: UUID, progression: Double) -> Bool {
+        bookmarks.contains { $0.bookID == bookID && abs($0.progression - progression) < 0.001 }
+    }
+
+    func findBookmark(bookID: UUID, progression: Double) -> Bookmark? {
+        bookmarks.first { $0.bookID == bookID && abs($0.progression - progression) < 0.001 }
     }
 
     func importSampleBooksIfNeeded() async {

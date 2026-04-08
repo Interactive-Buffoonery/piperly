@@ -7,6 +7,7 @@ struct Book: Identifiable, Codable {
     let fileName: String
     var coverImageName: String?
     var lastReadProgression: Double
+    var lastReadLocatorJSON: String?
 
     init(
         id: UUID = UUID(),
@@ -14,7 +15,8 @@ struct Book: Identifiable, Codable {
         author: String,
         fileName: String,
         coverImageName: String? = nil,
-        lastReadProgression: Double = 0.0
+        lastReadProgression: Double = 0.0,
+        lastReadLocatorJSON: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -22,5 +24,6 @@ struct Book: Identifiable, Codable {
         self.fileName = fileName
         self.coverImageName = coverImageName
         self.lastReadProgression = lastReadProgression
+        self.lastReadLocatorJSON = lastReadLocatorJSON
     }
 }

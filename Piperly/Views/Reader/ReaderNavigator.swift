@@ -9,10 +9,21 @@ struct ReaderNavigator: UIViewControllerRepresentable {
     let initialLocator: Locator?
     let wordTapCoordinator: WordTapCoordinator
     var onProgressChanged: ((Double) -> Void)?
+    var onNavigatorReady: ((EPUBNavigatorViewController) -> Void)?
+    var onLocationChanged: ((Locator) -> Void)?
 
     func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
+        let prefs = EPUBPreferences(
+            backgroundColor: ReadiumNavigator.Color(hex: "#1C1C2E"),
+            hyphens: false,
+            lineHeight: 1.7,
+            publisherStyles: false,
+            scroll: false,
+            textColor: ReadiumNavigator.Color(hex: "#E8E8F0")
+        )
+
         let config = EPUBNavigatorViewController.Configuration(
-            preferences: EPUBPreferences(scroll: false),
+            preferences: prefs,
             editingActions: []
         )
 
@@ -23,6 +34,7 @@ struct ReaderNavigator: UIViewControllerRepresentable {
                 config: config
             )
             navigator.delegate = context.coordinator
+            context.coordinator.parent.onNavigatorReady?(navigator)
             return navigator
         } catch {
             // Return a bare navigator as fallback - this shouldn't happen
@@ -82,6 +94,7 @@ struct ReaderNavigator: UIViewControllerRepresentable {
             let progression = locator.locations.totalProgression ?? 0
             Task { @MainActor in
                 parent.onProgressChanged?(progression)
+                parent.onLocationChanged?(locator)
             }
         }
     }

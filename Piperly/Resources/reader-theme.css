@@ -1,9 +1,4 @@
 body {
-    background: #1C1C2E !important;
-    color: #E8E8F0 !important;
-    font-size: 22px !important;
-    line-height: 1.7 !important;
-    hyphens: none !important;
     max-width: 35em;
     margin: 0 auto;
 }

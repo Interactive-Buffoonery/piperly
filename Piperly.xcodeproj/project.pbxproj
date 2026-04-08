@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		06D163B795C07C40FDD4C639 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180FD98DD38FFD512B905060 /* ContentView.swift */; };
 		0C485B6CB7E6999A9D18C4FC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = 006A5070094A4C3395683919 /* ReadiumStreamer */; };
+		0E530D72404395441FD653A0 /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42EE24832B91ACFF0C32CCAC /* Bookmark.swift */; };
+		203DF207BABAB9FE753A085B /* TableOfContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15436967F2E7E08C3F4C37D4 /* TableOfContentsSheet.swift */; };
 		3999B9FA53792DA07DC6F6A2 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = 17B713292E77005A7751B9DC /* ReadiumNavigator */; };
 		3AC16D4D89F0CBC50AC41C91 /* PiperlyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEE3796984A778CA18D6B83F /* PiperlyTests.swift */; };
 		3CF38A165C6ED0FFF26DDB03 /* the-secret-garden.epub in Resources */ = {isa = PBXBuildFile; fileRef = CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */; };
@@ -17,6 +19,8 @@
 		509EE15C974BA348E532B3FA /* TTSEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */; };
 		552ECE15A6B18EA34CCCD77F /* PiperlyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4D52458E36471558AFE41A /* PiperlyUITests.swift */; };
 		5FC02FE57992316415BAA4FF /* VoicePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F33AE51FAB9D371EE0F1F67 /* VoicePickerSheet.swift */; };
+		67DA759D33D6283C457B577B /* StickerPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB264E643F353A189D2BDFC4 /* StickerPicker.swift */; };
+		6C211085478661C47382156D /* BookmarkListSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A1B958B2C979E3FC7F5F17 /* BookmarkListSheet.swift */; };
 		73ACA44C6478B51A602B48B4 /* word-tap.js in Resources */ = {isa = PBXBuildFile; fileRef = AEC8DDABC8527ECA9066D42E /* word-tap.js */; };
 		7B61C8E28DA7A9C27B7B27D6 /* reader-theme.css in Resources */ = {isa = PBXBuildFile; fileRef = 219B546B88E956F5EC6324D7 /* reader-theme.css */; };
 		80F2409594CBAF3AA74C2614 /* Voice.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9B6B19370415EA2352127 /* Voice.swift */; };
@@ -56,11 +60,13 @@
 		020FF465ED5DAE55F3F23078 /* BookCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCard.swift; sourceTree = "<group>"; };
 		0575D688D631F115AF497590 /* PiperlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyApp.swift; sourceTree = "<group>"; };
 		0F33AE51FAB9D371EE0F1F67 /* VoicePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoicePickerSheet.swift; sourceTree = "<group>"; };
+		15436967F2E7E08C3F4C37D4 /* TableOfContentsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableOfContentsSheet.swift; sourceTree = "<group>"; };
 		180FD98DD38FFD512B905060 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1E04B476A4331F7545247076 /* ReaderNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderNavigator.swift; sourceTree = "<group>"; };
 		219B546B88E956F5EC6324D7 /* reader-theme.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "reader-theme.css"; sourceTree = "<group>"; };
 		32263DACC627AF31FFB42A6F /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		3F0C8334C49EE044ECDF320F /* VoiceSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupSheet.swift; sourceTree = "<group>"; };
+		42EE24832B91ACFF0C32CCAC /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
 		505AE8E196D11F1F4CEC38BA /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D67EDBA545BF502AADA33A5 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
@@ -70,6 +76,7 @@
 		AEC8DDABC8527ECA9066D42E /* word-tap.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "word-tap.js"; sourceTree = "<group>"; };
 		B0B5EA42469618622432905D /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSEngine.swift; sourceTree = "<group>"; };
+		BB264E643F353A189D2BDFC4 /* StickerPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerPicker.swift; sourceTree = "<group>"; };
 		CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */ = {isa = PBXFileReference; path = "the-secret-garden.epub"; sourceTree = "<group>"; };
 		CD4617B4737EF21A2663B076 /* BookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookStore.swift; sourceTree = "<group>"; };
 		CEE3796984A778CA18D6B83F /* PiperlyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyTests.swift; sourceTree = "<group>"; };
@@ -77,6 +84,7 @@
 		D9F98151594647A2B03041EC /* PiperlyUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PiperlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA4D52458E36471558AFE41A /* PiperlyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyUITests.swift; sourceTree = "<group>"; };
 		EE753ECD378C1FB1B62B5BEE /* WordTapCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordTapCoordinator.swift; sourceTree = "<group>"; };
+		F2A1B958B2C979E3FC7F5F17 /* BookmarkListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkListSheet.swift; sourceTree = "<group>"; };
 		F50E2DE40A7757EF922301E5 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
 		FBF9B6B19370415EA2352127 /* Voice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Voice.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -168,6 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				505AE8E196D11F1F4CEC38BA /* Book.swift */,
+				42EE24832B91ACFF0C32CCAC /* Bookmark.swift */,
 				FBF9B6B19370415EA2352127 /* Voice.swift */,
 			);
 			path = Models;
@@ -186,9 +195,12 @@
 		87FD6EBCE8E5038087DDBE23 /* Reader */ = {
 			isa = PBXGroup;
 			children = (
+				F2A1B958B2C979E3FC7F5F17 /* BookmarkListSheet.swift */,
 				1E04B476A4331F7545247076 /* ReaderNavigator.swift */,
 				79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */,
 				F50E2DE40A7757EF922301E5 /* ReaderView.swift */,
+				BB264E643F353A189D2BDFC4 /* StickerPicker.swift */,
+				15436967F2E7E08C3F4C37D4 /* TableOfContentsSheet.swift */,
 				EE753ECD378C1FB1B62B5BEE /* WordTapCoordinator.swift */,
 			);
 			path = Reader;
@@ -378,6 +390,8 @@
 				4FF6E8B0F50C76A327C6F2F8 /* Book.swift in Sources */,
 				A9B8672F77616A3D902F1BB5 /* BookCard.swift in Sources */,
 				F55EF49167FD7539DAA7D369 /* BookStore.swift in Sources */,
+				0E530D72404395441FD653A0 /* Bookmark.swift in Sources */,
+				6C211085478661C47382156D /* BookmarkListSheet.swift in Sources */,
 				C8EB86567BED41A31D9493EB /* Colors.swift in Sources */,
 				06D163B795C07C40FDD4C639 /* ContentView.swift in Sources */,
 				876B3E27B8C741FF25C8D629 /* ImportButton.swift in Sources */,
@@ -387,7 +401,9 @@
 				A4D9861B907C32BA65FA94BA /* ReaderToolbar.swift in Sources */,
 				E6C03BC61FD764CBCFB96B15 /* ReaderView.swift in Sources */,
 				F50D09433408CF970C4DB0FE /* ReadingSettingsSheet.swift in Sources */,
+				67DA759D33D6283C457B577B /* StickerPicker.swift in Sources */,
 				509EE15C974BA348E532B3FA /* TTSEngine.swift in Sources */,
+				203DF207BABAB9FE753A085B /* TableOfContentsSheet.swift in Sources */,
 				96A0782B38BA02C7827B1F6F /* Typography.swift in Sources */,
 				80F2409594CBAF3AA74C2614 /* Voice.swift in Sources */,
 				5FC02FE57992316415BAA4FF /* VoicePickerSheet.swift in Sources */,

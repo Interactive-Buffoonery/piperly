@@ -13,11 +13,19 @@ struct ReaderView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showingVoicePicker = false
+    @State private var showingStickerPicker = false
+    @State private var showingBookmarks = false
+    @State private var showingTOC = false
+    @State private var showingSettings = false
     @State private var tappedWord: String?
     @State private var showWordBubble = false
     @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
     @AppStorage("speechRate") private var speechRate: Double = 0.45
+    @AppStorage("readerFontSize") private var fontSize: Double = 22
+    @AppStorage("readerUseSerif") private var useSerif: Bool = false
     @StateObject private var wordTapCoordinator = WordTapCoordinator()
+    @State private var navigator: EPUBNavigatorViewController?
+    @State private var currentLocator: Locator?
 
     var body: some View {
         ZStack {
@@ -29,19 +37,57 @@ struct ReaderView: View {
             } else if let publication {
                 VStack(spacing: 0) {
                     ReaderToolbar(
-                        title: book.title,
+                        title: currentLocator?.title ?? book.title,
+                        isBookmarked: isCurrentPageBookmarked,
                         onBack: { dismiss() },
+                        onBookmarkToggle: { toggleBookmark() },
+                        onBookmarkList: { showingBookmarks = true },
+                        onTableOfContents: { showingTOC = true },
+                        onSettings: { showingSettings = true },
                         onVoice: { showingVoicePicker = true }
                     )
 
                     ReaderNavigator(
                         publication: publication,
-                        initialLocator: nil,
+                        initialLocator: restoredLocator,
                         wordTapCoordinator: wordTapCoordinator,
                         onProgressChanged: { progress in
                             bookStore.updateProgress(for: book.id, progression: progress)
+                        },
+                        onNavigatorReady: { nav in
+                            navigator = nav
+                        },
+                        onLocationChanged: { locator in
+                            currentLocator = locator
+                            if let json = locator.jsonString {
+                                bookStore.updateLocator(for: book.id, locatorJSON: json)
+                            }
                         }
                     )
+
+                    // Progress bar
+                    HStack(spacing: 8) {
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Piperly.Colors.border)
+                                Rectangle()
+                                    .fill(Piperly.Colors.accent)
+                                    .frame(width: geometry.size.width * currentProgression)
+                            }
+                        }
+                        .frame(height: 4)
+                        .clipShape(Capsule())
+
+                        Text("\(Int(currentProgression * 100))%")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(Piperly.Colors.textTertiary)
+                            .monospacedDigit()
+                            .frame(width: 36, alignment: .trailing)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 6)
+                    .background(Piperly.Colors.surface.opacity(0.95))
                 }
             } else if let errorMessage {
                 VStack(spacing: 12) {
@@ -54,6 +100,24 @@ struct ReaderView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding()
+            }
+
+            // Sticker picker overlay
+            if showingStickerPicker {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture { showingStickerPicker = false }
+
+                VStack {
+                    StickerPicker { sticker in
+                        addBookmark(sticker: sticker)
+                        showingStickerPicker = false
+                    }
+                    .padding(.top, 60)
+                    Spacer()
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .animation(.spring(duration: 0.25), value: showingStickerPicker)
             }
 
             // Word tap bubble overlay
@@ -102,6 +166,75 @@ struct ReaderView: View {
         .sheet(isPresented: $showingVoicePicker) {
             VoicePickerSheet(ttsEngine: ttsEngine)
         }
+        .sheet(isPresented: $showingBookmarks) {
+            BookmarkListSheet(bookID: book.id, navigator: navigator)
+        }
+        .sheet(isPresented: $showingTOC) {
+            if let publication {
+                TableOfContentsSheet(
+                    publication: publication,
+                    navigator: navigator,
+                    currentLocator: currentLocator
+                )
+            }
+        }
+        .sheet(isPresented: $showingSettings) {
+            ReadingSettingsSheet()
+        }
+        .onChange(of: fontSize) { _, _ in updateReaderPreferences() }
+        .onChange(of: useSerif) { _, _ in updateReaderPreferences() }
+    }
+
+    private var currentProgression: Double {
+        currentLocator?.locations.totalProgression ?? book.lastReadProgression
+    }
+
+    private var isCurrentPageBookmarked: Bool {
+        guard let locator = currentLocator else { return false }
+        let progression = locator.locations.totalProgression ?? 0
+        return bookStore.isBookmarked(bookID: book.id, progression: progression)
+    }
+
+    private func toggleBookmark() {
+        guard let locator = currentLocator else { return }
+        let progression = locator.locations.totalProgression ?? 0
+        if let existing = bookStore.findBookmark(bookID: book.id, progression: progression) {
+            bookStore.removeBookmark(existing.id)
+        } else {
+            showingStickerPicker = true
+        }
+    }
+
+    private func addBookmark(sticker: BookmarkSticker) {
+        guard let locator = currentLocator,
+              let json = locator.jsonString else { return }
+        let progression = locator.locations.totalProgression ?? 0
+        bookStore.addBookmark(
+            for: book.id,
+            locatorJSON: json,
+            title: locator.title,
+            progression: progression,
+            sticker: sticker
+        )
+    }
+
+    private func updateReaderPreferences() {
+        let prefs = EPUBPreferences(
+            backgroundColor: ReadiumNavigator.Color(hex: "#1C1C2E"),
+            fontFamily: useSerif ? .serif : .sansSerif,
+            fontSize: fontSize / 22.0,
+            hyphens: false,
+            lineHeight: 1.7,
+            publisherStyles: false,
+            scroll: false,
+            textColor: ReadiumNavigator.Color(hex: "#E8E8F0")
+        )
+        navigator?.submitPreferences(prefs)
+    }
+
+    private var restoredLocator: Locator? {
+        guard let json = book.lastReadLocatorJSON else { return nil }
+        return try? Locator(jsonString: json)
     }
 
     private func loadPublication() async {
