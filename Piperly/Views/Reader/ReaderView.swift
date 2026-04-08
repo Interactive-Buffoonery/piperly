@@ -69,7 +69,6 @@ struct ReaderView: View {
                             }
                         }
                     )
-                    .id(selectedTheme)
 
                     // Progress bar
                     HStack(spacing: 8) {

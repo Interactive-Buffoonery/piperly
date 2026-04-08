@@ -1,8 +1,11 @@
 import SwiftUI
 import UIKit
+import OSLog
 import ReadiumShared
 import ReadiumNavigator
 import WebKit
+
+private let logger = Logger(subsystem: "com.piperly", category: "ReaderNavigator")
 
 struct ReaderNavigator: UIViewControllerRepresentable {
     let publication: Publication
@@ -30,17 +33,23 @@ struct ReaderNavigator: UIViewControllerRepresentable {
             context.coordinator.parent.onNavigatorReady?(navigator)
             return navigator
         } catch {
-            // Return a bare navigator as fallback - this shouldn't happen
-            // since we already validated the publication
-            return try! EPUBNavigatorViewController(
+            logger.error("EPUBNavigatorViewController init failed: \(error.localizedDescription)")
+            // Fallback without config/initialLocation -- should not happen
+            // since publication was already validated
+            let navigator = try! EPUBNavigatorViewController(
                 publication: publication,
                 initialLocation: nil
             )
+            navigator.delegate = context.coordinator
+            return navigator
         }
     }
 
     func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {
         uiViewController.submitPreferences(preferences)
+        Task { @MainActor in
+            uiViewController.evaluateJavaScript(readerTheme.cssVariablesScript)
+        }
     }
 
     func makeCoordinator() -> Coordinator {
