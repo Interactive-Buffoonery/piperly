@@ -6,10 +6,12 @@ import ReadiumStreamer
 class BookStore: ObservableObject {
     @Published var books: [Book] = []
     @Published var bookmarks: [Bookmark] = []
+    @Published var savedWords: [SavedWord] = []
 
     private let documentsURL: URL
     private let booksKey = "piperly_books"
     private let bookmarksKey = "piperly_bookmarks"
+    private let savedWordsKey = "piperly_saved_words"
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -18,6 +20,7 @@ class BookStore: ObservableObject {
         try? FileManager.default.createDirectory(at: documentsURL, withIntermediateDirectories: true)
         loadBooks()
         loadBookmarks()
+        loadSavedWords()
     }
 
     func loadBooks() {
@@ -121,6 +124,55 @@ class BookStore: ObservableObject {
     func findBookmark(bookID: UUID, progression: Double) -> Bookmark? {
         bookmarks.first { $0.bookID == bookID && abs($0.progression - progression) < 0.001 }
     }
+
+    // MARK: - Saved Words
+
+    func loadSavedWords() {
+        guard let data = UserDefaults.standard.data(forKey: savedWordsKey),
+              let saved = try? JSONDecoder().decode([SavedWord].self, from: data) else {
+            return
+        }
+        savedWords = saved
+    }
+
+    func saveSavedWords() {
+        if let data = try? JSONEncoder().encode(savedWords) {
+            UserDefaults.standard.set(data, forKey: savedWordsKey)
+        }
+    }
+
+    @discardableResult
+    func saveWordReturningIsNew(_ word: String, bookID: UUID, bookTitle: String) -> Bool {
+        let canonical = word.lowercased()
+        if let index = savedWords.firstIndex(where: { $0.word == canonical && $0.bookID == bookID }) {
+            savedWords[index].tapCount += 1
+            savedWords[index].lastTappedAt = .now
+            saveSavedWords()
+            return false
+        } else {
+            let saved = SavedWord(
+                word: canonical,
+                displayWord: word,
+                bookID: bookID,
+                bookTitle: bookTitle
+            )
+            savedWords.append(saved)
+            saveSavedWords()
+            return true
+        }
+    }
+
+    func removeWord(_ id: UUID) {
+        savedWords.removeAll { $0.id == id }
+        saveSavedWords()
+    }
+
+    func words(for bookID: UUID) -> [SavedWord] {
+        savedWords.filter { $0.bookID == bookID }
+            .sorted { $0.lastTappedAt > $1.lastTappedAt }
+    }
+
+    // MARK: - Samples
 
     func importSampleBooksIfNeeded() async {
         let hasImportedSamples = UserDefaults.standard.bool(forKey: "piperly_samples_imported")

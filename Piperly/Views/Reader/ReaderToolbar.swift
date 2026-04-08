@@ -7,6 +7,7 @@ struct ReaderToolbar: View {
     let onBookmarkToggle: () -> Void
     let onBookmarkList: () -> Void
     let onTableOfContents: () -> Void
+    let onWordList: () -> Void
     let onSettings: () -> Void
     let onVoice: () -> Void
 
@@ -34,6 +35,14 @@ struct ReaderToolbar: View {
 
             Button(action: onTableOfContents) {
                 Image(systemName: "list.bullet")
+                    .font(.title3)
+                    .foregroundStyle(Piperly.Colors.accent)
+            }
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+
+            Button(action: onWordList) {
+                Image(systemName: "character.book.closed.fill")
                     .font(.title3)
                     .foregroundStyle(Piperly.Colors.accent)
             }
