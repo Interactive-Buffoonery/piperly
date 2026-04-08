@@ -29,6 +29,13 @@ struct OPDSServerConfig: Sendable {
         try KeychainService.save(password, for: .opdsPassword)
     }
 
+    func authorizationHeaderValue() -> String? {
+        guard !username.isEmpty,
+              let data = "\(username):\(password)".data(using: .utf8)
+        else { return nil }
+        return "Basic \(data.base64EncodedString())"
+    }
+
     static func clear() {
         KeychainService.delete(for: .opdsServerURL)
         KeychainService.delete(for: .opdsUsername)

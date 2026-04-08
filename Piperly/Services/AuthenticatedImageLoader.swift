@@ -18,14 +18,8 @@ final class AuthenticatedImageLoader: ObservableObject {
         isLoading = true
 
         var request = URLRequest(url: url)
-        if let config = OPDSServerConfig.load(), !config.username.isEmpty {
-            let credentials = "\(config.username):\(config.password)"
-            if let data = credentials.data(using: .utf8) {
-                request.setValue(
-                    "Basic \(data.base64EncodedString())",
-                    forHTTPHeaderField: "Authorization"
-                )
-            }
+        if let authValue = OPDSServerConfig.load()?.authorizationHeaderValue() {
+            request.setValue(authValue, forHTTPHeaderField: "Authorization")
         }
 
         do {

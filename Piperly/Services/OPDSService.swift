@@ -14,6 +14,7 @@ final class OPDSService: ObservableObject {
     private var navStack: [(url: URL, title: String)] = []
     private var nextPageURL: URL?
     private var searchTemplate: String?
+    private var cachedConfig: OPDSServerConfig?
 
     var canGoBack: Bool { navStack.count > 1 }
     var hasNextPage: Bool { nextPageURL != nil }
@@ -22,7 +23,8 @@ final class OPDSService: ObservableObject {
     // MARK: - Feed Loading
 
     func loadCatalog() async {
-        guard let config = OPDSServerConfig.load() else {
+        cachedConfig = OPDSServerConfig.load()
+        guard let config = cachedConfig else {
             error = .notConfigured
             return
         }
@@ -90,23 +92,15 @@ final class OPDSService: ObservableObject {
 
         do {
             let request = authenticatedRequest(for: url)
-            let (bytes, response) = try await URLSession.shared.bytes(for: request)
+            let (data, _) = try await URLSession.shared.data(for: request)
 
-            let totalBytes = (response as? HTTPURLResponse)
-                .flatMap { Int64($0.value(forHTTPHeaderField: "Content-Length") ?? "") }
+            let totalBytes = Int64(data.count)
             activeDownloads[item.id]?.totalBytes = totalBytes
+            activeDownloads[item.id]?.bytesReceived = totalBytes
 
             let tempDir = FileManager.default.temporaryDirectory
-            let fileName = item.title.replacingOccurrences(of: "/", with: "-") + ".epub"
+            let fileName = UUID().uuidString + ".epub"
             let tempURL = tempDir.appendingPathComponent(fileName)
-
-            var data = Data()
-            for try await byte in bytes {
-                data.append(byte)
-                if data.count % 8192 == 0 {
-                    activeDownloads[item.id]?.bytesReceived = Int64(data.count)
-                }
-            }
 
             try data.write(to: tempURL)
             _ = try await bookStore.importBook(from: tempURL)
@@ -121,7 +115,8 @@ final class OPDSService: ObservableObject {
     // MARK: - Connection Test
 
     func testConnection() async -> Bool {
-        guard let config = OPDSServerConfig.load() else { return false }
+        cachedConfig = OPDSServerConfig.load()
+        guard let config = cachedConfig else { return false }
 
         do {
             _ = try await fetchAndParseFeed(url: config.url)
@@ -198,18 +193,9 @@ final class OPDSService: ObservableObject {
 
     private func authenticatedRequest(for url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-
-        if let config = OPDSServerConfig.load(),
-           !config.username.isEmpty {
-            let credentials = "\(config.username):\(config.password)"
-            if let data = credentials.data(using: .utf8) {
-                request.setValue(
-                    "Basic \(data.base64EncodedString())",
-                    forHTTPHeaderField: "Authorization"
-                )
-            }
+        if let authValue = (cachedConfig ?? OPDSServerConfig.load())?.authorizationHeaderValue() {
+            request.setValue(authValue, forHTTPHeaderField: "Authorization")
         }
-
         return request
     }
 

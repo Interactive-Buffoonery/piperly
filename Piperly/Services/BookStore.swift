@@ -12,6 +12,8 @@ class BookStore: ObservableObject {
     private let booksKey = "piperly_books"
     private let bookmarksKey = "piperly_bookmarks"
     private let savedWordsKey = "piperly_saved_words"
+    private var debouncedBooksSave: Task<Void, Never>?
+    private var debouncedWordsSave: Task<Void, Never>?
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -34,6 +36,24 @@ class BookStore: ObservableObject {
     func saveBooks() {
         if let data = try? JSONEncoder().encode(books) {
             UserDefaults.standard.set(data, forKey: booksKey)
+        }
+    }
+
+    private func scheduleSaveBooks() {
+        debouncedBooksSave?.cancel()
+        debouncedBooksSave = Task {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            saveBooks()
+        }
+    }
+
+    private func scheduleSaveWords() {
+        debouncedWordsSave?.cancel()
+        debouncedWordsSave = Task {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            saveSavedWords()
         }
     }
 
@@ -69,14 +89,14 @@ class BookStore: ObservableObject {
     func updateProgress(for bookID: UUID, progression: Double) {
         if let index = books.firstIndex(where: { $0.id == bookID }) {
             books[index].lastReadProgression = progression
-            saveBooks()
+            scheduleSaveBooks()
         }
     }
 
     func updateLocator(for bookID: UUID, locatorJSON: String) {
         if let index = books.firstIndex(where: { $0.id == bookID }) {
             books[index].lastReadLocatorJSON = locatorJSON
-            saveBooks()
+            scheduleSaveBooks()
         }
     }
 
@@ -147,7 +167,7 @@ class BookStore: ObservableObject {
         if let index = savedWords.firstIndex(where: { $0.word == canonical && $0.bookID == bookID }) {
             savedWords[index].tapCount += 1
             savedWords[index].lastTappedAt = .now
-            saveSavedWords()
+            scheduleSaveWords()
             return false
         } else {
             let saved = SavedWord(
@@ -157,7 +177,7 @@ class BookStore: ObservableObject {
                 bookTitle: bookTitle
             )
             savedWords.append(saved)
-            saveSavedWords()
+            scheduleSaveWords()
             return true
         }
     }
