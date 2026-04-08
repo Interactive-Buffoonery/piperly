@@ -13,6 +13,7 @@ struct ReaderView: View {
     @State private var errorMessage: String?
     @State private var showingVoicePicker = false
     @State private var tappedWord: String?
+    @State private var showWordBubble = false
     @StateObject private var wordTapCoordinator = WordTapCoordinator()
 
     var body: some View {
@@ -39,6 +40,28 @@ struct ReaderView: View {
                         }
                     )
                 }
+            // Word tap bubble overlay
+            if showWordBubble, let word = tappedWord {
+                VStack {
+                    Spacer()
+                    Text(word)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(Piperly.Colors.textPrimary)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(Piperly.Colors.surfaceElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Piperly.Colors.accent.opacity(0.5), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
+                        .transition(.scale.combined(with: .opacity))
+                        .padding(.bottom, 40)
+                }
+                .animation(.spring(duration: 0.3), value: showWordBubble)
+            }
+
             } else if let errorMessage {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
@@ -58,6 +81,11 @@ struct ReaderView: View {
         .onAppear {
             wordTapCoordinator.onWordTapped = { word in
                 tappedWord = word
+                showWordBubble = true
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1.5))
+                    showWordBubble = false
+                }
             }
         }
         .sheet(isPresented: $showingVoicePicker) {
