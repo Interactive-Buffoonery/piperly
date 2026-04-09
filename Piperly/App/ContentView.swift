@@ -74,7 +74,9 @@ struct ContentView: View {
                 case .words:
                     WordsView(ttsEngine: ttsEngine)
                 case .browse:
-                    CatalogView()
+                    CatalogView(onOpenBook: { book in
+                        selectedBook = book
+                    })
                 }
             }
             .background(Piperly.Colors.background.ignoresSafeArea())

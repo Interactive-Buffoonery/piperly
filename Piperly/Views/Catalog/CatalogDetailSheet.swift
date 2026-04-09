@@ -4,10 +4,13 @@ struct CatalogDetailSheet: View {
     let item: CatalogItem
     let isAlreadyDownloaded: Bool
     let onDownload: () -> Void
+    var onOpenBook: (() -> Void)?
 
     @EnvironmentObject var opdsService: OPDSService
+    @EnvironmentObject var bookStore: BookStore
     @Environment(\.dismiss) private var dismiss
     @StateObject private var imageLoader = AuthenticatedImageLoader()
+    @State private var justDownloaded = false
 
     var body: some View {
         NavigationStack {
@@ -46,15 +49,32 @@ struct CatalogDetailSheet: View {
                         }
                     }
 
-                    // Download button
-                    if isAlreadyDownloaded {
-                        Label("In Your Library", systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Piperly.Colors.success)
-                            .padding(.horizontal, 32)
-                            .padding(.vertical, 14)
-                            .background(Piperly.Colors.success.opacity(0.15))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    // Download / Read button
+                    if isAlreadyDownloaded || justDownloaded {
+                        VStack(spacing: 12) {
+                            Label("In Your Library", systemImage: "checkmark.circle.fill")
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Piperly.Colors.success)
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 14)
+                                .background(Piperly.Colors.success.opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                            if onOpenBook != nil {
+                                Button {
+                                    dismiss()
+                                    onOpenBook?()
+                                } label: {
+                                    Label("Read Now", systemImage: "book.fill")
+                                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 32)
+                                        .padding(.vertical, 14)
+                                        .background(Piperly.Colors.accent)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                }
+                            }
+                        }
                     } else if let progress = opdsService.activeDownloads[item.id] {
                         VStack(spacing: 8) {
                             ProgressView(value: progress.fraction)
@@ -103,10 +123,18 @@ struct CatalogDetailSheet: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .presentationBackground(Piperly.Colors.background)
         .task {
             if let coverURL = item.coverURL {
                 await imageLoader.load(url: coverURL)
+            }
+        }
+        .onChange(of: bookStore.books.count) {
+            if !isAlreadyDownloaded && bookStore.books.contains(where: {
+                $0.title.localizedCaseInsensitiveCompare(item.title) == .orderedSame
+            }) {
+                justDownloaded = true
             }
         }
     }
