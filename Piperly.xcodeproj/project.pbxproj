@@ -94,14 +94,14 @@
 		456BD662A32FF2E09E8B91CA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		487DA82D39BD5E30051D2676 /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
 		505AE8E196D11F1F4CEC38BA /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
-		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		67C736D8D95AF555808BAB07 /* WordListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListSheet.swift; sourceTree = "<group>"; };
 		6D67EDBA545BF502AADA33A5 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderToolbar.swift; sourceTree = "<group>"; };
 		8AF935947C98913558751F14 /* OPDSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPDSService.swift; sourceTree = "<group>"; };
 		907A4ACDFF28240D2A04EC58 /* ImportButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportButton.swift; sourceTree = "<group>"; };
 		A73EC060FFEE5F5B1FBF80AD /* CatalogBookCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogBookCard.swift; sourceTree = "<group>"; };
-		AA3C687F79D0D61F50394188 /* PiperlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PiperlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA3C687F79D0D61F50394188 /* PiperlyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PiperlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABACED436F78084BF8A2BAEA /* WordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordsView.swift; sourceTree = "<group>"; };
 		AEC8DDABC8527ECA9066D42E /* word-tap.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "word-tap.js"; sourceTree = "<group>"; };
 		B0B5EA42469618622432905D /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
@@ -109,14 +109,14 @@
 		B85CFC325DA646354DCCBB80 /* PINGateModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINGateModifier.swift; sourceTree = "<group>"; };
 		BB264E643F353A189D2BDFC4 /* StickerPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerPicker.swift; sourceTree = "<group>"; };
 		C1B8090D26F5F0FCD944BCCD /* SavedWord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWord.swift; sourceTree = "<group>"; };
-		CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */ = {isa = PBXFileReference; lastKnownFileType = file; path = "the-secret-garden.epub"; sourceTree = "<group>"; };
+		CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */ = {isa = PBXFileReference; path = "the-secret-garden.epub"; sourceTree = "<group>"; };
 		CCCF364E4596E4F81B5FBFEC /* CatalogDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogDetailSheet.swift; sourceTree = "<group>"; };
 		CD4617B4737EF21A2663B076 /* BookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookStore.swift; sourceTree = "<group>"; };
 		CEE3796984A778CA18D6B83F /* PiperlyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyTests.swift; sourceTree = "<group>"; };
 		CF7224C03C200554F5861400 /* WordChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordChip.swift; sourceTree = "<group>"; };
 		CFADC6967714E5F36F446A79 /* ReadingSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingSettingsSheet.swift; sourceTree = "<group>"; };
 		CFE36DA25633A2F4911E3F09 /* CatalogItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogItem.swift; sourceTree = "<group>"; };
-		D9F98151594647A2B03041EC /* PiperlyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PiperlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9F98151594647A2B03041EC /* PiperlyUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PiperlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA4D52458E36471558AFE41A /* PiperlyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyUITests.swift; sourceTree = "<group>"; };
 		EE753ECD378C1FB1B62B5BEE /* WordTapCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordTapCoordinator.swift; sourceTree = "<group>"; };
 		F18F6B5D01398C16560AF9FA /* AuthenticatedImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedImageLoader.swift; sourceTree = "<group>"; };
@@ -392,7 +392,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					831A83E453D49DB6E846A5A8 = {
 						TestTargetID = C1CD37C1BA795F10849A63BB;
@@ -526,7 +526,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Y47UXU565M;
 				INFOPLIST_FILE = Piperly/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -564,7 +563,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -598,7 +596,6 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -612,7 +609,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -623,7 +619,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -657,7 +652,6 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -678,7 +672,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -708,7 +701,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Y47UXU565M;
 				INFOPLIST_FILE = Piperly/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

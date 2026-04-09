@@ -199,6 +199,10 @@ final class OPDSService: ObservableObject {
         return request
     }
 
+    private static let supportedMediaTypes: Set<String> = [
+        "application/epub+zip",
+    ]
+
     private func mapPublications(_ publications: [Publication]) -> [CatalogItem] {
         publications.compactMap { pub in
             let title = pub.metadata.title ?? "Untitled"
@@ -226,6 +230,11 @@ final class OPDSService: ObservableObject {
 
             let acquisitionURL = acquisitionLink.flatMap { URL(string: $0.href) }
 
+            let mediaTypeString = acquisitionLink?.mediaType?.string
+            if let mt = mediaTypeString, !Self.supportedMediaTypes.contains(mt) {
+                return nil
+            }
+
             return CatalogItem(
                 id: pub.metadata.identifier ?? UUID().uuidString,
                 title: title,
@@ -233,7 +242,7 @@ final class OPDSService: ObservableObject {
                 description: pub.metadata.description,
                 coverURL: coverURL,
                 acquisitionURL: acquisitionURL,
-                mediaType: acquisitionLink?.mediaType?.string
+                mediaType: mediaTypeString
             )
         }
     }
