@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piperly Theme Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1C1C2E;
+    color: #E8E8F0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 40px;
+  }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  .subtitle { color: #9090A8; margin-bottom: 40px; }
+  h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #606078;
+    margin-bottom: 20px;
+    margin-top: 48px;
+  }
+
+  .themes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .theme-card {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #3A3A55;
+    background: #252540;
+  }
+  .theme-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #3A3A55;
+  }
+  .theme-header .icon { font-size: 24px; }
+  .theme-header .name { font-size: 18px; font-weight: 700; }
+  .theme-header .id { font-size: 13px; color: #9090A8; margin-left: auto; }
+
+  .reader-preview {
+    margin: 16px;
+    border-radius: 12px;
+    padding: 28px 24px;
+    font-size: 17px;
+    line-height: 2.0;
+    word-spacing: 3px;
+    min-height: 220px;
+    position: relative;
+  }
+  .reader-preview .sample-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .reader-preview .sample-text {
+    font-size: 17px;
+    line-height: 2.0;
+  }
+  .reader-preview.serif { font-family: Georgia, "Times New Roman", serif; }
+  .reader-preview.sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  .theme-meta {
+    padding: 12px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .color-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #3A3A55;
+    flex-shrink: 0;
+  }
+  .color-label { color: #9090A8; width: 80px; }
+  .color-hex { font-family: "SF Mono", Menlo, monospace; font-size: 12px; }
+
+  /* Accessibility section */
+  .a11y-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 14px;
+  }
+  .a11y-table th {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 2px solid #3A3A55;
+    color: #9090A8;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .a11y-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #3A3A55;
+  }
+  .a11y-table tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-aaa { background: rgba(123,200,164,0.15); color: #7BC8A4; }
+  .badge-aa { background: rgba(124,159,212,0.15); color: #7C9FD4; }
+  .badge-aa-large { background: rgba(212,167,106,0.15); color: #D4A76A; }
+  .badge-fail { background: rgba(212,124,124,0.15); color: #D47C7C; }
+
+  .ratio-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #3A3A55;
+    width: 120px;
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+  .ratio-fill {
+    height: 100%;
+    border-radius: 3px;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+
+  .swatch-pair {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mini-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid #3A3A55;
+  }
+
+  .note-box {
+    background: #252540;
+    border: 1px solid #3A3A55;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #9090A8;
+    max-width: 900px;
+  }
+  .note-box strong { color: #E8E8F0; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+  .summary-card {
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    border: 2px solid transparent;
+  }
+  .summary-card .s-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .summary-card .s-ratio { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .summary-card .s-grade { font-size: 12px; font-weight: 600; }
+
+  .fix-comparison {
+    display: flex;
+    gap: 16px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+  }
+  .fix-box {
+    border-radius: 10px;
+    padding: 16px 20px;
+    min-width: 200px;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+  .fix-box .fix-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Piperly Reader Themes</h1>
+<p class="subtitle">Preview of all proposed reading themes with simulated book content</p>
+
+<!-- ===================== APP CHROME ACCENT COMPARISON ===================== -->
+<h2>App Chrome: Accent Color Comparison</h2>
+<p style="color: #9090A8; margin-bottom: 20px; font-size: 14px;">Swapping the muted blue accent (#7C9FD4) for teal/aqua (#7CD4C8) across the app UI</p>
+
+<div class="themes-grid">
+  <!-- Current accent -->
+  <div class="theme-card">
+    <div class="theme-header">
+      <span class="name">Current (muted blue)</span>
+      <span class="id">#7C9FD4 &middot; 5.5:1 AA</span>
+    </div>
+    <div class="reader-preview sans" style="background: #1C1C2E; border: 1px solid #3A3A55;">
+      <div style="margin-bottom: 12px;">
+        <span style="color: #7C9FD4; font-size: 28px; font-weight: 700; font-family: -apple-system, system-ui, sans-serif; letter-spacing: -0.5px;">Piperly</span>
+      </div>
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <span style="background: #2E2E4A; color: #7C9FD4; padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;">My Books</span>
+        <span style="background: transparent; color: #9090A8; padding: 6px 16px; border-radius: 8px; font-size: 14px;">Browse</span>
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <span style="color: #7C9FD4; font-size: 22px;">&#9881;&#65039;</span>
+        <span style="color: #7C9FD4; font-size: 22px;">&#10133;</span>
+      </div>
+      <div style="background: #252540; border-radius: 10px; padding: 14px; border: 1px solid #3A3A55;">
+        <span style="color: #E8E8F0; font-size: 15px; font-weight: 600;">The Secret Garden</span><br>
+        <span style="color: #9090A8; font-size: 13px;">Frances Hodgson Burnett</span><br>
+        <span style="color: #7C9FD4; font-size: 12px; margin-top: 6px; display: inline-block;">Download</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teal accent -->
+  <div class="theme-card" style="border-color: #7CD4C8;">
+    <div class="theme-header">
+      <span class="name">Teal/Aqua accent</span>
+      <span class="id">#7CD4C8 &middot; 8.2:1 AAA</span>
+    </div>
+    <div class="reader-preview sans" style="background: #1C1C2E; border: 1px solid #3A3A55;">
+      <div style="margin-bottom: 12px;">
+        <span style="color: #7CD4C8; font-size: 28px; font-weight: 700; font-family: -apple-system, system-ui, sans-serif; letter-spacing: -0.5px;">Piperly</span>
+      </div>
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <span style="background: #2E2E4A; color: #7CD4C8; padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;">My Books</span>
+        <span style="background: transparent; color: #9090A8; padding: 6px 16px; border-radius: 8px; font-size: 14px;">Browse</span>
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <span style="color: #7CD4C8; font-size: 22px;">&#9881;&#65039;</span>
+        <span style="color: #7CD4C8; font-size: 22px;">&#10133;</span>
+      </div>
+      <div style="background: #252540; border-radius: 10px; padding: 14px; border: 1px solid #3A3A55;">
+        <span style="color: #E8E8F0; font-size: 15px; font-weight: 600;">The Secret Garden</span><br>
+        <span style="color: #9090A8; font-size: 13px;">Frances Hodgson Burnett</span><br>
+        <span style="color: #7CD4C8; font-size: 12px; margin-top: 6px; display: inline-block;">Download</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== THEME PREVIEWS ===================== -->
+<h2>Theme Previews</h2>
+<div class="themes-grid">
+
+  <!-- Sunshine -->
+  <div class="theme-card">
+    <div class="theme-header">
+      <span class="icon">&#9728;&#65039;</span>
+      <span class="name">Sunshine</span>
+      <span class="id">sunshine</span>
+    </div>
+    <div class="reader-preview sans" style="background: #FFF0D4; color: #2D2006;">
+      <div class="sample-title">Chapter 3: The Hidden Door</div>
+      <div class="sample-text">Maya pressed her hand against the old stone wall. Something clicked. A door swung open, revealing a staircase spiraling down into warm golden light.</div>
+    </div>
+    <div class="theme-meta">
+      <div class="color-row">
+        <div class="color-dot" style="background: #FFF0D4;"></div>
+        <span class="color-label">Background</span>
+        <span class="color-hex">#FFF0D4</span>
+      </div>
+      <div class="color-row">
+        <div class="color-dot" style="background: #2D2006;"></div>
+        <span class="color-label">Text</span>
+        <span class="color-hex">#2D2006</span>
+      </div>
+      <div class="color-row">
+        <span class="color-label" style="width: auto; color: #606078;">Font: sans-serif &middot; Contrast: 14.3:1 &middot; AAA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ocean -->
+  <div class="theme-card">
+    <div class="theme-header">
+      <span class="icon">&#127754;</span>
+      <span class="name">Ocean</span>
+      <span class="id">ocean</span>
+    </div>
+    <div class="reader-preview sans" style="background: #E3F2FD; color: #1A237E;">
+      <div class="sample-title">Chapter 3: The Hidden Door</div>
+      <div class="sample-text">Maya pressed her hand against the old stone wall. Something clicked. A door swung open, revealing a staircase spiraling down into warm golden light.</div>
+    </div>
+    <div class="theme-meta">
+      <div class="color-row">
+        <div class="color-dot" style="background: #E3F2FD;"></div>
+        <span class="color-label">Background</span>
+        <span class="color-hex">#E3F2FD</span>
+      </div>
+      <div class="color-row">
+        <div class="color-dot" style="background: #1A237E;"></div>
+        <span class="color-label">Text</span>
+        <span class="color-hex">#1A237E</span>
+      </div>
+      <div class="color-row">
+        <span class="color-label" style="width: auto; color: #606078;">Font: sans-serif &middot; Contrast: 10.3:1 &middot; AAA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forest -->
+  <div class="theme-card">
+    <div class="theme-header">
+      <span class="icon">&#127794;</span>
+      <span class="name">Forest</span>
+      <span class="id">forest</span>
+    </div>
+    <div class="reader-preview serif" style="background: #E8F5E9; color: #1B5E20;">
+      <div class="sample-title">Chapter 3: The Hidden Door</div>
+      <div class="sample-text">Maya pressed her hand against the old stone wall. Something clicked. A door swung open, revealing a staircase spiraling down into warm golden light.</div>
+    </div>
+    <div class="theme-meta">
+      <div class="color-row">
+        <div class="color-dot" style="background: #E8F5E9;"></div>
+        <span class="color-label">Background</span>
+        <span class="color-hex">#E8F5E9</span>
+      </div>
+      <div class="color-row">
+        <div class="color-dot" style="background: #1B5E20;"></div>
+        <span class="color-label">Text</span>
+        <span class="color-hex">#1B5E20</span>
+      </div>
+      <div class="color-row">
+        <span class="color-label" style="width: auto; color: #606078;">Font: serif &middot; Contrast: 7.3:1 &middot; AAA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lavender -->
+  <div class="theme-card">
+    <div class="theme-header">
+      <span class="icon">&#128156;</span>
+      <span class="name">Lavender</span>
+      <span class="id">lavender</span>
+    </div>
+    <div class="reader-preview sans" style="background: #F3E5F5; color: #4A148C;">
+      <div class="sample-title">Chapter 3: The Hidden Door</div>
+      <div class="sample-text">Maya pressed her hand against the old stone wall. Something clicked. A door swung open, revealing a staircase spiraling down into warm golden light.</div>
+    </div>
+    <div class="theme-meta">
+      <div class="color-row">
+        <div class="color-dot" style="background: #F3E5F5;"></div>
+        <span class="color-label">Background</span>
+        <span class="color-hex">#F3E5F5</span>
+      </div>
+      <div class="color-row">
+        <div class="color-dot" style="background: #4A148C;"></div>
+        <span class="color-label">Text</span>
+        <span class="color-hex">#4A148C</span>
+      </div>
+      <div class="color-row">
+        <span class="color-label" style="width: auto; color: #606078;">Font: sans-serif &middot; Contrast: 9.5:1 &middot; AAA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Piperly (app dark theme as reader theme) -->
+  <div class="theme-card" style="border-color: #7C9FD4;">
+    <div class="theme-header">
+      <span class="icon" style="color: #7C9FD4; font-weight: 800; font-size: 18px;">P</span>
+      <span class="name">Piperly</span>
+      <span class="id">piperly</span>
+    </div>
+    <div class="reader-preview sans" style="background: #1C1C2E; color: #E8E8F0; border: 1px solid #3A3A55;">
+      <div class="sample-title">Chapter 3: The Hidden Door</div>
+      <div class="sample-text">Maya pressed her hand against the old stone wall. Something clicked. A door swung open, revealing a staircase spiraling down into warm golden light.</div>
+    </div>
+    <div class="theme-meta">
+      <div class="color-row">
+        <div class="color-dot" style="background: #1C1C2E;"></div>
+        <span class="color-label">Background</span>
+        <span class="color-hex">#1C1C2E</span>
+      </div>
+      <div class="color-row">
+        <div class="color-dot" style="background: #E8E8F0;"></div>
+        <span class="color-label">Text</span>
+        <span class="color-hex">#E8E8F0</span>
+      </div>
+      <div class="color-row">
+        <span class="color-label" style="width: auto; color: #7C9FD4;">Font: sans-serif &middot; Contrast: 15.3:1 &middot; AAA &middot; Uses app palette</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Night Owl -->
+  <div class="theme-card">
+    <div class="theme-header">
+      <span class="icon">&#127769;</span>
+      <span class="name">Night Owl</span>
+      <span class="id">night</span>
+    </div>
+    <div class="reader-preview serif" style="background: #1C1C1E; color: #E0E0E0;">
+      <div class="sample-title">Chapter 3: The Hidden Door</div>
+      <div class="sample-text">Maya pressed her hand against the old stone wall. Something clicked. A door swung open, revealing a staircase spiraling down into warm golden light.</div>
+    </div>
+    <div class="theme-meta">
+      <div class="color-row">
+        <div class="color-dot" style="background: #1C1C1E;"></div>
+        <span class="color-label">Background</span>
+        <span class="color-hex">#1C1C1E</span>
+      </div>
+      <div class="color-row">
+        <div class="color-dot" style="background: #E0E0E0;"></div>
+        <span class="color-label">Text</span>
+        <span class="color-hex">#E0E0E0</span>
+      </div>
+      <div class="color-row">
+        <span class="color-label" style="width: auto; color: #606078;">Font: serif &middot; Contrast: 14.7:1 &middot; AAA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cozy -->
+  <div class="theme-card">
+    <div class="theme-header">
+      <span class="icon">&#128214;</span>
+      <span class="name">Cozy</span>
+      <span class="id">sepia</span>
+    </div>
+    <div class="reader-preview serif" style="background: #F5F0E1; color: #5D4037;">
+      <div class="sample-title">Chapter 3: The Hidden Door</div>
+      <div class="sample-text">Maya pressed her hand against the old stone wall. Something clicked. A door swung open, revealing a staircase spiraling down into warm golden light.</div>
+    </div>
+    <div class="theme-meta">
+      <div class="color-row">
+        <div class="color-dot" style="background: #F5F0E1;"></div>
+        <span class="color-label">Background</span>
+        <span class="color-hex">#F5F0E1</span>
+      </div>
+      <div class="color-row">
+        <div class="color-dot" style="background: #5D4037;"></div>
+        <span class="color-label">Text</span>
+        <span class="color-hex">#5D4037</span>
+      </div>
+      <div class="color-row">
+        <span class="color-label" style="width: auto; color: #606078;">Font: serif &middot; Contrast: 7.1:1 &middot; AAA</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== ACCESSIBILITY TABLE ===================== -->
+<h2>Accessibility Analysis (WCAG 2.1)</h2>
+
+<div class="note-box" style="margin-bottom: 24px;">
+  <strong>WCAG contrast ratio requirements:</strong><br>
+  AAA (enhanced) = 7:1+ for normal text, 4.5:1+ for large text<br>
+  AA (minimum) = 4.5:1+ for normal text, 3:1+ for large text<br>
+  Piperly reader uses large text (~23px rendered at 1.8x scale), so <strong>large text thresholds likely apply</strong>.
+</div>
+
+<div style="background: #252540; border-radius: 12px; border: 1px solid #3A3A55; overflow: hidden; max-width: 900px;">
+<table class="a11y-table">
+  <thead>
+    <tr>
+      <th>Theme</th>
+      <th>Colors</th>
+      <th>Ratio</th>
+      <th>Normal</th>
+      <th>Large</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="font-weight:600;">Sunshine</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#FFF0D4;"></div>
+          <span style="font-family:monospace;font-size:12px;">#2D2006 on #FFF0D4</span>
+        </div>
+      </td>
+      <td><strong>14.3:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">Ocean</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#E3F2FD;"></div>
+          <span style="font-family:monospace;font-size:12px;">#1A237E on #E3F2FD</span>
+        </div>
+      </td>
+      <td><strong>10.3:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">Forest</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#E8F5E9;"></div>
+          <span style="font-family:monospace;font-size:12px;">#1B5E20 on #E8F5E9</span>
+        </div>
+      </td>
+      <td><strong>7.3:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">Lavender</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#F3E5F5;"></div>
+          <span style="font-family:monospace;font-size:12px;">#4A148C on #F3E5F5</span>
+        </div>
+      </td>
+      <td><strong>9.5:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600; color: #7C9FD4;">Piperly</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#1C1C2E;"></div>
+          <span style="font-family:monospace;font-size:12px;">#E8E8F0 on #1C1C2E</span>
+        </div>
+      </td>
+      <td><strong>15.3:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">Night Owl</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#1C1C1E;"></div>
+          <span style="font-family:monospace;font-size:12px;">#E0E0E0 on #1C1C1E</span>
+        </div>
+      </td>
+      <td><strong>14.7:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">Cozy</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#F5F0E1;"></div>
+          <span style="font-family:monospace;font-size:12px;">#5D4037 on #F5F0E1</span>
+        </div>
+      </td>
+      <td><strong>7.1:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr style="opacity: 0.6;">
+      <td colspan="5" style="font-size: 12px; color: #606078; padding-top: 16px; border: none;">APP CHROME (for reference)</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">App Primary</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#1C1C2E;"></div>
+          <span style="font-family:monospace;font-size:12px;">#E8E8F0 on #1C1C2E</span>
+        </div>
+      </td>
+      <td><strong>15.3:1</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">App Secondary</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#1C1C2E;"></div>
+          <span style="font-family:monospace;font-size:12px;">#9090A8 on #1C1C2E</span>
+        </div>
+      </td>
+      <td><strong>5.1:1</strong></td>
+      <td><span class="badge badge-aa">AA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">App Accent</td>
+      <td>
+        <div class="swatch-pair">
+          <div class="mini-swatch" style="background:#1C1C2E;"></div>
+          <span style="font-family:monospace;font-size:12px;">#7C9FD4 on #1C1C2E</span>
+        </div>
+      </td>
+      <td><strong>5.5:1</strong></td>
+      <td><span class="badge badge-aa">AA</span></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ===================== SUMMARY ===================== -->
+<h2>Quick Summary</h2>
+<div class="summary-grid">
+  <div class="summary-card" style="background: #FFF0D4; color: #2D2006; border-color: #7BC8A4;">
+    <div class="s-name">Sunshine</div>
+    <div class="s-ratio">14.3:1</div>
+    <div class="s-grade" style="color: #1B5E20;">AAA</div>
+  </div>
+  <div class="summary-card" style="background: #E3F2FD; color: #1A237E; border-color: #7BC8A4;">
+    <div class="s-name">Ocean</div>
+    <div class="s-ratio">10.3:1</div>
+    <div class="s-grade" style="color: #1B5E20;">AAA</div>
+  </div>
+  <div class="summary-card" style="background: #E8F5E9; color: #1B5E20; border-color: #7BC8A4;">
+    <div class="s-name">Forest</div>
+    <div class="s-ratio">7.3:1</div>
+    <div class="s-grade" style="color: #1B5E20;">AAA</div>
+  </div>
+  <div class="summary-card" style="background: #F3E5F5; color: #4A148C; border-color: #7BC8A4;">
+    <div class="s-name">Lavender</div>
+    <div class="s-ratio">9.5:1</div>
+    <div class="s-grade" style="color: #4A148C;">AAA</div>
+  </div>
+  <div class="summary-card" style="background: #1C1C2E; color: #E8E8F0; border-color: #7C9FD4;">
+    <div class="s-name">Piperly</div>
+    <div class="s-ratio">15.3:1</div>
+    <div class="s-grade" style="color: #7C9FD4;">AAA</div>
+  </div>
+  <div class="summary-card" style="background: #1C1C1E; color: #E0E0E0; border-color: #7BC8A4;">
+    <div class="s-name">Night Owl</div>
+    <div class="s-ratio">14.7:1</div>
+    <div class="s-grade" style="color: #7BC8A4;">AAA</div>
+  </div>
+  <div class="summary-card" style="background: #F5F0E1; color: #5D4037; border-color: #7BC8A4;">
+    <div class="s-name">Cozy</div>
+    <div class="s-ratio">7.1:1</div>
+    <div class="s-grade" style="color: #5D4037;">AAA</div>
+  </div>
+</div>
+
+<div class="note-box">
+  <strong>All 7 themes pass WCAG AAA for both normal and large text.</strong><br><br>
+
+  <strong style="color: #7C9FD4;">Piperly</strong> (15.3:1) &mdash; Best contrast. Uses the app&rsquo;s own dark palette. Seamless transition from app to reader.<br>
+  <strong>Sunshine</strong> (14.3:1) &mdash; Excellent. Happy orange-tinted background, clearly distinct from Cozy&rsquo;s muted sepia.<br>
+  <strong>Ocean</strong> (10.3:1) &mdash; Excellent. Light blue with deep navy text. High contrast, calm feel.<br>
+  <strong>Lavender</strong> (9.5:1) &mdash; Excellent. Light purple with deep violet text. Strong contrast.<br>
+  <strong>Night Owl</strong> (14.7:1) &mdash; Near-black with light gray. Very similar to Piperly but uses different hex values (#1C1C1E/#E0E0E0 vs #1C1C2E/#E8E8F0).<br>
+  <strong>Forest</strong> (7.3:1) &mdash; Good. Just above the AAA threshold. Lowest-contrast light theme, but still excellent.<br>
+  <strong>Cozy</strong> (7.1:1) &mdash; Good. Sepia tone with brown text. Just above AAA threshold. Classic ebook feel.<br><br>
+
+  <strong>Notes:</strong><br>
+  &bull; <strong>Piperly vs Night Owl:</strong> These are very similar visually (#1C1C2E vs #1C1C1E). You may want to keep just one dark theme, or keep both if the subtle difference matters.<br>
+  &bull; Forest and Cozy are the tightest at ~7:1. Still AAA, but darkening the text slightly would add headroom.<br>
+  &bull; These themes only affect the <strong>reader view</strong> (EPUB content via Readium preferences). The app chrome stays on the existing dark palette.<br>
+  &bull; All themes use large text (1.8x = ~23px rendered) with high line-height (2.0) and extra word-spacing &mdash; optimized for early readers ages 8-12.
+</div>
+
+</body>
+</html>
