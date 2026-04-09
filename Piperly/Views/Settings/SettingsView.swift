@@ -328,7 +328,7 @@ struct SettingsView: View {
             return
         }
 
-        Task {
+        Task { @MainActor in
             let config = OPDSServerConfig(url: url, username: username, password: password)
             var request = URLRequest(url: url)
             if let authValue = config.authorizationHeaderValue() {

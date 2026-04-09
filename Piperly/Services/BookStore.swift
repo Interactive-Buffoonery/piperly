@@ -41,19 +41,19 @@ class BookStore: ObservableObject {
 
     private func scheduleSaveBooks() {
         debouncedBooksSave?.cancel()
-        debouncedBooksSave = Task {
+        debouncedBooksSave = Task { [weak self] in
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
-            saveBooks()
+            self?.saveBooks()
         }
     }
 
     private func scheduleSaveWords() {
         debouncedWordsSave?.cancel()
-        debouncedWordsSave = Task {
+        debouncedWordsSave = Task { [weak self] in
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
-            saveSavedWords()
+            self?.saveSavedWords()
         }
     }
 

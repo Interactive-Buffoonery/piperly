@@ -6,8 +6,6 @@ struct PINPadView: View {
     var onComplete: (String) -> Void
 
     @State private var entered = ""
-    @State private var shakeOffset: CGFloat = 0
-
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
@@ -33,7 +31,6 @@ struct PINPadView: View {
                         .frame(width: 16, height: 16)
                 }
             }
-            .offset(x: shakeOffset)
 
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(80), spacing: 20), count: 3), spacing: 16) {
                 ForEach(1...9, id: \.self) { digit in
@@ -77,16 +74,6 @@ struct PINPadView: View {
                 .frame(width: 80, height: 80)
                 .background(Piperly.Colors.surfaceElevated)
                 .clipShape(Circle())
-        }
-    }
-
-    func shake() {
-        entered = ""
-        withAnimation(.easeInOut(duration: 0.08).repeatCount(5, autoreverses: true)) {
-            shakeOffset = 12
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            shakeOffset = 0
         }
     }
 }

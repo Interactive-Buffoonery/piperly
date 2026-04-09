@@ -2,6 +2,7 @@ import Foundation
 import WebKit
 import Combine
 
+@MainActor
 class WordTapCoordinator: NSObject, ObservableObject, WKScriptMessageHandler {
     @Published var lastTappedWord: String?
     var onWordTapped: ((String) -> Void)?

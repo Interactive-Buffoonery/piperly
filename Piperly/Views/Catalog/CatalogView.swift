@@ -3,6 +3,7 @@ import SwiftUI
 struct CatalogView: View {
     @EnvironmentObject var opdsService: OPDSService
     @EnvironmentObject var bookStore: BookStore
+    var onOpenBook: ((Book) -> Void)?
     @State private var searchText = ""
     @State private var selectedItem: CatalogItem?
 
@@ -34,9 +35,18 @@ struct CatalogView: View {
             CatalogDetailSheet(
                 item: item,
                 isAlreadyDownloaded: isDownloaded(item),
-                onDownload: { downloadItem(item) }
+                onDownload: { downloadItem(item) },
+                onOpenBook: {
+                    if let book = bookStore.books.first(where: {
+                        $0.title.localizedCaseInsensitiveCompare(item.title) == .orderedSame
+                    }) {
+                        selectedItem = nil
+                        onOpenBook?(book)
+                    }
+                }
             )
             .environmentObject(opdsService)
+            .environmentObject(bookStore)
         }
     }
 
@@ -179,8 +189,9 @@ struct CatalogView: View {
     }
 
     private func isDownloaded(_ item: CatalogItem) -> Bool {
-        let expectedFileName = item.title.replacingOccurrences(of: "/", with: "-") + ".epub"
-        return bookStore.books.contains { $0.fileName == expectedFileName }
+        bookStore.books.contains {
+            $0.title.localizedCaseInsensitiveCompare(item.title) == .orderedSame
+        }
     }
 
     private func downloadItem(_ item: CatalogItem) {

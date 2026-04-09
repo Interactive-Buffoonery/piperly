@@ -7,6 +7,21 @@ import WebKit
 
 private let logger = Logger(subsystem: "com.piperly", category: "ReaderNavigator")
 
+private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    weak var delegate: (any WKScriptMessageHandler)?
+
+    init(delegate: any WKScriptMessageHandler) {
+        self.delegate = delegate
+    }
+
+    func userContentController(
+        _ controller: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        delegate?.userContentController(controller, didReceive: message)
+    }
+}
+
 struct ReaderNavigator: UIViewControllerRepresentable {
     let publication: Publication
     let initialLocator: Locator?
@@ -37,14 +52,16 @@ struct ReaderNavigator: UIViewControllerRepresentable {
             return navigator
         } catch {
             logger.error("EPUBNavigatorViewController init failed: \(error.localizedDescription)")
-            // Fallback without config/initialLocation -- should not happen
-            // since publication was already validated
-            let navigator = try! EPUBNavigatorViewController(
-                publication: publication,
-                initialLocation: nil
-            )
-            navigator.delegate = context.coordinator
-            return navigator
+            do {
+                let navigator = try EPUBNavigatorViewController(
+                    publication: publication,
+                    initialLocation: nil
+                )
+                navigator.delegate = context.coordinator
+                return navigator
+            } catch {
+                fatalError("Cannot create EPUB navigator for '\(publication.metadata.title ?? "unknown")': \(error.localizedDescription)")
+            }
         }
     }
 
@@ -74,7 +91,7 @@ struct ReaderNavigator: UIViewControllerRepresentable {
         }
 
         func navigator(_ navigator: EPUBNavigatorViewController, setupUserScripts userContentController: WKUserContentController) {
-            userContentController.add(parent.wordTapCoordinator, name: "wordTapped")
+            userContentController.add(WeakScriptMessageHandler(delegate: parent.wordTapCoordinator), name: "wordTapped")
 
             userContentController.addUserScript(
                 WKUserScript(source: parent.readerTheme.cssVariablesScript, injectionTime: .atDocumentEnd, forMainFrameOnly: false)

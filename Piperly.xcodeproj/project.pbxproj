@@ -44,6 +44,7 @@
 		A9B8672F77616A3D902F1BB5 /* BookCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020FF465ED5DAE55F3F23078 /* BookCard.swift */; };
 		AE1CBD6D4C45DD851FA3DDC9 /* PiperlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0575D688D631F115AF497590 /* PiperlyApp.swift */; };
 		C16B65EFFFBD4432864334EA /* ReaderTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B48C597C42056AFD320ACB1 /* ReaderTheme.swift */; };
+		C8CD69CC9A21D1069657FB65 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 456BD662A32FF2E09E8B91CA /* Assets.xcassets */; };
 		C8EB86567BED41A31D9493EB /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32263DACC627AF31FFB42A6F /* Colors.swift */; };
 		D70FB9ABBE67AD59491D9F22 /* ReaderNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E04B476A4331F7545247076 /* ReaderNavigator.swift */; };
 		DC10B557D03A8F34EB5681B6 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = FB84F84F12F294A465FEFEB0 /* ReadiumShared */; };
@@ -90,6 +91,7 @@
 		32263DACC627AF31FFB42A6F /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		3F0C8334C49EE044ECDF320F /* VoiceSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupSheet.swift; sourceTree = "<group>"; };
 		42EE24832B91ACFF0C32CCAC /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
+		456BD662A32FF2E09E8B91CA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		487DA82D39BD5E30051D2676 /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
 		505AE8E196D11F1F4CEC38BA /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -282,6 +284,7 @@
 		BB9A5A1F59DA7F83FD23C1C6 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				456BD662A32FF2E09E8B91CA /* Assets.xcassets */,
 				219B546B88E956F5EC6324D7 /* reader-theme.css */,
 				AEC8DDABC8527ECA9066D42E /* word-tap.js */,
 				64C4EC1352636C9E4C88FA10 /* SampleBooks */,
@@ -389,7 +392,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					831A83E453D49DB6E846A5A8 = {
 						TestTargetID = C1CD37C1BA795F10849A63BB;
@@ -428,6 +431,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C8CD69CC9A21D1069657FB65 /* Assets.xcassets in Resources */,
 				7B61C8E28DA7A9C27B7B27D6 /* reader-theme.css in Resources */,
 				3CF38A165C6ED0FFF26DDB03 /* the-secret-garden.epub in Resources */,
 				73ACA44C6478B51A602B48B4 /* word-tap.js in Resources */,
