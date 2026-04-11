@@ -16,6 +16,7 @@
 		1B1B1277CD3F0D11C16005A4 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1FA674A5A342F47B57B6B6 /* KeychainService.swift */; };
 		203DF207BABAB9FE753A085B /* TableOfContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15436967F2E7E08C3F4C37D4 /* TableOfContentsSheet.swift */; };
 		20C1E80632CEF51395EA5F53 /* WordChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7224C03C200554F5861400 /* WordChip.swift */; };
+		2123F3B71AD6460312BAC3A6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 37668E902B9B08AB7690046F /* PrivacyInfo.xcprivacy */; };
 		242C3CD88A8B712C22022C12 /* OPDSServerConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BE5FD189983CA442834D8A4 /* OPDSServerConfig.swift */; };
 		2D054B8990AF47E08E158082 /* CatalogBookCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73EC060FFEE5F5B1FBF80AD /* CatalogBookCard.swift */; };
 		33A87D7979BC6D5EC87552B0 /* OPDSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AF935947C98913558751F14 /* OPDSService.swift */; };
@@ -89,6 +90,7 @@
 		219B546B88E956F5EC6324D7 /* reader-theme.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "reader-theme.css"; sourceTree = "<group>"; };
 		2888EFFF3CCEFF16FDEAF5B2 /* PINManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINManager.swift; sourceTree = "<group>"; };
 		32263DACC627AF31FFB42A6F /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		37668E902B9B08AB7690046F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		3F0C8334C49EE044ECDF320F /* VoiceSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupSheet.swift; sourceTree = "<group>"; };
 		42EE24832B91ACFF0C32CCAC /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
 		456BD662A32FF2E09E8B91CA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -285,6 +287,7 @@
 			isa = PBXGroup;
 			children = (
 				456BD662A32FF2E09E8B91CA /* Assets.xcassets */,
+				37668E902B9B08AB7690046F /* PrivacyInfo.xcprivacy */,
 				219B546B88E956F5EC6324D7 /* reader-theme.css */,
 				AEC8DDABC8527ECA9066D42E /* word-tap.js */,
 				64C4EC1352636C9E4C88FA10 /* SampleBooks */,
@@ -348,6 +351,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1DC2BE2AF64EF2735B074ED7 /* Build configuration list for PBXNativeTarget "Piperly" */;
 			buildPhases = (
+				3CE53937784D812FEE864991 /* SwiftLint */,
 				DEA8DA8AB3363F382259738C /* Sources */,
 				81F46032113D0091DE3E5CBF /* Resources */,
 				2C13A7F8EAD3CAC6828843B4 /* Frameworks */,
@@ -432,6 +436,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C8CD69CC9A21D1069657FB65 /* Assets.xcassets in Resources */,
+				2123F3B71AD6460312BAC3A6 /* PrivacyInfo.xcprivacy in Resources */,
 				7B61C8E28DA7A9C27B7B27D6 /* reader-theme.css in Resources */,
 				3CF38A165C6ED0FFF26DDB03 /* the-secret-garden.epub in Resources */,
 				73ACA44C6478B51A602B48B4 /* word-tap.js in Resources */,
@@ -439,6 +444,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		3CE53937784D812FEE864991 /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = SwiftLint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if command -v swiftlint >/dev/null 2>&1; then\n  swiftlint lint --quiet\nelse\n  echo \"warning: SwiftLint not installed — brew install swiftlint\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		10F8A00B915DAF7F355ABF38 /* Sources */ = {
