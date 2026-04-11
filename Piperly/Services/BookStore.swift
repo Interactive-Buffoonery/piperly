@@ -286,18 +286,17 @@ class BookStore: ObservableObject {
     }
 
     private func parseMetadataAndCover(from url: URL) async -> (title: String?, author: String?, coverName: String?) {
-        guard let pub = try? await openPublication(at: url) else {
+        guard let publication = try? await openPublication(at: url) else {
             return (nil, nil, nil)
         }
-        let title = pub.metadata.title
-        let author = pub.metadata.authors.first?.name
-        let coverName = await extractCover(at: url)
+        let title = publication.metadata.title
+        let author = publication.metadata.authors.first?.name
+        let coverName = await extractCover(from: publication)
         return (title, author, coverName)
     }
 
-    private func extractCover(at bookURL: URL) async -> String? {
-        guard let pub = try? await openPublication(at: bookURL) else { return nil }
-        nonisolated(unsafe) let unsafePub = pub
+    private func extractCover(from publication: Publication) async -> String? {
+        nonisolated(unsafe) let unsafePub = publication
         guard let image = try? await unsafePub.cover().get(),
               let jpegData = image.jpegData(compressionQuality: 0.8) else {
             return nil
@@ -313,7 +312,8 @@ class BookStore: ObservableObject {
         for i in books.indices where books[i].coverImageName == nil {
             let url = bookURL(for: books[i])
             guard FileManager.default.fileExists(atPath: url.path),
-                  let coverName = await extractCover(at: url) else { continue }
+                  let publication = try? await openPublication(at: url),
+                  let coverName = await extractCover(from: publication) else { continue }
             books[i].coverImageName = coverName
             changed = true
         }
