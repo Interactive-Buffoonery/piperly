@@ -1,4 +1,21 @@
+// Piperly - iPad ebook reader for kids
+// Copyright (C) 2026 Interactive Buffoonery
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 import Foundation
+import UIKit
 import ReadiumShared
 import ReadiumStreamer
 
@@ -9,6 +26,7 @@ class BookStore: ObservableObject {
     @Published var savedWords: [SavedWord] = []
 
     private let documentsURL: URL
+    private let coversURL: URL
     private let booksKey = "piperly_books"
     private let bookmarksKey = "piperly_bookmarks"
     private let savedWordsKey = "piperly_saved_words"
@@ -18,8 +36,10 @@ class BookStore: ObservableObject {
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         self.documentsURL = docs.appendingPathComponent("Books", isDirectory: true)
+        self.coversURL = docs.appendingPathComponent("Covers", isDirectory: true)
 
         try? FileManager.default.createDirectory(at: documentsURL, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: coversURL, withIntermediateDirectories: true)
         loadBooks()
         loadBookmarks()
         loadSavedWords()
@@ -69,12 +89,13 @@ class BookStore: ObservableObject {
         }
         try FileManager.default.copyItem(at: sourceURL, to: destURL)
 
-        let (title, author) = await parseMetadata(from: destURL)
+        let (title, author, coverName) = await parseMetadataAndCover(from: destURL)
 
         let book = Book(
-            title: title ?? fileName.replacingOccurrences(of: ".epub", with: ""),
+            title: title ?? URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent,
             author: author ?? "Unknown Author",
-            fileName: fileName
+            fileName: fileName,
+            coverImageName: coverName
         )
 
         books.append(book)
@@ -84,6 +105,12 @@ class BookStore: ObservableObject {
 
     func bookURL(for book: Book) -> URL {
         documentsURL.appendingPathComponent(book.fileName)
+    }
+
+    func coverImage(for book: Book) -> UIImage? {
+        guard let name = book.coverImageName else { return nil }
+        let url = coversURL.appendingPathComponent(name)
+        return UIImage(contentsOfFile: url.path)
     }
 
     func updateProgress(for bookID: UUID, progression: Double) {
@@ -214,12 +241,13 @@ class BookStore: ObservableObject {
             try FileManager.default.copyItem(at: bundleURL, to: destURL)
         }
 
-        let (title, author) = await parseMetadata(from: destURL)
+        let (title, author, coverName) = await parseMetadataAndCover(from: destURL)
 
         let book = Book(
-            title: title ?? fileName.replacingOccurrences(of: ".epub", with: ""),
+            title: title ?? URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent,
             author: author ?? "Unknown Author",
-            fileName: fileName
+            fileName: fileName,
+            coverImageName: coverName
         )
 
         if !books.contains(where: { $0.fileName == fileName }) {
@@ -232,6 +260,9 @@ class BookStore: ObservableObject {
     func deleteBook(_ book: Book) {
         let url = bookURL(for: book)
         try? FileManager.default.removeItem(at: url)
+        if let coverName = book.coverImageName {
+            try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverName))
+        }
         books.removeAll { $0.id == book.id }
         saveBooks()
     }
@@ -254,13 +285,39 @@ class BookStore: ObservableObject {
         return builder.build()
     }
 
-    private func parseMetadata(from url: URL) async -> (title: String?, author: String?) {
+    private func parseMetadataAndCover(from url: URL) async -> (title: String?, author: String?, coverName: String?) {
         guard let pub = try? await openPublication(at: url) else {
-            return (nil, nil)
+            return (nil, nil, nil)
         }
         let title = pub.metadata.title
         let author = pub.metadata.authors.first?.name
-        return (title, author)
+        let coverName = await extractCover(at: url)
+        return (title, author, coverName)
+    }
+
+    private func extractCover(at bookURL: URL) async -> String? {
+        guard let pub = try? await openPublication(at: bookURL) else { return nil }
+        nonisolated(unsafe) let unsafePub = pub
+        guard let image = try? await unsafePub.cover().get(),
+              let jpegData = image.jpegData(compressionQuality: 0.8) else {
+            return nil
+        }
+        let name = UUID().uuidString + ".jpg"
+        let url = coversURL.appendingPathComponent(name)
+        try? jpegData.write(to: url)
+        return name
+    }
+
+    func backfillCovers() async {
+        var changed = false
+        for i in books.indices where books[i].coverImageName == nil {
+            let url = bookURL(for: books[i])
+            guard FileManager.default.fileExists(atPath: url.path),
+                  let coverName = await extractCover(at: url) else { continue }
+            books[i].coverImageName = coverName
+            changed = true
+        }
+        if changed { saveBooks() }
     }
 }
 

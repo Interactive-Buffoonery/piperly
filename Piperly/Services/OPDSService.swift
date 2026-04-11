@@ -1,3 +1,19 @@
+// Piperly - iPad ebook reader for kids
+// Copyright (C) 2026 Interactive Buffoonery
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 import Foundation
 import ReadiumShared
 import ReadiumOPDS
@@ -53,11 +69,13 @@ final class OPDSService: ObservableObject {
         error = nil
 
         do {
-            let feed = try await fetchAndParseFeed(url: url)
-            let newItems = mapPublications(feed.publications)
-            catalogItems.append(contentsOf: newItems)
-            nextPageURL = feed.links.first { $0.rels.contains(.next) }
-                .flatMap { URL(string: $0.href) }
+            let result = try await fetchAndParse(url: url)
+            if case .feed(let feed) = result {
+                let newItems = mapPublications(feed.publications)
+                catalogItems.append(contentsOf: newItems)
+                nextPageURL = feed.links.first { $0.rels.contains(.next) }
+                    .flatMap { URL(string: $0.href) }
+            }
         } catch {
             self.error = .connectionFailed
         }
@@ -119,7 +137,7 @@ final class OPDSService: ObservableObject {
         guard let config = cachedConfig else { return false }
 
         do {
-            _ = try await fetchAndParseFeed(url: config.url)
+            _ = try await fetchAndParse(url: config.url)
             return true
         } catch {
             return false
@@ -128,31 +146,51 @@ final class OPDSService: ObservableObject {
 
     // MARK: - Private
 
+    private var probeTask: Task<Void, Never>?
+
     private func loadFeed(url: URL) async {
+        probeTask?.cancel()
         isLoading = true
         error = nil
         catalogItems = []
         navigationLinks = []
 
         do {
-            let feed = try await fetchAndParseFeed(url: url)
+            let result = try await fetchAndParse(url: url)
 
-            feedTitle = feed.metadata.title
-            catalogItems = mapPublications(feed.publications)
+            switch result {
+            case .feed(let feed):
+                feedTitle = feed.metadata.title
+                catalogItems = mapPublications(feed.publications)
 
-            navigationLinks = feed.navigation.compactMap { link in
-                guard let title = link.title else { return nil }
-                return CatalogNavLink(id: link.href, title: title, href: link.href)
+                for group in feed.groups {
+                    catalogItems.append(contentsOf: mapPublications(group.publications))
+                }
+
+                navigationLinks = feed.navigation.compactMap { link in
+                    guard let title = link.title else { return nil }
+                    return CatalogNavLink(id: link.href, title: title, href: link.href)
+                }
+
+                nextPageURL = feed.links.first { $0.rels.contains(.next) }
+                    .flatMap { URL(string: $0.href) }
+
+                if let searchLink = feed.links.first(where: { $0.rels.contains(.search) }),
+                   let searchURL = URL(string: searchLink.href) {
+                    await fetchSearchTemplate(from: searchURL)
+                }
+
+                if !navigationLinks.isEmpty {
+                    probeNavigationLinks()
+                }
+
+            case .singlePublication(let pub):
+                feedTitle = pub.metadata.title ?? ""
+                catalogItems = mapPublications([pub])
+                nextPageURL = nil
             }
-
-            nextPageURL = feed.links.first { $0.rels.contains(.next) }
-                .flatMap { URL(string: $0.href) }
-
-            // Extract search template from feed links
-            if let searchLink = feed.links.first(where: { $0.rels.contains(.search) }),
-               let searchURL = URL(string: searchLink.href) {
-                await fetchSearchTemplate(from: searchURL)
-            }
+        } catch let opdsError as OPDSError {
+            self.error = opdsError
         } catch {
             self.error = .connectionFailed
         }
@@ -160,17 +198,57 @@ final class OPDSService: ObservableObject {
         isLoading = false
     }
 
-    private func fetchAndParseFeed(url: URL) async throws -> Feed {
-        let request = authenticatedRequest(for: url)
+    private func probeNavigationLinks() {
+        let linksToProbe = navigationLinks
+        probeTask = Task {
+            for link in linksToProbe {
+                guard !Task.isCancelled else { return }
+                guard let url = URL(string: link.href) else { continue }
+
+                var request = authenticatedRequest(for: url)
+                request.timeoutInterval = 5
+
+                guard let result = try? await fetchAndParse(url: url, request: request) else {
+                    // Not a valid OPDS feed or entry — drop the navigation link
+                    navigationLinks.removeAll { $0.id == link.id }
+                    continue
+                }
+
+                switch result {
+                case .singlePublication(let pub):
+                    let items = mapPublications([pub])
+                    catalogItems.append(contentsOf: items)
+                    navigationLinks.removeAll { $0.id == link.id }
+
+                case .feed(let feed):
+                    // If the sub-feed has publications and no further navigation,
+                    // inline the books into the current grid
+                    let pubs = mapPublications(feed.publications)
+                    if !pubs.isEmpty && feed.navigation.isEmpty {
+                        catalogItems.append(contentsOf: pubs)
+                        navigationLinks.removeAll { $0.id == link.id }
+                    }
+                }
+            }
+        }
+    }
+
+    private enum OPDSResult {
+        case feed(Feed)
+        case singlePublication(Publication)
+    }
+
+    private func fetchAndParse(url: URL, request: URLRequest? = nil) async throws -> OPDSResult {
+        let request = request ?? authenticatedRequest(for: url)
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        if let parseData = try? OPDS1Parser.parse(xmlData: data, url: url, response: response),
-           let feed = parseData.feed {
-            return feed
+        if let parseData = try? OPDS1Parser.parse(xmlData: data, url: url, response: response) {
+            if let feed = parseData.feed { return .feed(feed) }
+            if let pub = parseData.publication { return .singlePublication(pub) }
         }
-        if let parseData = try? OPDS2Parser.parse(jsonData: data, url: url, response: response),
-           let feed = parseData.feed {
-            return feed
+        if let parseData = try? OPDS2Parser.parse(jsonData: data, url: url, response: response) {
+            if let feed = parseData.feed { return .feed(feed) }
+            if let pub = parseData.publication { return .singlePublication(pub) }
         }
         throw OPDSError.feedParsingFailed
     }

@@ -1,3 +1,19 @@
+// Piperly - iPad ebook reader for kids
+// Copyright (C) 2026 Interactive Buffoonery
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 import SwiftUI
 import AVFoundation
 
@@ -39,10 +55,10 @@ struct VoiceSetupSheet: View {
                             Text("How to download:")
                                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                                 .foregroundStyle(Piperly.Colors.textPrimary)
-                            Text("Settings  >  Accessibility  >  Spoken Content  >  Voices  >  English")
+                            Text("Settings  >  Accessibility  >  Vision  >  Read & Speak  >  Voices  >  English")
                                 .font(.system(size: 14, weight: .medium, design: .monospaced))
                                 .foregroundStyle(Piperly.Colors.accent)
-                            Text("Tap the download icon next to any Premium or Enhanced voice.")
+                            Text("Tap a voice, then tap Voice to download Premium or Enhanced.")
                                 .font(Piperly.Typography.caption)
                                 .foregroundStyle(Piperly.Colors.textTertiary)
                         }
@@ -139,7 +155,7 @@ struct VoiceSetupSheet: View {
     }
 
     private func openSettings() {
-        if let url = URL(string: "App-prefs:ACCESSIBILITY&path=SPEECH") {
+        if let url = URL(string: "App-prefs:ACCESSIBILITY") {
             UIApplication.shared.open(url) { success in
                 if !success, let fallback = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(fallback)

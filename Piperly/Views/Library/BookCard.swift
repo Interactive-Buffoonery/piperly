@@ -1,37 +1,62 @@
+// Piperly - iPad ebook reader for kids
+// Copyright (C) 2026 Interactive Buffoonery
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 import SwiftUI
 
 struct BookCard: View {
     let book: Book
+    var coverImage: UIImage?
     var onDelete: (() -> Void)?
     @State private var showingMenu = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Cover placeholder
+            // Cover
             ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Piperly.Colors.surfaceElevated)
-                    .aspectRatio(0.65, contentMode: .fit)
-                    .overlay {
-                        VStack(spacing: 8) {
-                            Image(systemName: "book.closed")
-                                .font(.system(size: 36))
-                                .foregroundStyle(Piperly.Colors.textTertiary)
-                            Text(book.title)
-                                .font(Piperly.Typography.caption)
-                                .foregroundStyle(Piperly.Colors.textSecondary)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .padding(.horizontal, 8)
+                if let coverImage {
+                    Image(uiImage: coverImage)
+                        .resizable()
+                        .aspectRatio(0.65, contentMode: .fill)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Piperly.Colors.surfaceElevated)
+                        .aspectRatio(0.65, contentMode: .fit)
+                        .overlay {
+                            VStack(spacing: 8) {
+                                Image(systemName: "book.closed")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(Piperly.Colors.textTertiary)
+                                Text(book.title)
+                                    .font(Piperly.Typography.caption)
+                                    .foregroundStyle(Piperly.Colors.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .padding(.horizontal, 8)
+                            }
                         }
-                    }
+                }
 
                 if onDelete != nil {
                     Button { showingMenu.toggle() } label: {
                         Image(systemName: "ellipsis.circle.fill")
                             .font(.system(size: 22))
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(Piperly.Colors.textSecondary, Piperly.Colors.surface.opacity(0.8))
+                            .foregroundStyle(.white, .black.opacity(0.5))
                     }
                     .padding(6)
                 }
