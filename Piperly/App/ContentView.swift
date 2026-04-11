@@ -101,9 +101,10 @@ struct ContentView: View {
                 ReaderView(book: book, ttsEngine: ttsEngine)
                     .environmentObject(bookStore)
             }
-            .pinGated(isPresented: $showingSettings) {
+            .sheet(isPresented: $showingSettings) {
                 SettingsView()
                     .environmentObject(opdsService)
+                    .environmentObject(pinManager)
             }
             .onChange(of: selectedTab) { _, newTab in
                 if newTab == .browse && pinManager.isPINSet && !browseUnlocked {

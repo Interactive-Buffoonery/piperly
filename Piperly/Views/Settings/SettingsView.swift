@@ -27,6 +27,9 @@ struct SettingsView: View {
     @State private var showSetPIN = false
     @State private var showChangePIN = false
     @State private var showRemovePIN = false
+    @State private var parentControlsUnlocked = false
+    @State private var showParentPIN = false
+    @State private var parentPINKey = UUID()
 
     @AppStorage("readerFontSize") private var fontSize: Double = 22
     @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
@@ -46,9 +49,12 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                parentalPINSection
-                bookServerSection
                 readingSection
+                parentControlsGate
+                if parentControlsUnlocked || !pinManager.isPINSet {
+                    parentalPINSection
+                    bookServerSection
+                }
             }
             .scrollContentBackground(.hidden)
             .background(Piperly.Colors.background)
@@ -67,6 +73,9 @@ struct SettingsView: View {
         .presentationDetents([.large])
         .presentationBackground(Piperly.Colors.background)
         .onAppear { loadServerConfig() }
+        .fullScreenCover(isPresented: $showParentPIN) {
+            parentPINFlow()
+        }
         .fullScreenCover(isPresented: $showSetPIN) {
             setPINFlow()
         }
@@ -75,6 +84,34 @@ struct SettingsView: View {
         }
         .fullScreenCover(isPresented: $showRemovePIN) {
             removePINFlow()
+        }
+    }
+
+    // MARK: - Parent Controls Gate
+
+    private var parentControlsGate: some View {
+        Group {
+            if pinManager.isPINSet && !parentControlsUnlocked {
+                Section {
+                    Button {
+                        parentPINKey = UUID()
+                        showParentPIN = true
+                    } label: {
+                        HStack {
+                            Label("Parent Controls", systemImage: "lock.fill")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(Piperly.Colors.textTertiary)
+                        }
+                    }
+                    .foregroundStyle(Piperly.Colors.accent)
+                } footer: {
+                    Text("Enter PIN to access server settings and PIN management.")
+                        .foregroundStyle(Piperly.Colors.textTertiary)
+                }
+                .listRowBackground(Piperly.Colors.surface)
+            }
         }
     }
 
@@ -103,8 +140,8 @@ struct SettingsView: View {
                 .foregroundStyle(Piperly.Colors.textSecondary)
         } footer: {
             Text(pinManager.isPINSet
-                 ? "A PIN is required to access Settings and Browse."
-                 : "Set a 4-digit PIN to restrict access to Settings and the book server.")
+                 ? "A PIN is required to access parent controls and Browse."
+                 : "Set a 4-digit PIN to restrict access to server settings and the Browse tab.")
                 .foregroundStyle(Piperly.Colors.textTertiary)
         }
         .listRowBackground(Piperly.Colors.surface)
@@ -266,6 +303,40 @@ struct SettingsView: View {
     }
 
     // MARK: - PIN Flows
+
+    private func parentPINFlow() -> some View {
+        ZStack {
+            Piperly.Colors.background.ignoresSafeArea()
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        showParentPIN = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(Piperly.Colors.textTertiary)
+                    }
+                    .padding()
+                }
+                Spacer()
+            }
+
+            PINPadView(
+                title: "Enter PIN",
+                subtitle: "Enter your PIN to access parent controls"
+            ) { pin in
+                if pinManager.verifyPIN(pin) {
+                    parentControlsUnlocked = true
+                    showParentPIN = false
+                } else {
+                    parentPINKey = UUID()
+                }
+            }
+            .id(parentPINKey)
+        }
+    }
 
     private func setPINFlow() -> some View {
         PINFlowView(
