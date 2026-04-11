@@ -56,10 +56,10 @@ struct VoiceSetupSheet: View {
                             Text("How to download:")
                                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                                 .foregroundStyle(Piperly.Colors.textPrimary)
-                            Text("Settings  >  Accessibility  >  Vision  >  Read & Speak  >  Voices  >  English")
+                            Text(voiceSettingsPath)
                                 .font(.system(size: 14, weight: .medium, design: .monospaced))
                                 .foregroundStyle(Piperly.Colors.accent)
-                            Text("Tap a voice, then tap Voice to download Premium or Enhanced.")
+                            Text("Tap a voice, then tap download for Premium or Enhanced quality.")
                                 .font(Piperly.Typography.caption)
                                 .foregroundStyle(Piperly.Colors.textTertiary)
                         }
@@ -107,8 +107,10 @@ struct VoiceSetupSheet: View {
                         }
                         .padding(.horizontal, 8)
 
-                        Button(action: openSettings) {
-                            Label("Open Settings", systemImage: "gear")
+                        Button {
+                            refreshVoices()
+                        } label: {
+                            Label("Refresh Voices", systemImage: "arrow.clockwise")
                                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
@@ -155,13 +157,11 @@ struct VoiceSetupSheet: View {
         voices = Voice.availableVoices()
     }
 
-    private func openSettings() {
-        if let url = URL(string: "App-prefs:ACCESSIBILITY") {
-            UIApplication.shared.open(url) { success in
-                if !success, let fallback = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(fallback)
-                }
-            }
+    private var voiceSettingsPath: String {
+        if #available(iOS 26, *) {
+            return "Settings  >  Accessibility  >  Read & Speak  >  Voices  >  English"
+        } else {
+            return "Settings  >  Accessibility  >  Spoken Content  >  Voices  >  English"
         }
     }
 }
