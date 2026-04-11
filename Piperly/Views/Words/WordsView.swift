@@ -98,9 +98,9 @@ struct WordsView: View {
     private var allWordsGrid: some View {
         LazyVGrid(columns: columns, spacing: 12) {
             ForEach(sortedWords) { word in
-                WordChip(savedWord: word, onTap: { speakWord(word) }) {
+                WordChip(savedWord: word, onTap: { speakWord(word) }, onRemove: {
                     bookStore.removeWord(word.id)
-                }
+                })
             }
         }
         .padding(.horizontal, 24)
@@ -118,9 +118,9 @@ struct WordsView: View {
 
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(group.words) { word in
-                            WordChip(savedWord: word, onTap: { speakWord(word) }) {
+                            WordChip(savedWord: word, onTap: { speakWord(word) }, onRemove: {
                                 bookStore.removeWord(word.id)
-                            }
+                            })
                         }
                     }
                     .padding(.horizontal, 24)
@@ -144,7 +144,7 @@ struct WordsView: View {
 
     private var groupedByBook: [(bookTitle: String, bookID: UUID, words: [SavedWord])] {
         Dictionary(grouping: bookStore.savedWords, by: \.bookID)
-            .map { (bookID, words) in
+            .map { bookID, words in
                 (bookTitle: words.first?.bookTitle ?? "Unknown",
                  bookID: bookID,
                  words: words.sorted { $0.lastTappedAt > $1.lastTappedAt })

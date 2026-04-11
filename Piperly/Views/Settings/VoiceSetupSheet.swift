@@ -45,6 +45,7 @@ struct VoiceSetupSheet: View {
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundStyle(Piperly.Colors.textPrimary)
 
+                        // swiftlint:disable:next line_length
                         Text("Piperly uses high-quality on-device voices to read words aloud. For the best experience, download Premium or Enhanced voices.")
                             .font(Piperly.Typography.body)
                             .foregroundStyle(Piperly.Colors.textSecondary)
@@ -117,13 +118,13 @@ struct VoiceSetupSheet: View {
                         }
                         .padding(.horizontal, 16)
 
-                        Button(action: {
+                        Button {
                             if let first = voices.first, selectedVoiceIdentifier.isEmpty {
                                 selectedVoiceIdentifier = first.id
                             }
                             hasCompletedVoiceSetup = true
                             dismiss()
-                        }) {
+                        } label: {
                             Text("Continue")
                                 .font(.system(size: 17, weight: .medium, design: .rounded))
                                 .foregroundStyle(Piperly.Colors.accent)

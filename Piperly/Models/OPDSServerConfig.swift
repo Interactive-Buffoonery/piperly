@@ -47,7 +47,7 @@ struct OPDSServerConfig: Sendable {
 
     func authorizationHeaderValue() -> String? {
         guard !username.isEmpty,
-              let data = "\(username):\(password)".data(using: .utf8)
+              let data = Data("\(username):\(password)".utf8)
         else { return nil }
         return "Basic \(data.base64EncodedString())"
     }

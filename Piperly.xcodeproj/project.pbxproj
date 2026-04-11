@@ -94,7 +94,7 @@
 		456BD662A32FF2E09E8B91CA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		487DA82D39BD5E30051D2676 /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
 		505AE8E196D11F1F4CEC38BA /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
-		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		67C736D8D95AF555808BAB07 /* WordListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListSheet.swift; sourceTree = "<group>"; };
 		6D67EDBA545BF502AADA33A5 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderToolbar.swift; sourceTree = "<group>"; };
@@ -109,7 +109,7 @@
 		B85CFC325DA646354DCCBB80 /* PINGateModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINGateModifier.swift; sourceTree = "<group>"; };
 		BB264E643F353A189D2BDFC4 /* StickerPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerPicker.swift; sourceTree = "<group>"; };
 		C1B8090D26F5F0FCD944BCCD /* SavedWord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWord.swift; sourceTree = "<group>"; };
-		CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */ = {isa = PBXFileReference; lastKnownFileType = file; path = "the-secret-garden.epub"; sourceTree = "<group>"; };
+		CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */ = {isa = PBXFileReference; path = "the-secret-garden.epub"; sourceTree = "<group>"; };
 		CCCF364E4596E4F81B5FBFEC /* CatalogDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogDetailSheet.swift; sourceTree = "<group>"; };
 		CD4617B4737EF21A2663B076 /* BookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookStore.swift; sourceTree = "<group>"; };
 		CEE3796984A778CA18D6B83F /* PiperlyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyTests.swift; sourceTree = "<group>"; };
@@ -526,7 +526,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Y47UXU565M;
 				INFOPLIST_FILE = Piperly/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -702,7 +701,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Y47UXU565M;
 				INFOPLIST_FILE = Piperly/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -1,3 +1,4 @@
+// swiftlint:disable force_unwrapping
 import Testing
 import Foundation
 @testable import Piperly
