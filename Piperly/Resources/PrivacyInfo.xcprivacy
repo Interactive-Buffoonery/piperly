@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App does not track users across apps/websites -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- No tracking domains -->
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- No data collected -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<!-- Required Reason APIs used by the app -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- UserDefaults (used via @AppStorage for reader preferences, voice settings) -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- CA92.1: Access info written by the app itself -->
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

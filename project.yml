@@ -23,6 +23,7 @@ targets:
     resources:
       - path: Piperly/Resources/reader-theme.css
       - path: Piperly/Resources/word-tap.js
+      - path: Piperly/Resources/PrivacyInfo.xcprivacy
     info:
       path: Piperly/Info.plist
       properties:
