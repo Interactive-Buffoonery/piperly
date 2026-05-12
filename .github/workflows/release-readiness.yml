@@ -1,0 +1,77 @@
+name: Release Readiness
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: release-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-release-readiness:
+    name: Validate Release Readiness
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Verify privacy manifest
+        run: |
+          test -f Piperly/Resources/PrivacyInfo.xcprivacy
+          plutil -lint Piperly/Resources/PrivacyInfo.xcprivacy
+
+      - name: Verify bundle version uses build settings
+        run: |
+          short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Piperly/Info.plist)"
+          build_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Piperly/Info.plist)"
+
+          if [ "$short_version" != '$(MARKETING_VERSION)' ]; then
+            echo "CFBundleShortVersionString should be \$(MARKETING_VERSION), got: $short_version"
+            exit 1
+          fi
+
+          if [ "$build_version" != '$(CURRENT_PROJECT_VERSION)' ]; then
+            echo "CFBundleVersion should be \$(CURRENT_PROJECT_VERSION), got: $build_version"
+            exit 1
+          fi
+
+      - name: Verify app icon has no alpha channel
+        run: |
+          icon_path="Piperly/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+          alpha="$(sips -g hasAlpha "$icon_path" | awk '/hasAlpha:/ { print $2 }')"
+
+          if [ "$alpha" != "no" ]; then
+            echo "App icon must not contain an alpha channel."
+            exit 1
+          fi
+
+      - name: Build Release for device without signing
+        run: |
+          xcodebuild \
+            -project Piperly.xcodeproj \
+            -target Piperly \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build

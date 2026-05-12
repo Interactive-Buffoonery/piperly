@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Verify generated project is committed
+        run: |
+          git diff --exit-code -- Piperly.xcodeproj
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -project Piperly.xcodeproj \
+            -scheme Piperly \
+            -resolvePackageDependencies
+
+      - name: Build app for iOS Simulator
+        run: |
+          xcodebuild \
+            -project Piperly.xcodeproj \
+            -scheme Piperly \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
+
+      - name: Run unit tests on first available iPad simulator
+        run: |
+          set -euo pipefail
+
+          destination="$(
+            xcrun simctl list devices available -j | ruby -rjson -e '
+              devices = JSON.parse($stdin.read).fetch("devices").values.flatten
+              ipad = devices.find { |device| device["isAvailable"] && device["name"].start_with?("iPad") }
+              puts ipad["udid"] if ipad
+            '
+          )"
+
+          if [ -z "$destination" ]; then
+            echo "No available iPad simulator found."
+            exit 1
+          fi
+
+          xcodebuild \
+            -project Piperly.xcodeproj \
+            -scheme Piperly \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$destination" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            test
