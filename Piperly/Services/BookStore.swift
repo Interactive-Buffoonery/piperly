@@ -16,8 +16,8 @@
 
 import Foundation
 import SwiftUI
-import ReadiumShared
-import ReadiumStreamer
+@preconcurrency import ReadiumShared
+@preconcurrency import ReadiumStreamer
 
 @MainActor
 class BookStore: ObservableObject {
