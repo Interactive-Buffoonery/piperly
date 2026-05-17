@@ -11,6 +11,25 @@ packages:
     url: https://github.com/readium/swift-toolkit
     from: "3.2.0"
 
+schemes:
+  Piperly:
+    build:
+      targets:
+        Piperly: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - PiperlyTests
+        - PiperlyUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
 targets:
   Piperly:
     type: application
@@ -104,6 +123,8 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "2"
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
     dependencies:
       - target: Piperly
 
@@ -115,5 +136,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "2"
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
     dependencies:
       - target: Piperly

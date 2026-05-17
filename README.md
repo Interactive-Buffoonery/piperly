@@ -48,6 +48,23 @@ Xcode will automatically resolve the Readium Swift Package Manager dependencies 
 3. In **Signing & Capabilities**, select your Development Team
 4. Build and run (⌘R)
 
+For command-line verification, regenerate the project and use the shared `Piperly`
+scheme:
+
+```bash
+xcodegen generate
+xcodebuild -project Piperly.xcodeproj -scheme Piperly -showdestinations
+xcodebuild -project Piperly.xcodeproj \
+  -scheme Piperly \
+  -destination 'generic/platform=iOS' \
+  -configuration Debug \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
+
+The CLI build requires the iOS platform components for the active Xcode version
+to be installed in **Xcode > Settings > Components**.
+
 ## TestFlight / App Store
 
 To archive and upload to TestFlight:
