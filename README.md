@@ -68,6 +68,9 @@ to be installed in **Xcode > Settings > Components**.
 
 ## TestFlight / App Store
 
+See [docs/testflight-release-checklist.md](docs/testflight-release-checklist.md)
+for the repo-side metadata audit and archive checklist.
+
 To archive and upload to TestFlight, configure signing with your own Apple
 developer account, register an appropriate bundle identifier in
 [App Store Connect](https://appstoreconnect.apple.com), create the app record,
