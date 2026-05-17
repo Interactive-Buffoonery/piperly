@@ -84,6 +84,16 @@ Tell Apple that external catalog access is parent-gated. On a fresh install,
 tap **Browse** and set a 4-digit parent PIN to access the test OPDS catalog.
 On later attempts, enter that PIN to open Browse. The same PIN unlocks
 **Settings > Parent Controls** for server URL, username, and password entry.
+OPDS requests go directly from the device to the parent-configured server and
+are not routed through Interactive Buffoonery.
+
+### Privacy Review
+
+See [docs/app-store-privacy-review.md](docs/app-store-privacy-review.md) for the
+current App Store Connect privacy answers, Kids Category posture, beta review
+notes, and external privacy policy draft. The current repo posture is no
+tracking and no collected data; local reading state remains on device, and
+optional OPDS access is parent-gated.
 
 ### Parent Gate Regression Checklist
 

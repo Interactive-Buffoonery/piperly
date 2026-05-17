@@ -10,14 +10,18 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 
-	<!-- No data collected -->
+	<!--
+		No data collected by Interactive Buffoonery or integrated analytics/ads.
+		Piperly stores reading data on device. Parent-configured OPDS requests
+		are sent only to the server URL entered in Parent Controls.
+	-->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array/>
 
 	<!-- Required Reason APIs used by the app -->
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
-		<!-- UserDefaults (used via @AppStorage for reader preferences, voice settings) -->
+		<!-- UserDefaults stores app-created preferences and local reading metadata. -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
