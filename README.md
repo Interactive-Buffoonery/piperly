@@ -67,14 +67,18 @@ to be installed in **Xcode > Settings > Components**.
 
 ## TestFlight / App Store
 
+See [docs/testflight-release-checklist.md](docs/testflight-release-checklist.md)
+for the repo-side metadata audit, archive checklist, and App Store Connect
+fields Sarah must complete manually.
+
 To archive and upload to TestFlight:
 
 1. In **Signing & Capabilities**, set your Development Team and ensure Automatic signing is enabled
 2. Register the bundle identifier (`com.piperly.app`) in [App Store Connect](https://appstoreconnect.apple.com) — or change it to one under your developer account
 3. Create the app in App Store Connect (set name, category, age rating, etc.)
-4. In Xcode: **Product → Archive**
+4. In Xcode, select **Any iOS Device (arm64)** or a connected iPad, then use **Product → Archive**
 5. In the Organizer window: **Distribute App → App Store Connect → Upload**
-6. In App Store Connect: add testers under **TestFlight** and submit for review
+6. In App Store Connect: complete beta metadata, add testers under **TestFlight**, and submit for beta review
 
 Internal testers (up to 100) can install immediately after upload. External testers require a brief Apple review (~24 hours).
 

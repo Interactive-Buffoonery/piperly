@@ -1,0 +1,104 @@
+# TestFlight Release Checklist
+
+Last audited: May 17, 2026 for INT-340.
+
+This checklist captures the repo-side state Sarah needs before archiving Piperly
+for TestFlight validation. It intentionally does not automate upload; automated
+TestFlight delivery belongs to INT-349.
+
+## Current Repo Metadata
+
+- Bundle identifier: `com.piperly.app` in `project.yml`
+- Display name: `Piperly`
+- Marketing version: `1.0`
+- Build number: `1`
+- Signing: automatic signing with development team `7CNK4YPCQX`
+- Category: Education via `INFOPLIST_KEY_LSApplicationCategoryType`
+- Device family: iPad only via `TARGETED_DEVICE_FAMILY = 2`
+- Launch screen: `UILaunchStoryboardName` points to `LaunchScreen`
+- App icon: single universal 1024x1024 icon with no alpha channel
+- Privacy manifest: declares no tracking, no collected data, and UserDefaults
+  required-reason API use
+
+Do not change the version or build number unless App Store Connect rejects the
+upload for a duplicate build number or Sarah decides this archive should use a
+new release train.
+
+## Pre-Archive Verification
+
+Run these from the repo root before archiving:
+
+```bash
+xcodegen generate
+plutil -lint Piperly/Info.plist Piperly/Resources/PrivacyInfo.xcprivacy
+sips -g hasAlpha Piperly/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+xcodebuild -project Piperly.xcodeproj \
+  -scheme Piperly \
+  -destination 'generic/platform=iOS' \
+  -configuration Debug \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
+
+Expected results:
+
+- `plutil` reports both files are OK.
+- `sips` reports `hasAlpha: no`.
+- The generic iOS build succeeds.
+
+## Archive And Upload
+
+1. Open `Piperly.xcodeproj` in Xcode after running `xcodegen generate`.
+2. Select the `Piperly` scheme.
+3. Select **Any iOS Device (arm64)** or a connected iPad.
+4. Confirm **Signing & Capabilities** uses Sarah's paid Apple Developer team
+   and automatic signing.
+5. Use **Product > Archive**.
+6. In Organizer, choose **Distribute App > App Store Connect > Upload**.
+7. Let Xcode manage signing during upload unless Sarah has a concrete reason to
+   use manual signing assets.
+
+## App Store Connect Fields To Complete Manually
+
+Create or update the App Store Connect app record before external TestFlight
+review:
+
+- Bundle ID: register `com.piperly.app`, or update `project.yml` first if the
+  final App Store bundle ID should be different.
+- App name: Piperly.
+- Primary category: Education.
+- Age rating: answer based on child-facing EPUB reader behavior and parent-
+  supplied content.
+- Kids Category: opt in only if Sarah is ready to maintain the child-safety
+  posture documented in `docs/app-store-privacy-review.md`.
+- Privacy Policy URL: publish the policy text drafted in
+  `docs/app-store-privacy-review.md`, then add the public URL.
+- App privacy answers: use `docs/app-store-privacy-review.md`; the current
+  repo posture is no tracking and no collected data.
+- Beta App Description: describe Piperly as an iPad EPUB reader for kids with
+  local reading state and parent-gated OPDS browsing.
+- Beta Review Notes: paste the beta notes from
+  `docs/app-store-privacy-review.md`.
+- Sign-in information: not required for app accounts; if the reviewer should
+  test a private OPDS server, provide test server credentials in beta review
+  notes.
+- Export compliance: answer in App Store Connect based on Apple's current
+  questionnaire. Piperly does not implement custom encryption in the app code;
+  OPDS credentials, when configured, are sent to the parent-configured server.
+- Contact information: provide Sarah's current review contact details.
+- Testers: add internal testers after processing, and add external tester
+  groups before submitting for beta review.
+
+## Scope Notes For INT-340
+
+The previous INT-340 evidence is stale in a few important places:
+
+- App icon alpha has already been fixed.
+- A launch screen exists and is wired through `UILaunchStoryboardName`.
+- Browse and server setup are parent-gated.
+- INT-438 added the privacy and child-safety review in
+  `docs/app-store-privacy-review.md`.
+
+The remaining INT-340 scope is therefore documentation and handoff clarity:
+verify the repo-side metadata, document the archive path, and make Sarah's
+manual App Store Connect work explicit.
