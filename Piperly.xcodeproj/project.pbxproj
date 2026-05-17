@@ -334,6 +334,7 @@
 			buildConfigurationList = 0A09B395B88E751924296233 /* Build configuration list for PBXNativeTarget "PiperlyUITests" */;
 			buildPhases = (
 				9B6819283AA57567DD4FECB9 /* Sources */,
+				15DE93DBF6423F73B49B2AF6 /* Configure UI Test Runner Launch Screen */,
 			);
 			buildRules = (
 			);
@@ -447,6 +448,25 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		15DE93DBF6423F73B49B2AF6 /* Configure UI Test Runner Launch Screen */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Configure UI Test Runner Launch Screen";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "runner_info_plist=\"${TARGET_BUILD_DIR}/../Info.plist\"\ntest_app_assets=\"${BUILT_PRODUCTS_DIR}/${TEST_TARGET_NAME}.app/Assets.car\"\nrunner_assets=\"${TARGET_BUILD_DIR}/../Assets.car\"\n\nif [ -f \"${runner_info_plist}\" ]; then\n  /usr/libexec/PlistBuddy -c \"Delete :UILaunchScreen\" \"${runner_info_plist}\" 2>/dev/null || true\n  /usr/libexec/PlistBuddy -c \"Add :UILaunchScreen dict\" \"${runner_info_plist}\"\n  /usr/libexec/PlistBuddy -c \"Add :UILaunchScreen:UIColorName string LaunchBackground\" \"${runner_info_plist}\"\nfi\n\nif [ -f \"${test_app_assets}\" ]; then\n  cp \"${test_app_assets}\" \"${runner_assets}\"\nfi\n";
+		};
 		3CE53937784D812FEE864991 /* SwiftLint */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;

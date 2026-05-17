@@ -52,7 +52,8 @@ targets:
         LSRequiresIPhoneOS: true
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
-        UILaunchScreen: {}
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UIRequiredDeviceCapabilities:
           - arm64
         UISupportedInterfaceOrientations~ipad:
@@ -133,6 +134,24 @@ targets:
     platform: iOS
     sources:
       - path: PiperlyUITests
+    postBuildScripts:
+      - name: Configure UI Test Runner Launch Screen
+        basedOnDependencyAnalysis: false
+        shell: /bin/sh
+        script: |
+          runner_info_plist="${TARGET_BUILD_DIR}/../Info.plist"
+          test_app_assets="${BUILT_PRODUCTS_DIR}/${TEST_TARGET_NAME}.app/Assets.car"
+          runner_assets="${TARGET_BUILD_DIR}/../Assets.car"
+
+          if [ -f "${runner_info_plist}" ]; then
+            /usr/libexec/PlistBuddy -c "Delete :UILaunchScreen" "${runner_info_plist}" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :UILaunchScreen dict" "${runner_info_plist}"
+            /usr/libexec/PlistBuddy -c "Add :UILaunchScreen:UIColorName string LaunchBackground" "${runner_info_plist}"
+          fi
+
+          if [ -f "${test_app_assets}" ]; then
+            cp "${test_app_assets}" "${runner_assets}"
+          fi
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
