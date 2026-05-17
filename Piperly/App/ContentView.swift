@@ -122,6 +122,17 @@ struct ContentView: View {
                     showBrowsePIN = true
                 }
             }
+            .onChange(of: pinManager.isPINSet) { _, isPINSet in
+                guard !isPINSet else { return }
+
+                browseUnlocked = false
+                showBrowsePIN = false
+                showBrowsePINSetup = false
+
+                if selectedTab == .browse {
+                    selectedTab = .library
+                }
+            }
             .fullScreenCover(isPresented: $showBrowsePINSetup) {
                 PINFlowView(
                     step: .setNew,
