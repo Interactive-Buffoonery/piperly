@@ -586,7 +586,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.piperly.PiperlyUITests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				TARGETED_DEVICE_FAMILY = 2;
 				TEST_TARGET_NAME = Piperly;
 			};
 			name = Release;
@@ -722,7 +723,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.piperly.PiperlyTests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				TARGETED_DEVICE_FAMILY = 2;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piperly.app/Piperly";
 			};
 			name = Release;
@@ -766,7 +768,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.piperly.PiperlyTests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				TARGETED_DEVICE_FAMILY = 2;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piperly.app/Piperly";
 			};
 			name = Debug;
@@ -783,7 +786,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.piperly.PiperlyUITests;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				TARGETED_DEVICE_FAMILY = 2;
 				TEST_TARGET_NAME = Piperly;
 			};
 			name = Debug;
