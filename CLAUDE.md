@@ -30,8 +30,8 @@ Piperly/
 
 ## Key Patterns
 
-- **TTS**: Uses `AVSpeechSynthesizer` (not sherpa-onnx -- was replaced). Voice selection
-  uses system voice identifiers. PLAN.md still references sherpa-onnx/Kokoro but code diverged.
+- **TTS**: Uses `AVSpeechSynthesizer` for speech output. Voice selection uses
+  system voice identifiers.
 - **Word tap**: JS injected via Readium's `setupUserScripts` delegate wraps text nodes in
   `<span class="piperly-word">`, sends taps to Swift via `WKScriptMessageHandler`.
   Does NOT call `stopPropagation()` -- preserves Readium's page-turn gestures.

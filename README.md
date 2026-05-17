@@ -45,7 +45,8 @@ Xcode will automatically resolve the Readium Swift Package Manager dependencies 
 
 1. Open `Piperly.xcodeproj` in Xcode
 2. Select an iPad simulator or connected iPad device
-3. In **Signing & Capabilities**, select your Development Team
+3. For device builds or archives, select your own Development Team in
+   **Signing & Capabilities**
 4. Build and run (⌘R)
 
 For command-line verification, regenerate the project and use the shared `Piperly`
@@ -68,36 +69,21 @@ to be installed in **Xcode > Settings > Components**.
 ## TestFlight / App Store
 
 See [docs/testflight-release-checklist.md](docs/testflight-release-checklist.md)
-for the repo-side metadata audit, archive checklist, and App Store Connect
-fields Sarah must complete manually.
+for the repo-side metadata audit and archive checklist.
 
-To archive and upload to TestFlight:
-
-1. In **Signing & Capabilities**, set your Development Team and ensure Automatic signing is enabled
-2. Register the bundle identifier (`com.piperly.app`) in [App Store Connect](https://appstoreconnect.apple.com) — or change it to one under your developer account
-3. Create the app in App Store Connect (set name, category, age rating, etc.)
-4. In Xcode, select **Any iOS Device (arm64)** or a connected iPad, then use **Product → Archive**
-5. In the Organizer window: **Distribute App → App Store Connect → Upload**
-6. In App Store Connect: complete beta metadata, add testers under **TestFlight**, and submit for beta review
-
-Internal testers (up to 100) can install immediately after upload. External testers require a brief Apple review (~24 hours).
-
-### Beta Review Notes
-
-Tell Apple that external catalog access is parent-gated. On a fresh install,
-tap **Browse** and set a 4-digit parent PIN to access the test OPDS catalog.
-On later attempts, enter that PIN to open Browse. The same PIN unlocks
-**Settings > Parent Controls** for server URL, username, and password entry.
-OPDS requests go directly from the device to the parent-configured server and
-are not routed through Interactive Buffoonery.
+To archive and upload to TestFlight, configure signing with your own Apple
+developer account, register an appropriate bundle identifier in
+[App Store Connect](https://appstoreconnect.apple.com), create the app record,
+then archive and upload from Xcode Organizer. Keep signing identities,
+provisioning profiles, and local account settings out of the repository.
 
 ### Privacy Review
 
 See [docs/app-store-privacy-review.md](docs/app-store-privacy-review.md) for the
-current App Store Connect privacy answers, Kids Category posture, beta review
-notes, and external privacy policy draft. The current repo posture is no
-tracking and no collected data; local reading state remains on device, and
-optional OPDS access is parent-gated.
+current App Store Connect privacy answers, Kids Category posture, and external
+privacy policy draft. The current repo posture is no tracking and no collected
+data; local reading state remains on device, and optional OPDS access is
+parent-gated.
 
 ### Parent Gate Regression Checklist
 

@@ -412,7 +412,6 @@
 						TestTargetID = C1CD37C1BA795F10849A63BB;
 					};
 					C1CD37C1BA795F10849A63BB = {
-						DevelopmentTeam = 7CNK4YPCQX;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -586,7 +585,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7CNK4YPCQX;
 				INFOPLIST_FILE = Piperly/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Piperly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
@@ -768,7 +766,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7CNK4YPCQX;
 				INFOPLIST_FILE = Piperly/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Piperly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
