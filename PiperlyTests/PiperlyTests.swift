@@ -223,6 +223,35 @@ struct OPDSServerConfigTests {
     }
 }
 
+// MARK: - ParentCatalogAccessPolicy
+
+@Suite("ParentCatalogAccessPolicy")
+struct ParentCatalogAccessPolicyTests {
+    @Test func requiresPINSetupBeforeCatalogAccessWhenNoPINExists() {
+        let state = ParentCatalogAccessPolicy.state(isPINSet: false, isUnlocked: false)
+
+        #expect(state == .needsPINSetup)
+    }
+
+    @Test func requiresPINSetupEvenIfPriorSessionWasUnlocked() {
+        let state = ParentCatalogAccessPolicy.state(isPINSet: false, isUnlocked: true)
+
+        #expect(state == .needsPINSetup)
+    }
+
+    @Test func requiresPINVerificationBeforeCatalogAccessWhenPINExists() {
+        let state = ParentCatalogAccessPolicy.state(isPINSet: true, isUnlocked: false)
+
+        #expect(state == .needsPINVerification)
+    }
+
+    @Test func allowsCatalogAccessAfterParentUnlock() {
+        let state = ParentCatalogAccessPolicy.state(isPINSet: true, isUnlocked: true)
+
+        #expect(state == .allowed)
+    }
+}
+
 // MARK: - ReaderTheme
 
 @Suite("ReaderTheme")

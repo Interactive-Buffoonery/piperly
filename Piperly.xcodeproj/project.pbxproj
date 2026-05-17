@@ -43,6 +43,7 @@
 		902853FDC93BE0846CF773C8 /* ReadiumOPDS in Frameworks */ = {isa = PBXBuildFile; productRef = 05E1C33768E23EDF37F75DDE /* ReadiumOPDS */; };
 		96A0782B38BA02C7827B1F6F /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B5EA42469618622432905D /* Typography.swift */; };
 		A4D9861B907C32BA65FA94BA /* ReaderToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */; };
+		A8269BA46114B3E849411488 /* ParentCatalogAccessPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C084A3DA3DADC3DD422EA29E /* ParentCatalogAccessPolicy.swift */; };
 		A9B8672F77616A3D902F1BB5 /* BookCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020FF465ED5DAE55F3F23078 /* BookCard.swift */; };
 		AE1CBD6D4C45DD851FA3DDC9 /* PiperlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0575D688D631F115AF497590 /* PiperlyApp.swift */; };
 		C16B65EFFFBD4432864334EA /* ReaderTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B48C597C42056AFD320ACB1 /* ReaderTheme.swift */; };
@@ -54,6 +55,7 @@
 		E3CE04C7A26AF36B8F63FBA7 /* PINPadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA43EF4B106F418E4ABF0488 /* PINPadView.swift */; };
 		E5E51B45280D6FB89A4C8AA6 /* CatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487DA82D39BD5E30051D2676 /* CatalogView.swift */; };
 		E6C03BC61FD764CBCFB96B15 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50E2DE40A7757EF922301E5 /* ReaderView.swift */; };
+		E809DD30D79CCB6E8A9ED21D /* PINFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 780D1A1A9DFDA86487CEB545 /* PINFlowView.swift */; };
 		F50D09433408CF970C4DB0FE /* ReadingSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFADC6967714E5F36F446A79 /* ReadingSettingsSheet.swift */; };
 		F55EF49167FD7539DAA7D369 /* BookStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4617B4737EF21A2663B076 /* BookStore.swift */; };
 		F6C0D6F691FDBE460E9C4C03 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D67EDBA545BF502AADA33A5 /* LibraryView.swift */; };
@@ -100,6 +102,7 @@
 		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		67C736D8D95AF555808BAB07 /* WordListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListSheet.swift; sourceTree = "<group>"; };
 		6D67EDBA545BF502AADA33A5 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		780D1A1A9DFDA86487CEB545 /* PINFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINFlowView.swift; sourceTree = "<group>"; };
 		79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderToolbar.swift; sourceTree = "<group>"; };
 		8AF935947C98913558751F14 /* OPDSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPDSService.swift; sourceTree = "<group>"; };
 		8F3144A8110DA7D4264D5545 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -112,6 +115,7 @@
 		B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSEngine.swift; sourceTree = "<group>"; };
 		B85CFC325DA646354DCCBB80 /* PINGateModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINGateModifier.swift; sourceTree = "<group>"; };
 		BB264E643F353A189D2BDFC4 /* StickerPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerPicker.swift; sourceTree = "<group>"; };
+		C084A3DA3DADC3DD422EA29E /* ParentCatalogAccessPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentCatalogAccessPolicy.swift; sourceTree = "<group>"; };
 		C1B8090D26F5F0FCD944BCCD /* SavedWord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWord.swift; sourceTree = "<group>"; };
 		CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */ = {isa = PBXFileReference; path = "the-secret-garden.epub"; sourceTree = "<group>"; };
 		CCCF364E4596E4F81B5FBFEC /* CatalogDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogDetailSheet.swift; sourceTree = "<group>"; };
@@ -242,6 +246,7 @@
 		73BD50056A415FA38530BC14 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				780D1A1A9DFDA86487CEB545 /* PINFlowView.swift */,
 				B85CFC325DA646354DCCBB80 /* PINGateModifier.swift */,
 				FA43EF4B106F418E4ABF0488 /* PINPadView.swift */,
 				CFADC6967714E5F36F446A79 /* ReadingSettingsSheet.swift */,
@@ -323,6 +328,7 @@
 				CD4617B4737EF21A2663B076 /* BookStore.swift */,
 				1D1FA674A5A342F47B57B6B6 /* KeychainService.swift */,
 				8AF935947C98913558751F14 /* OPDSService.swift */,
+				C084A3DA3DADC3DD422EA29E /* ParentCatalogAccessPolicy.swift */,
 				2888EFFF3CCEFF16FDEAF5B2 /* PINManager.swift */,
 				B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */,
 			);
@@ -530,9 +536,11 @@
 				F6C0D6F691FDBE460E9C4C03 /* LibraryView.swift in Sources */,
 				242C3CD88A8B712C22022C12 /* OPDSServerConfig.swift in Sources */,
 				33A87D7979BC6D5EC87552B0 /* OPDSService.swift in Sources */,
+				E809DD30D79CCB6E8A9ED21D /* PINFlowView.swift in Sources */,
 				E1898710D5FFFF93DE654F19 /* PINGateModifier.swift in Sources */,
 				1464E9A0D41CFED4C6589F4E /* PINManager.swift in Sources */,
 				E3CE04C7A26AF36B8F63FBA7 /* PINPadView.swift in Sources */,
+				A8269BA46114B3E849411488 /* ParentCatalogAccessPolicy.swift in Sources */,
 				AE1CBD6D4C45DD851FA3DDC9 /* PiperlyApp.swift in Sources */,
 				D70FB9ABBE67AD59491D9F22 /* ReaderNavigator.swift in Sources */,
 				C16B65EFFFBD4432864334EA /* ReaderTheme.swift in Sources */,

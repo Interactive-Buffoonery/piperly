@@ -78,6 +78,23 @@ To archive and upload to TestFlight:
 
 Internal testers (up to 100) can install immediately after upload. External testers require a brief Apple review (~24 hours).
 
+### Beta Review Notes
+
+Tell Apple that external catalog access is parent-gated. On a fresh install,
+tap **Browse** and set a 4-digit parent PIN to access the test OPDS catalog.
+On later attempts, enter that PIN to open Browse. The same PIN unlocks
+**Settings > Parent Controls** for server URL, username, and password entry.
+
+### Parent Gate Regression Checklist
+
+- Fresh install with no PIN: **Browse** prompts for parent PIN setup before any
+  catalog content loads.
+- Fresh install with no PIN: **Settings** shows reading settings and parent PIN
+  setup, but hides server URL, username, and password fields.
+- After PIN setup: **Browse** requires the PIN before catalog browsing.
+- After PIN setup: **Settings > Parent Controls** requires the PIN before server
+  configuration, while library reading remains available without a PIN.
+
 ## Project Structure
 
 ```
