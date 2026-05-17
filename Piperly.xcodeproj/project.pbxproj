@@ -22,6 +22,7 @@
 		33A87D7979BC6D5EC87552B0 /* OPDSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AF935947C98913558751F14 /* OPDSService.swift */; };
 		3999B9FA53792DA07DC6F6A2 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = 17B713292E77005A7751B9DC /* ReadiumNavigator */; };
 		3AC16D4D89F0CBC50AC41C91 /* PiperlyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEE3796984A778CA18D6B83F /* PiperlyTests.swift */; };
+		3B10D4AA0162D1197528A3E0 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8F3144A8110DA7D4264D5545 /* LaunchScreen.storyboard */; };
 		3CF38A165C6ED0FFF26DDB03 /* the-secret-garden.epub in Resources */ = {isa = PBXBuildFile; fileRef = CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */; };
 		4599435ED40B97ABFEE6DF62 /* WordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABACED436F78084BF8A2BAEA /* WordsView.swift */; };
 		48B1869DE73286878F0EABC7 /* WordTapCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE753ECD378C1FB1B62B5BEE /* WordTapCoordinator.swift */; };
@@ -101,6 +102,7 @@
 		6D67EDBA545BF502AADA33A5 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderToolbar.swift; sourceTree = "<group>"; };
 		8AF935947C98913558751F14 /* OPDSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPDSService.swift; sourceTree = "<group>"; };
+		8F3144A8110DA7D4264D5545 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		907A4ACDFF28240D2A04EC58 /* ImportButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportButton.swift; sourceTree = "<group>"; };
 		A73EC060FFEE5F5B1FBF80AD /* CatalogBookCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogBookCard.swift; sourceTree = "<group>"; };
 		AA3C687F79D0D61F50394188 /* PiperlyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PiperlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -287,6 +289,7 @@
 			isa = PBXGroup;
 			children = (
 				456BD662A32FF2E09E8B91CA /* Assets.xcassets */,
+				8F3144A8110DA7D4264D5545 /* LaunchScreen.storyboard */,
 				37668E902B9B08AB7690046F /* PrivacyInfo.xcprivacy */,
 				219B546B88E956F5EC6324D7 /* reader-theme.css */,
 				AEC8DDABC8527ECA9066D42E /* word-tap.js */,
@@ -438,6 +441,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C8CD69CC9A21D1069657FB65 /* Assets.xcassets in Resources */,
+				3B10D4AA0162D1197528A3E0 /* LaunchScreen.storyboard in Resources */,
 				2123F3B71AD6460312BAC3A6 /* PrivacyInfo.xcprivacy in Resources */,
 				7B61C8E28DA7A9C27B7B27D6 /* reader-theme.css in Resources */,
 				3CF38A165C6ED0FFF26DDB03 /* the-secret-garden.epub in Resources */,
@@ -465,7 +469,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "runner_info_plist=\"${TARGET_BUILD_DIR}/../Info.plist\"\ntest_app_assets=\"${BUILT_PRODUCTS_DIR}/${TEST_TARGET_NAME}.app/Assets.car\"\nrunner_assets=\"${TARGET_BUILD_DIR}/../Assets.car\"\n\nif [ -f \"${runner_info_plist}\" ]; then\n  /usr/libexec/PlistBuddy -c \"Delete :UILaunchScreen\" \"${runner_info_plist}\" 2>/dev/null || true\n  /usr/libexec/PlistBuddy -c \"Add :UILaunchScreen dict\" \"${runner_info_plist}\"\n  /usr/libexec/PlistBuddy -c \"Add :UILaunchScreen:UIColorName string LaunchBackground\" \"${runner_info_plist}\"\nfi\n\nif [ -f \"${test_app_assets}\" ]; then\n  cp \"${test_app_assets}\" \"${runner_assets}\"\nfi\n";
+			shellScript = "for runner_info_plist in \\\n  \"${TARGET_BUILD_DIR}/../Info.plist\" \\\n  \"${TARGET_BUILD_DIR}/PiperlyUITests-Runner.app/Info.plist\" \\\n  \"${BUILT_PRODUCTS_DIR}/PiperlyUITests-Runner.app/Info.plist\"\ndo\n  if [ -f \"${runner_info_plist}\" ]; then\n    /usr/libexec/PlistBuddy -c \"Delete :UILaunchScreen\" \"${runner_info_plist}\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :UILaunchScreen dict\" \"${runner_info_plist}\"\n    /usr/libexec/PlistBuddy -c \"Add :UILaunchScreen:UIColorName string LaunchBackground\" \"${runner_info_plist}\"\n    /usr/libexec/PlistBuddy -c \"Add :UILaunchScreen:UIImageName string LaunchAppIcon\" \"${runner_info_plist}\"\n  fi\ndone\n\ntest_app_assets=\"\"\nfor candidate_assets in \\\n  \"${BUILT_PRODUCTS_DIR}/${TEST_TARGET_NAME}.app/Assets.car\" \\\n  \"${TARGET_BUILD_DIR}/${TEST_TARGET_NAME}.app/Assets.car\" \\\n  \"${BUILT_PRODUCTS_DIR}/Piperly.app/Assets.car\" \\\n  \"${TARGET_BUILD_DIR}/Piperly.app/Assets.car\"\ndo\n  if [ -z \"${test_app_assets}\" ] && [ -f \"${candidate_assets}\" ]; then\n    test_app_assets=\"${candidate_assets}\"\n  fi\ndone\n\nif [ -n \"${test_app_assets}\" ]; then\n  for runner_assets in \\\n    \"${TARGET_BUILD_DIR}/../Assets.car\" \\\n    \"${TARGET_BUILD_DIR}/PiperlyUITests-Runner.app/Assets.car\" \\\n    \"${BUILT_PRODUCTS_DIR}/PiperlyUITests-Runner.app/Assets.car\"\n  do\n    if [ -d \"$(dirname \"${runner_assets}\")\" ]; then\n      cp \"${test_app_assets}\" \"${runner_assets}\"\n    fi\n  done\nfi\n";
 		};
 		3CE53937784D812FEE864991 /* SwiftLint */ = {
 			isa = PBXShellScriptBuildPhase;

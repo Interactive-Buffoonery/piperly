@@ -52,8 +52,7 @@ targets:
         LSRequiresIPhoneOS: true
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
-        UILaunchScreen:
-          UIColorName: LaunchBackground
+        UILaunchStoryboardName: LaunchScreen
         UIRequiredDeviceCapabilities:
           - arm64
         UISupportedInterfaceOrientations~ipad:
@@ -139,18 +138,41 @@ targets:
         basedOnDependencyAnalysis: false
         shell: /bin/sh
         script: |
-          runner_info_plist="${TARGET_BUILD_DIR}/../Info.plist"
-          test_app_assets="${BUILT_PRODUCTS_DIR}/${TEST_TARGET_NAME}.app/Assets.car"
-          runner_assets="${TARGET_BUILD_DIR}/../Assets.car"
+          for runner_info_plist in \
+            "${TARGET_BUILD_DIR}/../Info.plist" \
+            "${TARGET_BUILD_DIR}/PiperlyUITests-Runner.app/Info.plist" \
+            "${BUILT_PRODUCTS_DIR}/PiperlyUITests-Runner.app/Info.plist"
+          do
+            if [ -f "${runner_info_plist}" ]; then
+              /usr/libexec/PlistBuddy -c "Delete :UILaunchScreen" "${runner_info_plist}" 2>/dev/null || true
+              /usr/libexec/PlistBuddy -c "Add :UILaunchScreen dict" "${runner_info_plist}"
+              /usr/libexec/PlistBuddy -c "Add :UILaunchScreen:UIColorName string LaunchBackground" "${runner_info_plist}"
+              /usr/libexec/PlistBuddy -c "Add :UILaunchScreen:UIImageName string LaunchAppIcon" "${runner_info_plist}"
+            fi
+          done
 
-          if [ -f "${runner_info_plist}" ]; then
-            /usr/libexec/PlistBuddy -c "Delete :UILaunchScreen" "${runner_info_plist}" 2>/dev/null || true
-            /usr/libexec/PlistBuddy -c "Add :UILaunchScreen dict" "${runner_info_plist}"
-            /usr/libexec/PlistBuddy -c "Add :UILaunchScreen:UIColorName string LaunchBackground" "${runner_info_plist}"
-          fi
+          test_app_assets=""
+          for candidate_assets in \
+            "${BUILT_PRODUCTS_DIR}/${TEST_TARGET_NAME}.app/Assets.car" \
+            "${TARGET_BUILD_DIR}/${TEST_TARGET_NAME}.app/Assets.car" \
+            "${BUILT_PRODUCTS_DIR}/Piperly.app/Assets.car" \
+            "${TARGET_BUILD_DIR}/Piperly.app/Assets.car"
+          do
+            if [ -z "${test_app_assets}" ] && [ -f "${candidate_assets}" ]; then
+              test_app_assets="${candidate_assets}"
+            fi
+          done
 
-          if [ -f "${test_app_assets}" ]; then
-            cp "${test_app_assets}" "${runner_assets}"
+          if [ -n "${test_app_assets}" ]; then
+            for runner_assets in \
+              "${TARGET_BUILD_DIR}/../Assets.car" \
+              "${TARGET_BUILD_DIR}/PiperlyUITests-Runner.app/Assets.car" \
+              "${BUILT_PRODUCTS_DIR}/PiperlyUITests-Runner.app/Assets.car"
+            do
+              if [ -d "$(dirname "${runner_assets}")" ]; then
+                cp "${test_app_assets}" "${runner_assets}"
+              fi
+            done
           fi
     settings:
       base:
