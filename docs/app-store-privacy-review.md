@@ -1,10 +1,7 @@
 # App Store Privacy And Child-Safety Review
 
-Last audited: May 17, 2026 for INT-438.
-
-This note records Piperly's current privacy, App Store Connect, beta review,
-and child-safety posture after parent-gating external catalog access in
-INT-436.
+This note records Piperly's current privacy, App Store Connect, and
+child-safety posture for public review.
 
 ## Audit Conclusion
 
@@ -21,9 +18,8 @@ reading metadata.
 Apple defines collection for App Store privacy answers as transmitting data off
 device in a way that allows the developer or third-party partners to access it
 beyond servicing the request in real time. Piperly does not currently send
-reading data, credentials, analytics, diagnostics, or identifiers to
-Interactive Buffoonery or an integrated analytics, advertising, or backend
-service.
+reading data, credentials, analytics, diagnostics, or identifiers to the app
+developer or an integrated analytics, advertising, or backend service.
 
 ## Actual Data Flows
 
@@ -70,7 +66,7 @@ service.
   server URL.
 - If a username is present, requests include an HTTP Basic Authorization header
   built from the stored username and password.
-- Piperly does not proxy those requests through Interactive Buffoonery and does
+- Piperly does not proxy those requests through the app developer and does
   not include an analytics SDK, advertising SDK, account system, or developer
   backend in the current repo.
 
@@ -96,12 +92,12 @@ Current manifest answer:
 - `NSPrivacyCollectedDataTypes`: empty
 - `NSPrivacyAccessedAPITypes`: UserDefaults with reason `CA92.1`
 
-No functional manifest expansion is needed for INT-438.
+No functional manifest expansion is needed for the current app behavior.
 
 Do not add collected data types unless Piperly starts sending data to
-Interactive Buffoonery, an integrated third-party service, analytics, crash
-reporting, advertising, an account backend, or another service whose data Sarah
-or a partner can access beyond real-time request handling.
+the app developer, an integrated third-party service, analytics, crash
+reporting, advertising, an account backend, or another service whose data the
+developer or a partner can access beyond real-time request handling.
 
 ## Recommended App Store Connect Privacy Answers
 
@@ -120,45 +116,28 @@ Notes for the App Store privacy form:
 - Do not mark OPDS server URL, OPDS username/password, reading progress,
   bookmarks, saved words, or EPUB files as collected while they remain local or
   are transmitted only to the parent-configured OPDS server outside
-  Interactive Buffoonery's control.
-- If Sarah later adds crash reporting, analytics, app telemetry, cloud sync,
+  the app developer's control.
+- If Piperly later adds crash reporting, analytics, app telemetry, cloud sync,
   account login, hosted catalogs, support forms, or diagnostics upload, update
   both App Store Connect and `PrivacyInfo.xcprivacy`.
 
 ## Kids Category And Child-Facing Posture
 
 Piperly is child-facing and currently uses the Education category in
-`project.yml`. If Sarah opts into the App Store Kids Category, keep this posture:
+`project.yml`. If Piperly opts into the App Store Kids Category, keep this
+posture:
 
 - External catalog access stays behind the parent PIN.
 - Server configuration stays behind Parent Controls.
 - No ads, tracking, behavioral analytics, social sharing, public profiles, chat,
   purchases, or account creation are present.
 - Imported books and parent-configured OPDS catalogs are parent-supplied
-  content. Sarah should not claim Apple has reviewed or curated external OPDS
-  content.
+  content. App Store metadata should not claim Apple has reviewed or curated
+  external OPDS content.
 - Browse should remain unavailable until a parent sets a PIN and unlocks it.
 - If future work adds external links, purchases, web browsing, sharing,
   sign-in, or hosted catalog content, revisit the child-safety review before
   TestFlight or App Store submission.
-
-## Beta Review Notes
-
-Use this in App Store Connect beta review notes:
-
-> Piperly is an iPad EPUB reader for kids. The app includes one bundled sample
-> book and stores reading progress, bookmarks, saved words, preferences, imported
-> EPUBs, and cover images locally on device.
->
-> External catalog access is parent-gated. On a fresh install, tap Browse and set
-> a 4-digit parent PIN before any catalog content loads. On later attempts,
-> entering that PIN unlocks Browse. The same PIN unlocks Settings > Parent
-> Controls, where a reviewer can enter an OPDS server URL plus optional username
-> and password. OPDS requests go directly from the device to the configured
-> server and are not routed through the developer.
->
-> The app does not include ads, analytics, tracking, in-app purchases, social
-> features, account creation, or a developer-hosted backend.
 
 ## External Privacy Policy Draft
 
@@ -178,8 +157,8 @@ Use this as a publishable starting point for the public privacy policy:
 > If a parent configures an OPDS-compatible book server, Piperly can connect
 > directly to that server to browse catalogs, load cover images, search, test the
 > connection, and download EPUB files. If credentials are configured, Piperly
-> sends them to that server using HTTP Basic authentication. Interactive
-> Buffoonery does not operate this server, proxy these requests, or receive the
+> sends them to that server using HTTP Basic authentication. The Piperly
+> developer does not operate this server, proxy these requests, or receive the
 > server credentials.
 >
 > Piperly does not include advertising, third-party analytics, social networking,
