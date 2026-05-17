@@ -51,9 +51,11 @@ struct SettingsView: View {
             List {
                 readingSection
                 parentControlsGate
-                if parentControlsUnlocked || !pinManager.isPINSet {
+                if parentControlsUnlocked {
                     parentalPINSection
                     bookServerSection
+                } else if !pinManager.isPINSet {
+                    pinSetupRequiredSection
                 }
             }
             .scrollContentBackground(.hidden)
@@ -113,6 +115,21 @@ struct SettingsView: View {
                 .listRowBackground(Piperly.Colors.surface)
             }
         }
+    }
+
+    private var pinSetupRequiredSection: some View {
+        Section {
+            Button {
+                showSetPIN = true
+            } label: {
+                Label("Set a Parent PIN", systemImage: "lock.fill")
+            }
+            .foregroundStyle(Piperly.Colors.accent)
+        } footer: {
+            Text("Set a PIN before connecting to an external book server or using Browse.")
+                .foregroundStyle(Piperly.Colors.textTertiary)
+        }
+        .listRowBackground(Piperly.Colors.surface)
     }
 
     // MARK: - Parental PIN Section
@@ -344,6 +361,7 @@ struct SettingsView: View {
             onCancel: { showSetPIN = false },
             onComplete: { pin in
                 pinManager.setPIN(pin)
+                parentControlsUnlocked = true
                 showSetPIN = false
             }
         )
@@ -386,6 +404,7 @@ struct SettingsView: View {
             ) { pin in
                 if pinManager.verifyPIN(pin) {
                     pinManager.removePIN()
+                    parentControlsUnlocked = false
                     showRemovePIN = false
                 }
             }
@@ -431,96 +450,6 @@ struct SettingsView: View {
                 }
             } catch {
                 connectionStatus = .failed("Could not connect")
-            }
-        }
-    }
-}
-
-// MARK: - PIN Flow View (Set / Change)
-
-private struct PINFlowView: View {
-    enum Step {
-        case verifyCurrent
-        case setNew
-        case confirmNew
-    }
-
-    let step: Step
-    var pinManager: PINManager?
-    let onCancel: () -> Void
-    let onComplete: (String) -> Void
-
-    @State private var currentStep: Step
-    @State private var newPIN = ""
-    @State private var flowKey = UUID()
-
-    init(step: Step, pinManager: PINManager? = nil, onCancel: @escaping () -> Void, onComplete: @escaping (String) -> Void) {
-        self.step = step
-        self.pinManager = pinManager
-        self.onCancel = onCancel
-        self.onComplete = onComplete
-        _currentStep = State(initialValue: step)
-    }
-
-    var body: some View {
-        ZStack {
-            Piperly.Colors.background.ignoresSafeArea()
-
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        onCancel()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(Piperly.Colors.textTertiary)
-                    }
-                    .padding()
-                }
-                Spacer()
-            }
-
-            switch currentStep {
-            case .verifyCurrent:
-                PINPadView(
-                    title: "Enter Current PIN",
-                    subtitle: nil
-                ) { pin in
-                    if pinManager?.verifyPIN(pin) == true {
-                        currentStep = .setNew
-                        flowKey = UUID()
-                    } else {
-                        flowKey = UUID()
-                    }
-                }
-                .id(flowKey)
-
-            case .setNew:
-                PINPadView(
-                    title: "Set a New PIN",
-                    subtitle: "Choose a 4-digit code"
-                ) { pin in
-                    newPIN = pin
-                    currentStep = .confirmNew
-                    flowKey = UUID()
-                }
-                .id(flowKey)
-
-            case .confirmNew:
-                PINPadView(
-                    title: "Confirm PIN",
-                    subtitle: "Enter the same code again"
-                ) { pin in
-                    if pin == newPIN {
-                        onComplete(pin)
-                    } else {
-                        currentStep = .setNew
-                        newPIN = ""
-                        flowKey = UUID()
-                    }
-                }
-                .id(flowKey)
             }
         }
     }

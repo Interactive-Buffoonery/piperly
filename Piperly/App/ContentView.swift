@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var showingImporter = false
     @State private var browseUnlocked = false
     @State private var showBrowsePIN = false
+    @State private var showBrowsePINSetup = false
     @State private var browsePINKey = UUID()
 
     let ttsEngine: TTSEngine
@@ -107,11 +108,31 @@ struct ContentView: View {
                     .environmentObject(pinManager)
             }
             .onChange(of: selectedTab) { _, newTab in
-                if newTab == .browse && pinManager.isPINSet && !browseUnlocked {
+                guard newTab == .browse else { return }
+
+                switch ParentCatalogAccessPolicy.state(isPINSet: pinManager.isPINSet, isUnlocked: browseUnlocked) {
+                case .allowed:
+                    break
+                case .needsPINSetup:
+                    selectedTab = .library
+                    showBrowsePINSetup = true
+                case .needsPINVerification:
                     selectedTab = .library
                     browsePINKey = UUID()
                     showBrowsePIN = true
                 }
+            }
+            .fullScreenCover(isPresented: $showBrowsePINSetup) {
+                PINFlowView(
+                    step: .setNew,
+                    onCancel: { showBrowsePINSetup = false },
+                    onComplete: { pin in
+                        pinManager.setPIN(pin)
+                        browseUnlocked = true
+                        showBrowsePINSetup = false
+                        selectedTab = .browse
+                    }
+                )
             }
             .fullScreenCover(isPresented: $showBrowsePIN) {
                 ZStack {
