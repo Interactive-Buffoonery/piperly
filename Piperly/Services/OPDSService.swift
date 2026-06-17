@@ -50,7 +50,8 @@ final class OPDSService: ObservableObject {
     }
 
     func navigate(to href: String, title: String) async {
-        guard let url = URL(string: href) else { return }
+        let base = navStack.last?.url
+        guard let url = Self.resolve(href, against: base) else { return }
         navStack.append((url: url, title: title))
         await loadFeed(url: url)
     }
@@ -71,10 +72,10 @@ final class OPDSService: ObservableObject {
         do {
             let result = try await fetchAndParse(url: url)
             if case .feed(let feed) = result {
-                let newItems = mapPublications(feed.publications)
+                let newItems = mapPublications(feed.publications, base: url)
                 catalogItems.append(contentsOf: newItems)
                 nextPageURL = feed.links.first { $0.rels.contains(.next) }
-                    .flatMap { URL(string: $0.href) }
+                    .flatMap { Self.resolve($0.href, against: url) }
             }
         } catch {
             self.error = .connectionFailed
@@ -91,7 +92,7 @@ final class OPDSService: ObservableObject {
         else { return }
 
         let searchURLString = template.replacingOccurrences(of: "{searchTerms}", with: encoded)
-        guard let url = URL(string: searchURLString) else { return }
+        guard let url = Self.resolve(searchURLString, against: navStack.last?.url) else { return }
 
         navStack.append((url: url, title: "Search: \(query)"))
         await loadFeed(url: url)
@@ -100,9 +101,7 @@ final class OPDSService: ObservableObject {
     // MARK: - Download
 
     func downloadBook(_ item: CatalogItem, to bookStore: BookStore) async throws {
-        guard let acquisitionURL = item.acquisitionURL,
-              let url = URL(string: acquisitionURL.absoluteString)
-        else {
+        guard let url = item.acquisitionURL else {
             throw OPDSError.noAcquisitionLink
         }
 
@@ -161,22 +160,23 @@ final class OPDSService: ObservableObject {
             switch result {
             case .feed(let feed):
                 feedTitle = feed.metadata.title
-                catalogItems = mapPublications(feed.publications)
+                catalogItems = mapPublications(feed.publications, base: url)
 
                 for group in feed.groups {
-                    catalogItems.append(contentsOf: mapPublications(group.publications))
+                    catalogItems.append(contentsOf: mapPublications(group.publications, base: url))
                 }
 
                 navigationLinks = feed.navigation.compactMap { link in
-                    guard let title = link.title else { return nil }
-                    return CatalogNavLink(id: link.href, title: title, href: link.href)
+                    guard let title = link.title,
+                          let resolved = Self.resolve(link.href, against: url) else { return nil }
+                    return CatalogNavLink(id: link.href, title: title, href: resolved.absoluteString)
                 }
 
                 nextPageURL = feed.links.first { $0.rels.contains(.next) }
-                    .flatMap { URL(string: $0.href) }
+                    .flatMap { Self.resolve($0.href, against: url) }
 
                 if let searchLink = feed.links.first(where: { $0.rels.contains(.search) }),
-                   let searchURL = URL(string: searchLink.href) {
+                   let searchURL = Self.resolve(searchLink.href, against: url) {
                     await fetchSearchTemplate(from: searchURL)
                 }
 
@@ -186,7 +186,7 @@ final class OPDSService: ObservableObject {
 
             case .singlePublication(let pub):
                 feedTitle = pub.metadata.title ?? ""
-                catalogItems = mapPublications([pub])
+                catalogItems = mapPublications([pub], base: url)
                 nextPageURL = nil
             }
         } catch let opdsError as OPDSError {
@@ -203,7 +203,7 @@ final class OPDSService: ObservableObject {
         probeTask = Task {
             for link in linksToProbe {
                 guard !Task.isCancelled else { return }
-                guard let url = URL(string: link.href) else { continue }
+                guard let url = Self.resolve(link.href, against: nil) else { continue }
 
                 var request = authenticatedRequest(for: url)
                 request.timeoutInterval = 5
@@ -216,14 +216,14 @@ final class OPDSService: ObservableObject {
 
                 switch result {
                 case .singlePublication(let pub):
-                    let items = mapPublications([pub])
+                    let items = mapPublications([pub], base: url)
                     catalogItems.append(contentsOf: items)
                     navigationLinks.removeAll { $0.id == link.id }
 
                 case .feed(let feed):
                     // If the sub-feed has publications and no further navigation,
                     // inline the books into the current grid
-                    let pubs = mapPublications(feed.publications)
+                    let pubs = mapPublications(feed.publications, base: url)
                     if !pubs.isEmpty && feed.navigation.isEmpty {
                         catalogItems.append(contentsOf: pubs)
                         navigationLinks.removeAll { $0.id == link.id }
@@ -269,6 +269,15 @@ final class OPDSService: ObservableObject {
         }
     }
 
+    /// Resolves an OPDS href against a base feed URL. Absolute hrefs pass
+    /// through unchanged; relative hrefs are resolved against `base`. Returns
+    /// `nil` only when the href cannot form a URL at all.
+    nonisolated static func resolve(_ href: String, against base: URL?) -> URL? {
+        let trimmed = href.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed, relativeTo: base)?.absoluteURL
+    }
+
     private func authenticatedRequest(for url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         if let authValue = (cachedConfig ?? OPDSServerConfig.load())?.authorizationHeaderValue() {
@@ -281,7 +290,7 @@ final class OPDSService: ObservableObject {
         "application/epub+zip",
     ]
 
-    private func mapPublications(_ publications: [Publication]) -> [CatalogItem] {
+    private func mapPublications(_ publications: [Publication], base: URL?) -> [CatalogItem] {
         publications.compactMap { pub in
             let title = pub.metadata.title ?? "Untitled"
             let author = pub.metadata.authors.first?.name
@@ -290,11 +299,11 @@ final class OPDSService: ObservableObject {
             let coverURL: URL? = {
                 if let imageLinks = pub.manifest.subcollections["images"]?.first?.links,
                    let imageLink = imageLinks.first,
-                   let url = URL(string: imageLink.href) {
+                   let url = Self.resolve(imageLink.href, against: base) {
                     return url
                 }
                 if let coverLink = pub.links.first(where: { $0.rels.contains(.opdsImage) || $0.rels.contains(.opdsImageThumbnail) }),
-                   let url = URL(string: coverLink.href) {
+                   let url = Self.resolve(coverLink.href, against: base) {
                     return url
                 }
                 return nil
@@ -306,7 +315,7 @@ final class OPDSService: ObservableObject {
                 ?? pub.links.first { $0.rels.contains(where: \.isOPDSAcquisition) }
             }()
 
-            let acquisitionURL = acquisitionLink.flatMap { URL(string: $0.href) }
+            let acquisitionURL = acquisitionLink.flatMap { Self.resolve($0.href, against: base) }
 
             let mediaTypeString = acquisitionLink?.mediaType?.string
             if let mt = mediaTypeString, !Self.supportedMediaTypes.contains(mt) {

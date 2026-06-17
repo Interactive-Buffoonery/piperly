@@ -360,3 +360,38 @@ struct OPDSErrorTests {
         }
     }
 }
+
+// MARK: - OPDS URL Resolution (INT-342)
+
+@Suite("OPDSURLResolution")
+struct OPDSURLResolutionTests {
+    private let base = URL(string: "https://library.example.com/opds/catalog/")!
+
+    @Test func absoluteHrefPassesThroughUnchanged() {
+        let resolved = OPDSService.resolve("https://cdn.example.org/book.epub", against: base)
+        #expect(resolved?.absoluteString == "https://cdn.example.org/book.epub")
+    }
+
+    @Test func relativeHrefResolvesAgainstBase() {
+        let resolved = OPDSService.resolve("download/book.epub", against: base)
+        #expect(resolved?.absoluteString == "https://library.example.com/opds/catalog/download/book.epub")
+    }
+
+    @Test func rootRelativeHrefResolvesAgainstHost() {
+        let resolved = OPDSService.resolve("/feeds/new.atom", against: base)
+        #expect(resolved?.absoluteString == "https://library.example.com/feeds/new.atom")
+    }
+
+    @Test func absoluteHrefResolvesWithoutBase() {
+        let resolved = OPDSService.resolve("https://example.com/feed", against: nil)
+        #expect(resolved?.absoluteString == "https://example.com/feed")
+    }
+
+    @Test func emptyHrefReturnsNil() {
+        #expect(OPDSService.resolve("", against: base) == nil)
+        #expect(OPDSService.resolve("   ", against: base) == nil)
+    }
+
+    @Test func whitespaceIsTrimmed() {
+        let resolved = OPDSService.resolve("  book.epub  ", against: base)
+        #expect(resolved?.absoluteString == "https://library.example.com/opds/catalog/book.epub")
