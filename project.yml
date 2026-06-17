@@ -53,6 +53,7 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         UILaunchStoryboardName: LaunchScreen
+        ITSAppUsesNonExemptEncryption: false
         UIRequiredDeviceCapabilities:
           - arm64
         UISupportedInterfaceOrientations~ipad:
@@ -91,6 +92,7 @@ targets:
         SUPPORTS_MACCATALYST: false
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 7CNK4YPCQX
         INFOPLIST_KEY_CFBundleDisplayName: Piperly
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.education
         SWIFT_STRICT_CONCURRENCY: complete
