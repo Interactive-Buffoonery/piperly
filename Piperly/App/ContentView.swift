@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var showBrowsePIN = false
     @State private var showBrowsePINSetup = false
     @State private var browsePINKey = UUID()
+    @State private var pinErrorMessage: String?
 
     let ttsEngine: TTSEngine
 
@@ -138,10 +139,15 @@ struct ContentView: View {
                     step: .setNew,
                     onCancel: { showBrowsePINSetup = false },
                     onComplete: { pin in
-                        pinManager.setPIN(pin)
-                        browseUnlocked = true
-                        showBrowsePINSetup = false
-                        selectedTab = .browse
+                        do {
+                            try pinManager.setPIN(pin)
+                            browseUnlocked = true
+                            showBrowsePINSetup = false
+                            selectedTab = .browse
+                        } catch {
+                            showBrowsePINSetup = false
+                            pinErrorMessage = "Couldn't save the PIN. Please try again."
+                        }
                     }
                 )
             }
@@ -179,6 +185,18 @@ struct ContentView: View {
                     .id(browsePINKey)
                 }
             }
+            .alert("Couldn't Save PIN", isPresented: pinErrorBinding, presenting: pinErrorMessage) { _ in
+                Button("OK", role: .cancel) { pinErrorMessage = nil }
+            } message: { message in
+                Text(message)
+            }
         }
+    }
+
+    private var pinErrorBinding: Binding<Bool> {
+        Binding(
+            get: { pinErrorMessage != nil },
+            set: { if !$0 { pinErrorMessage = nil } }
+        )
     }
 }
