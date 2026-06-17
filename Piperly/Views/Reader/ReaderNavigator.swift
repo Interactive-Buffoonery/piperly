@@ -47,8 +47,9 @@ struct ReaderNavigator: UIViewControllerRepresentable {
     var onProgressChanged: ((Double) -> Void)?
     var onNavigatorReady: ((EPUBNavigatorViewController) -> Void)?
     var onLocationChanged: ((Locator) -> Void)?
+    var onCreationFailed: ((Error) -> Void)?
 
-    func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
+    func makeUIViewController(context: Context) -> UIViewController {
         let config = EPUBNavigatorViewController.Configuration(
             preferences: preferences,
             editingActions: []
@@ -68,26 +69,22 @@ struct ReaderNavigator: UIViewControllerRepresentable {
             return navigator
         } catch {
             logger.error("EPUBNavigatorViewController init failed: \(error.localizedDescription)")
-            do {
-                let navigator = try EPUBNavigatorViewController(
-                    publication: publication,
-                    initialLocation: nil
-                )
-                navigator.delegate = context.coordinator
-                return navigator
-            } catch {
-                fatalError("Cannot create EPUB navigator for '\(publication.metadata.title ?? "unknown")': \(error.localizedDescription)")
+            let callback = onCreationFailed
+            DispatchQueue.main.async {
+                callback?(error)
             }
+            return UIViewController()
         }
     }
 
-    func updateUIViewController(_ uiViewController: EPUBNavigatorViewController, context: Context) {
-        uiViewController.submitPreferences(preferences)
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        guard let navigator = uiViewController as? EPUBNavigatorViewController else { return }
+        navigator.submitPreferences(preferences)
         if readerTheme != context.coordinator.lastTheme {
             context.coordinator.lastTheme = readerTheme
             let script = readerTheme.cssVariablesScript
             Task { @MainActor in
-                _ = await uiViewController.evaluateJavaScript(script)
+                _ = await navigator.evaluateJavaScript(script)
             }
         }
     }

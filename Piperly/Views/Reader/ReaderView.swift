@@ -83,6 +83,10 @@ struct ReaderView: View {
                             if let json = locator.jsonString {
                                 bookStore.updateLocator(for: book.id, locatorJSON: json)
                             }
+                        },
+                        onCreationFailed: { error in
+                            self.publication = nil
+                            errorMessage = "Could not open book: \(error.localizedDescription)"
                         }
                     )
 
@@ -111,7 +115,7 @@ struct ReaderView: View {
                     .background(Piperly.Colors.surface.opacity(0.95))
                 }
             } else if let errorMessage {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 48))
                         .foregroundStyle(Piperly.Colors.error)
@@ -119,6 +123,22 @@ struct ReaderView: View {
                         .font(Piperly.Typography.body)
                         .foregroundStyle(Piperly.Colors.textSecondary)
                         .multilineTextAlignment(.center)
+
+                    Button {
+                        Task { await loadPublication() }
+                    } label: {
+                        Label("Try Again", systemImage: "arrow.clockwise")
+                            .font(Piperly.Typography.body)
+                            .foregroundStyle(Piperly.Colors.accent)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(Piperly.Colors.surfaceElevated)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    Button("Go Back") { dismiss() }
+                        .font(Piperly.Typography.body)
+                        .foregroundStyle(Piperly.Colors.textTertiary)
                 }
                 .padding()
             }
@@ -269,6 +289,9 @@ struct ReaderView: View {
     }
 
     private func loadPublication() async {
+        errorMessage = nil
+        isLoading = true
+
         let url = bookStore.bookURL(for: book)
 
         guard FileManager.default.fileExists(atPath: url.path) else {
