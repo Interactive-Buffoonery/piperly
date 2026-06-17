@@ -395,3 +395,23 @@ struct OPDSURLResolutionTests {
     @Test func whitespaceIsTrimmed() {
         let resolved = OPDSService.resolve("  book.epub  ", against: base)
         #expect(resolved?.absoluteString == "https://library.example.com/opds/catalog/book.epub")
+    }
+}
+
+// MARK: - WordTap (INT-343)
+
+@Suite("WordTap")
+struct WordTapTests {
+    @Test func sameWordProducesDistinctTaps() {
+        let first = WordTap(word: "cat")
+        let second = WordTap(word: "cat")
+        #expect(first.word == second.word)
+        #expect(first != second)
+        #expect(first.id != second.id)
+    }
+
+    @Test func tapEqualsItself() {
+        let tap = WordTap(word: "dog")
+        #expect(tap == tap)
+    }
+}
