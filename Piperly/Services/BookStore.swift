@@ -77,30 +77,46 @@ class BookStore: ObservableObject {
         }
     }
 
+    /// Cancels any pending debounced writes and persists immediately. Call when
+    /// the reader is dismissed or the app moves to the background so recent
+    /// reading position and tapped words are never lost.
+    func flushPendingSaves() {
+        debouncedBooksSave?.cancel()
+        debouncedBooksSave = nil
+        debouncedWordsSave?.cancel()
+        debouncedWordsSave = nil
+        saveBooks()
+        saveSavedWords()
+    }
+
     func importBook(from sourceURL: URL) async throws -> Book {
         let accessing = sourceURL.startAccessingSecurityScopedResource()
         defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
 
-        let fileName = sourceURL.lastPathComponent
-        let destURL = documentsURL.appendingPathComponent(fileName)
+        let originalName = sourceURL.lastPathComponent
+        let storedFileName = Self.uniqueFileName(for: originalName)
+        let destURL = documentsURL.appendingPathComponent(storedFileName)
 
-        if FileManager.default.fileExists(atPath: destURL.path) {
-            try FileManager.default.removeItem(at: destURL)
-        }
         try FileManager.default.copyItem(at: sourceURL, to: destURL)
 
         let (title, author, coverName) = await parseMetadataAndCover(from: destURL)
 
         let book = Book(
-            title: title ?? URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent,
+            title: title ?? URL(fileURLWithPath: originalName).deletingPathExtension().lastPathComponent,
             author: author ?? "Unknown Author",
-            fileName: fileName,
+            fileName: storedFileName,
             coverImageName: coverName
         )
 
         books.append(book)
         saveBooks()
         return book
+    }
+
+    /// Builds a collision-free destination filename by prefixing a UUID, while
+    /// preserving the original name (and extension) for readability.
+    nonisolated static func uniqueFileName(for originalName: String) -> String {
+        "\(UUID().uuidString)-\(originalName)"
     }
 
     func bookURL(for book: Book) -> URL {

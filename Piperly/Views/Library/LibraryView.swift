@@ -23,6 +23,7 @@ struct LibraryView: View {
     @Binding var showingImporter: Bool
     @State private var bookToDelete: Book?
     @State private var showingDeleteConfirmation = false
+    @State private var importErrorMessage: String?
 
     private let columns = [
         GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 24)
@@ -126,11 +127,32 @@ struct LibraryView: View {
             allowedContentTypes: [UTType(filenameExtension: "epub") ?? .data],
             allowsMultipleSelection: false
         ) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            Task {
-                _ = try? await bookStore.importBook(from: url)
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                Task {
+                    do {
+                        _ = try await bookStore.importBook(from: url)
+                    } catch {
+                        importErrorMessage = "Couldn't add that book. Please try a different EPUB file."
+                    }
+                }
+            case .failure:
+                importErrorMessage = "Couldn't add that book. Please try a different EPUB file."
             }
         }
+        .alert("Import Failed", isPresented: importErrorBinding, presenting: importErrorMessage) { _ in
+            Button("OK", role: .cancel) { importErrorMessage = nil }
+        } message: { message in
+            Text(message)
+        }
+    }
+
+    private var importErrorBinding: Binding<Bool> {
+        Binding(
+            get: { importErrorMessage != nil },
+            set: { if !$0 { importErrorMessage = nil } }
+        )
     }
 
     private var emptyState: some View {

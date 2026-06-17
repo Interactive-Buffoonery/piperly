@@ -398,6 +398,28 @@ struct OPDSURLResolutionTests {
     }
 }
 
+// MARK: - BookStore Import (INT-344)
+
+@Suite("BookStoreImport")
+struct BookStoreImportTests {
+    @Test func uniqueFileNamePreservesOriginalName() {
+        let name = BookStore.uniqueFileName(for: "alice.epub")
+        #expect(name.hasSuffix("-alice.epub"))
+    }
+
+    @Test func uniqueFileNameDiffersForSameSource() {
+        let first = BookStore.uniqueFileName(for: "alice.epub")
+        let second = BookStore.uniqueFileName(for: "alice.epub")
+        #expect(first != second)
+    }
+
+    @Test func uniqueFileNameHasUUIDPrefix() {
+        let name = BookStore.uniqueFileName(for: "alice.epub")
+        let prefix = name.replacingOccurrences(of: "-alice.epub", with: "")
+        #expect(UUID(uuidString: prefix) != nil)
+    }
+}
+
 // MARK: - WordTap (INT-343)
 
 @Suite("WordTap")

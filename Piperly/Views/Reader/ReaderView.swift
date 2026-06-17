@@ -199,6 +199,9 @@ struct ReaderView: View {
         .task {
             await loadPublication()
         }
+        .onDisappear {
+            bookStore.flushPendingSaves()
+        }
         .onChange(of: wordTapCoordinator.lastTap) { _, tap in
             guard let tap else { return }
             handleWordTap(tap.word)
