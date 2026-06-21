@@ -18,10 +18,16 @@ import Foundation
 import WebKit
 import Combine
 
+/// A single word-tap event. The `id` makes each tap distinct even when the
+/// same word is tapped twice in a row, so SwiftUI `onChange` fires every time.
+struct WordTap: Equatable {
+    let word: String
+    let id: UUID = UUID()
+}
+
 @MainActor
 class WordTapCoordinator: NSObject, ObservableObject, WKScriptMessageHandler {
-    @Published var lastTappedWord: String?
-    var onWordTapped: ((String) -> Void)?
+    @Published var lastTap: WordTap?
 
     func userContentController(
         _ controller: WKUserContentController,
@@ -30,7 +36,6 @@ class WordTapCoordinator: NSObject, ObservableObject, WKScriptMessageHandler {
         guard message.name == "wordTapped",
               let body = message.body as? [String: Any],
               let word = body["word"] as? String else { return }
-        lastTappedWord = word
-        onWordTapped?(word)
+        lastTap = WordTap(word: word)
     }
 }

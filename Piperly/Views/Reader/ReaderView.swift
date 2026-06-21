@@ -83,6 +83,10 @@ struct ReaderView: View {
                             if let json = locator.jsonString {
                                 bookStore.updateLocator(for: book.id, locatorJSON: json)
                             }
+                        },
+                        onCreationFailed: { error in
+                            self.publication = nil
+                            errorMessage = "Could not open book: \(error.localizedDescription)"
                         }
                     )
 
@@ -111,7 +115,7 @@ struct ReaderView: View {
                     .background(Piperly.Colors.surface.opacity(0.95))
                 }
             } else if let errorMessage {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 48))
                         .foregroundStyle(Piperly.Colors.error)
@@ -119,6 +123,22 @@ struct ReaderView: View {
                         .font(Piperly.Typography.body)
                         .foregroundStyle(Piperly.Colors.textSecondary)
                         .multilineTextAlignment(.center)
+
+                    Button {
+                        Task { await loadPublication() }
+                    } label: {
+                        Label("Try Again", systemImage: "arrow.clockwise")
+                            .font(Piperly.Typography.body)
+                            .foregroundStyle(Piperly.Colors.accent)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(Piperly.Colors.surfaceElevated)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    Button("Go Back") { dismiss() }
+                        .font(Piperly.Typography.body)
+                        .foregroundStyle(Piperly.Colors.textTertiary)
                 }
                 .padding()
             }
@@ -179,25 +199,12 @@ struct ReaderView: View {
         .task {
             await loadPublication()
         }
-        .onAppear {
-            wordTapCoordinator.onWordTapped = { word in
-                let newWord = bookStore.saveWordReturningIsNew(word, bookID: book.id, bookTitle: book.title)
-                tappedWord = word
-                isNewWord = newWord
-                showWordBubble = true
-                Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(newWord ? 1.8 : 1.5))
-                    showWordBubble = false
-                }
-            }
+        .onDisappear {
+            bookStore.flushPendingSaves()
         }
-        .onChange(of: wordTapCoordinator.lastTappedWord) { _, word in
-            guard let word else { return }
-            ttsEngine.speak(
-                word: word,
-                voiceIdentifier: selectedVoiceIdentifier,
-                rate: Float(speechRate)
-            )
+        .onChange(of: wordTapCoordinator.lastTap) { _, tap in
+            guard let tap else { return }
+            handleWordTap(tap.word)
         }
         .sheet(isPresented: $showingVoicePicker) {
             VoicePickerSheet(ttsEngine: ttsEngine)
@@ -268,7 +275,26 @@ struct ReaderView: View {
         return try? Locator(jsonString: json)
     }
 
+    private func handleWordTap(_ word: String) {
+        let newWord = bookStore.saveWordReturningIsNew(word, bookID: book.id, bookTitle: book.title)
+        tappedWord = word
+        isNewWord = newWord
+        showWordBubble = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(newWord ? 1.8 : 1.5))
+            showWordBubble = false
+        }
+        ttsEngine.speak(
+            word: word,
+            voiceIdentifier: selectedVoiceIdentifier,
+            rate: Float(speechRate)
+        )
+    }
+
     private func loadPublication() async {
+        errorMessage = nil
+        isLoading = true
+
         let url = bookStore.bookURL(for: book)
 
         guard FileManager.default.fileExists(atPath: url.path) else {

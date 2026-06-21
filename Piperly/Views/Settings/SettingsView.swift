@@ -30,6 +30,7 @@ struct SettingsView: View {
     @State private var parentControlsUnlocked = false
     @State private var showParentPIN = false
     @State private var parentPINKey = UUID()
+    @State private var pinErrorMessage: String?
 
     @AppStorage("readerFontSize") private var fontSize: Double = 22
     @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
@@ -87,6 +88,18 @@ struct SettingsView: View {
         .fullScreenCover(isPresented: $showRemovePIN) {
             removePINFlow()
         }
+        .alert("Couldn't Save PIN", isPresented: pinErrorBinding, presenting: pinErrorMessage) { _ in
+            Button("OK", role: .cancel) { pinErrorMessage = nil }
+        } message: { message in
+            Text(message)
+        }
+    }
+
+    private var pinErrorBinding: Binding<Bool> {
+        Binding(
+            get: { pinErrorMessage != nil },
+            set: { if !$0 { pinErrorMessage = nil } }
+        )
     }
 
     // MARK: - Parent Controls Gate
@@ -201,8 +214,9 @@ struct SettingsView: View {
             .padding(.vertical, 4)
 
             Button {
-                saveServerConfig()
-                testConnection()
+                if saveServerConfig() {
+                    testConnection()
+                }
             } label: {
                 HStack {
                     Text("Test Connection")
@@ -360,9 +374,14 @@ struct SettingsView: View {
             step: .setNew,
             onCancel: { showSetPIN = false },
             onComplete: { pin in
-                pinManager.setPIN(pin)
-                parentControlsUnlocked = true
-                showSetPIN = false
+                do {
+                    try pinManager.setPIN(pin)
+                    parentControlsUnlocked = true
+                    showSetPIN = false
+                } catch {
+                    showSetPIN = false
+                    pinErrorMessage = "Couldn't save the PIN. Please try again."
+                }
             }
         )
     }
@@ -373,8 +392,13 @@ struct SettingsView: View {
             pinManager: pinManager,
             onCancel: { showChangePIN = false },
             onComplete: { pin in
-                pinManager.setPIN(pin)
-                showChangePIN = false
+                do {
+                    try pinManager.setPIN(pin)
+                    showChangePIN = false
+                } catch {
+                    showChangePIN = false
+                    pinErrorMessage = "Couldn't save the PIN. Please try again."
+                }
             }
         )
     }
@@ -421,10 +445,20 @@ struct SettingsView: View {
         }
     }
 
-    private func saveServerConfig() {
-        guard let url = URL(string: serverURL) else { return }
+    @discardableResult
+    private func saveServerConfig() -> Bool {
+        guard let url = URL(string: serverURL) else {
+            connectionStatus = .failed("Invalid URL")
+            return false
+        }
         let config = OPDSServerConfig(url: url, username: username, password: password)
-        try? config.save()
+        do {
+            try config.save()
+            return true
+        } catch {
+            connectionStatus = .failed("Couldn't save server settings")
+            return false
+        }
     }
 
     private func testConnection() {

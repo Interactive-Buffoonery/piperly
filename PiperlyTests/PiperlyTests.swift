@@ -360,3 +360,80 @@ struct OPDSErrorTests {
         }
     }
 }
+
+// MARK: - OPDS URL Resolution (INT-342)
+
+@Suite("OPDSURLResolution")
+struct OPDSURLResolutionTests {
+    private let base = URL(string: "https://library.example.com/opds/catalog/")!
+
+    @Test func absoluteHrefPassesThroughUnchanged() {
+        let resolved = OPDSService.resolve("https://cdn.example.org/book.epub", against: base)
+        #expect(resolved?.absoluteString == "https://cdn.example.org/book.epub")
+    }
+
+    @Test func relativeHrefResolvesAgainstBase() {
+        let resolved = OPDSService.resolve("download/book.epub", against: base)
+        #expect(resolved?.absoluteString == "https://library.example.com/opds/catalog/download/book.epub")
+    }
+
+    @Test func rootRelativeHrefResolvesAgainstHost() {
+        let resolved = OPDSService.resolve("/feeds/new.atom", against: base)
+        #expect(resolved?.absoluteString == "https://library.example.com/feeds/new.atom")
+    }
+
+    @Test func absoluteHrefResolvesWithoutBase() {
+        let resolved = OPDSService.resolve("https://example.com/feed", against: nil)
+        #expect(resolved?.absoluteString == "https://example.com/feed")
+    }
+
+    @Test func emptyHrefReturnsNil() {
+        #expect(OPDSService.resolve("", against: base) == nil)
+        #expect(OPDSService.resolve("   ", against: base) == nil)
+    }
+
+    @Test func whitespaceIsTrimmed() {
+        let resolved = OPDSService.resolve("  book.epub  ", against: base)
+        #expect(resolved?.absoluteString == "https://library.example.com/opds/catalog/book.epub")
+    }
+}
+
+// MARK: - BookStore Import (INT-344)
+
+@Suite("BookStoreImport")
+struct BookStoreImportTests {
+    @Test func uniqueFileNamePreservesOriginalName() {
+        let name = BookStore.uniqueFileName(for: "alice.epub")
+        #expect(name.hasSuffix("-alice.epub"))
+    }
+
+    @Test func uniqueFileNameDiffersForSameSource() {
+        let first = BookStore.uniqueFileName(for: "alice.epub")
+        let second = BookStore.uniqueFileName(for: "alice.epub")
+        #expect(first != second)
+    }
+
+    @Test func uniqueFileNameHasUUIDPrefix() {
+        let name = BookStore.uniqueFileName(for: "alice.epub")
+        let prefix = name.replacingOccurrences(of: "-alice.epub", with: "")
+        #expect(UUID(uuidString: prefix) != nil)
+    }
+}
+
+// MARK: - WordTap (INT-343)
+
+@Suite("WordTap")
+struct WordTapTests {
+    @Test func sameWordProducesDistinctTaps() {
+        let first = WordTap(word: "cat")
+        let second = WordTap(word: "cat")
+        #expect(first.word == second.word)
+        #expect(first != second)
+        #expect(first.id != second.id)
+    }
+
+    @Test func tapEqualsItself() {
+        let tap = WordTap(word: "dog")
+        #expect(tap == tap)
+    }
+}

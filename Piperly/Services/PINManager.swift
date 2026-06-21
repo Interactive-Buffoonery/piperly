@@ -25,9 +25,9 @@ final class PINManager: ObservableObject {
         isPINSet = KeychainService.exists(for: .parentalPIN)
     }
 
-    func setPIN(_ pin: String) {
+    func setPIN(_ pin: String) throws {
         let hash = Self.hash(pin)
-        try? KeychainService.save(hash, for: .parentalPIN)
+        try KeychainService.save(hash, for: .parentalPIN)
         isPINSet = true
     }
 

@@ -56,6 +56,39 @@ Expected results:
 7. Let Xcode manage signing during upload unless there is a concrete reason to
    use manual signing assets.
 
+## Manual Physical-iPad Smoke Checklist
+
+Run on a physical iPad before each archive. The simulator cannot fully exercise
+TTS voices, and several Phase 1 correctness fixes are only verifiable by
+behavior (they have no unit coverage by design).
+
+Core flows:
+
+- First-launch voice setup completes and a voice is selectable.
+- Bundled sample books import on first launch and appear in the library.
+- A book opens, pages turn left/right, and reading position is restored on
+  reopen.
+- Tapping a word speaks it aloud and collects it into the word list.
+- Bookmarks add/remove with stickers and reappear in the bookmark list.
+- Saved words appear in the Words tab and re-speak when tapped.
+- Reader themes and font sizes apply live.
+
+Phase 1 fix verification (behavior-only, no unit coverage):
+
+- Repeated word taps speak every time, including tapping the same word twice in
+  a row (INT-343).
+- Importing two EPUBs with the same filename keeps both books with no overwrite
+  or duplicate library entries (INT-344).
+- Reading position and tapped words survive backgrounding the app immediately
+  after a tap, then relaunching (flush-on-background, INT-344).
+- A malformed or unopenable EPUB shows a recoverable error with a working
+  "Try Again" button instead of crashing (INT-341).
+- An OPDS catalog whose links are relative resolves and downloads correctly
+  (INT-342).
+- If the Keychain rejects a PIN save, the PIN is not silently treated as set
+  and an error alert appears (INT-347, hard to stage; verify the alert path
+  exists in code if it cannot be triggered).
+
 ## App Store Connect Fields To Complete Manually
 
 Create or update the App Store Connect app record before external TestFlight

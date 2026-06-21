@@ -24,6 +24,7 @@ struct PiperlyApp: App {
     private let ttsEngine = TTSEngine()
     @AppStorage("hasCompletedVoiceSetup") private var hasCompletedVoiceSetup = false
     @State private var showVoiceSetup = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -41,6 +42,11 @@ struct PiperlyApp: App {
                 }
                 .sheet(isPresented: $showVoiceSetup) {
                     VoiceSetupSheet(ttsEngine: ttsEngine)
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase != .active {
+                        bookStore.flushPendingSaves()
+                    }
                 }
         }
     }
