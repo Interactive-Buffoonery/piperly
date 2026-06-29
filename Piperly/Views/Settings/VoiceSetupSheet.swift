@@ -106,7 +106,15 @@ struct VoiceSetupSheet: View {
                             }
                         }
                         .padding(.horizontal, 8)
-
+                    }
+                    .frame(maxWidth: 540)
+                    .frame(maxWidth: .infinity)
+                    .padding(16)
+                    .padding(.bottom, 120)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .safeAreaInset(edge: .bottom) {
+                    VStack(spacing: 12) {
                         Button {
                             refreshVoices()
                         } label: {
@@ -118,7 +126,6 @@ struct VoiceSetupSheet: View {
                                 .background(Piperly.Colors.accent)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .padding(.horizontal, 16)
 
                         Button {
                             if let first = voices.first, selectedVoiceIdentifier.isEmpty {
@@ -130,16 +137,27 @@ struct VoiceSetupSheet: View {
                             Text("Continue")
                                 .font(.system(size: 17, weight: .medium, design: .rounded))
                                 .foregroundStyle(Piperly.Colors.accent)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Piperly.Colors.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .padding(.bottom, 24)
                     }
-                    .padding(16)
+                    .frame(maxWidth: 540)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+                    .background(Piperly.Colors.background.opacity(0.96))
                 }
             }
+            .navigationTitle("Set Up Voices")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
         .interactiveDismissDisabled()
         .onAppear {
             refreshVoices()
