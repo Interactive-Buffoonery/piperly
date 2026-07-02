@@ -40,9 +40,20 @@ class BookStore: ObservableObject {
 
         try? FileManager.default.createDirectory(at: documentsURL, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: coversURL, withIntermediateDirectories: true)
+        Self.excludeFromBackup(documentsURL)
+        Self.excludeFromBackup(coversURL)
         loadBooks()
         loadBookmarks()
         loadSavedWords()
+    }
+
+    /// Books are re-importable and covers are re-derivable via `backfillCovers()`,
+    /// so neither belongs in iCloud backups (Apple Data Storage Guidelines).
+    private nonisolated static func excludeFromBackup(_ url: URL) {
+        var url = url
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
     }
 
     func loadBooks() {
@@ -99,7 +110,10 @@ class BookStore: ObservableObject {
 
         try FileManager.default.copyItem(at: sourceURL, to: destURL)
 
-        let (title, author, coverName) = await parseMetadataAndCover(from: destURL)
+        guard let (title, author, coverName) = try? await parseMetadataAndCover(from: destURL) else {
+            try? FileManager.default.removeItem(at: destURL)
+            throw BookStoreError.unreadableBook
+        }
 
         let book = Book(
             title: title ?? URL(fileURLWithPath: originalName).deletingPathExtension().lastPathComponent,
@@ -257,7 +271,7 @@ class BookStore: ObservableObject {
             try FileManager.default.copyItem(at: bundleURL, to: destURL)
         }
 
-        let (title, author, coverName) = await parseMetadataAndCover(from: destURL)
+        let (title, author, coverName) = (try? await parseMetadataAndCover(from: destURL)) ?? (nil, nil, nil)
 
         let book = Book(
             title: title ?? URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent,
@@ -301,10 +315,8 @@ class BookStore: ObservableObject {
         return builder.build()
     }
 
-    private func parseMetadataAndCover(from url: URL) async -> (title: String?, author: String?, coverName: String?) {
-        guard let publication = try? await openPublication(at: url) else {
-            return (nil, nil, nil)
-        }
+    private func parseMetadataAndCover(from url: URL) async throws -> (title: String?, author: String?, coverName: String?) {
+        let publication = try await openPublication(at: url)
         let title = publication.metadata.title
         let author = publication.metadata.authors.first?.name
         let coverName = await extractCover(from: publication)
@@ -339,4 +351,5 @@ class BookStore: ObservableObject {
 
 enum BookStoreError: Error {
     case invalidURL
+    case unreadableBook
 }

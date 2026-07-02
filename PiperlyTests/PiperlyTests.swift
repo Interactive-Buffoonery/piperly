@@ -321,6 +321,19 @@ struct VoiceTests {
         #expect(Voice.Quality.enhanced.rawValue == "Enhanced")
         #expect(Voice.Quality.standard.rawValue == "Standard")
     }
+
+    @Test func stableHashIsDeterministic() {
+        // "Samantha" UTF-8 byte sum: 83+97+109+97+110+116+104+97
+        #expect(Voice.stableHash("Samantha") == 813)
+        #expect(Voice.stableHash("Samantha") == Voice.stableHash("Samantha"))
+        #expect(Voice.stableHash("") == 0)
+    }
+
+    @Test func colorIsStableForSameName() {
+        let first = Voice(id: "a", name: "Samantha", language: "en-US", quality: .premium)
+        let second = Voice(id: "b", name: "Samantha", language: "en-GB", quality: .standard)
+        #expect(first.color == second.color)
+    }
 }
 
 // MARK: - DownloadProgress
@@ -417,6 +430,25 @@ struct BookStoreImportTests {
         let name = BookStore.uniqueFileName(for: "alice.epub")
         let prefix = name.replacingOccurrences(of: "-alice.epub", with: "")
         #expect(UUID(uuidString: prefix) != nil)
+    }
+
+    @Test @MainActor func rejectsUnreadableEPUBWithoutAddingBook() async throws {
+        let store = BookStore()
+        let sourceName = "garbage-\(UUID().uuidString).epub"
+        let sourceURL = FileManager.default.temporaryDirectory.appendingPathComponent(sourceName)
+        try Data("not an epub".utf8).write(to: sourceURL)
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        let countBefore = store.books.count
+        await #expect(throws: BookStoreError.self) {
+            _ = try await store.importBook(from: sourceURL)
+        }
+        #expect(store.books.count == countBefore)
+
+        let booksDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Books", isDirectory: true)
+        let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: booksDir.path)) ?? []
+        #expect(!leftovers.contains { $0.hasSuffix(sourceName) })
     }
 }
 
