@@ -81,7 +81,12 @@ struct Voice: Identifiable {
     ]
 
     var color: Color {
-        let hash = abs(name.hashValue)
-        return Self.palette[hash % Self.palette.count]
+        Self.palette[Self.stableHash(name) % Self.palette.count]
+    }
+
+    /// `String.hashValue` is seeded per process, so it cannot be used for
+    /// anything that should look the same across launches.
+    static func stableHash(_ value: String) -> Int {
+        value.utf8.reduce(0) { $0 &+ Int($1) }
     }
 }
