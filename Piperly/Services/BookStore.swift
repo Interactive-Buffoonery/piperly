@@ -56,7 +56,6 @@ class BookStore: ObservableObject {
         loadReadingStates()
         loadBookmarks()
         loadSavedWords()
-        migrateLocalReadingDataToDefaultProfileIfNeeded()
     }
 
     /// Books are re-importable and covers are re-derivable via `backfillCovers()`,
@@ -109,22 +108,26 @@ class BookStore: ObservableObject {
         UserDefaults.standard.set(selectedProfileID.uuidString, forKey: selectedProfileKey)
     }
 
+    /// Guarantees there is always at least one profile and a valid selection.
+    /// Called once at launch so `activeProfile` can stay a pure read.
     func ensureDefaultProfile() {
         if profiles.isEmpty {
             profiles = [ReaderProfile()]
             saveProfiles()
         }
 
-        if selectedProfileID.map({ selectedID in profiles.contains { $0.id == selectedID } }) != true {
+        let hasValidSelection = selectedProfileID.map { id in profiles.contains { $0.id == id } } ?? false
+        if !hasValidSelection {
             selectedProfileID = profiles[0].id
             saveSelectedProfileID()
         }
     }
 
     var activeProfile: ReaderProfile {
-        ensureDefaultProfile()
-        guard let selectedProfileID else { return profiles[0] }
-        return profiles.first { $0.id == selectedProfileID } ?? profiles[0]
+        if let selectedProfileID, let match = profiles.first(where: { $0.id == selectedProfileID }) {
+            return match
+        }
+        return profiles[0]
     }
 
     private var activeProfileID: UUID {
@@ -483,64 +486,6 @@ class BookStore: ObservableObject {
             changed = true
         }
         if changed { saveBooks() }
-    }
-
-    private func migrateLocalReadingDataToDefaultProfileIfNeeded() {
-        let profileID = activeProfileID
-        var changedReadingStates = false
-        var changedBookmarks = false
-        var changedSavedWords = false
-
-        for book in books where readingStates.first(where: { $0.bookID == book.id && $0.profileID == profileID }) == nil {
-            if book.lastReadProgression > 0 || book.lastReadLocatorJSON != nil {
-                readingStates.append(ReadingState(
-                    profileID: profileID,
-                    bookID: book.id,
-                    lastReadProgression: book.lastReadProgression,
-                    lastReadLocatorJSON: book.lastReadLocatorJSON
-                ))
-                changedReadingStates = true
-            }
-        }
-
-        if bookmarks.contains(where: { $0.profileID == nil }) {
-            bookmarks = bookmarks.map { bookmark in
-                guard bookmark.profileID == nil else { return bookmark }
-                return Bookmark(
-                    id: bookmark.id,
-                    profileID: profileID,
-                    bookID: bookmark.bookID,
-                    locatorJSON: bookmark.locatorJSON,
-                    title: bookmark.title,
-                    progression: bookmark.progression,
-                    sticker: bookmark.sticker,
-                    createdAt: bookmark.createdAt
-                )
-            }
-            changedBookmarks = true
-        }
-
-        if savedWords.contains(where: { $0.profileID == nil }) {
-            savedWords = savedWords.map { word in
-                guard word.profileID == nil else { return word }
-                return SavedWord(
-                    id: word.id,
-                    profileID: profileID,
-                    word: word.word,
-                    displayWord: word.displayWord,
-                    bookID: word.bookID,
-                    bookTitle: word.bookTitle,
-                    tapCount: word.tapCount,
-                    savedAt: word.savedAt,
-                    lastTappedAt: word.lastTappedAt
-                )
-            }
-            changedSavedWords = true
-        }
-
-        if changedReadingStates { saveReadingStates() }
-        if changedBookmarks { saveBookmarks() }
-        if changedSavedWords { saveSavedWords() }
     }
 }
 

@@ -19,7 +19,7 @@ import SwiftUI
 
 struct Bookmark: Identifiable, Codable, Hashable {
     let id: UUID
-    let profileID: UUID?
+    let profileID: UUID
     let bookID: UUID
     let locatorJSON: String
     let title: String?
@@ -29,7 +29,7 @@ struct Bookmark: Identifiable, Codable, Hashable {
 
     init(
         id: UUID = UUID(),
-        profileID: UUID? = nil,
+        profileID: UUID,
         bookID: UUID,
         locatorJSON: String,
         title: String?,
@@ -45,29 +45,6 @@ struct Bookmark: Identifiable, Codable, Hashable {
         self.progression = progression
         self.sticker = sticker
         self.createdAt = createdAt
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case profileID
-        case bookID
-        case locatorJSON
-        case title
-        case progression
-        case sticker
-        case createdAt
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        profileID = try container.decodeIfPresent(UUID.self, forKey: .profileID)
-        bookID = try container.decode(UUID.self, forKey: .bookID)
-        locatorJSON = try container.decode(String.self, forKey: .locatorJSON)
-        title = try container.decodeIfPresent(String.self, forKey: .title)
-        progression = try container.decode(Double.self, forKey: .progression)
-        sticker = try container.decode(BookmarkSticker.self, forKey: .sticker)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 }
 

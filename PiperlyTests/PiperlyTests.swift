@@ -9,8 +9,6 @@ import Foundation
 struct BookTests {
     @Test func defaultValues() {
         let book = Book(title: "Test", author: "Author", fileName: "test.epub")
-        #expect(book.lastReadProgression == 0.0)
-        #expect(book.lastReadLocatorJSON == nil)
         #expect(book.coverImageName == nil)
     }
 
@@ -22,7 +20,6 @@ struct BookTests {
         #expect(decoded.title == book.title)
         #expect(decoded.author == book.author)
         #expect(decoded.fileName == book.fileName)
-        #expect(decoded.lastReadProgression == book.lastReadProgression)
     }
 
     @Test func codableWithAllFields() throws {
@@ -30,15 +27,11 @@ struct BookTests {
             title: "Test",
             author: "Author",
             fileName: "test.epub",
-            coverImageName: "cover.jpg",
-            lastReadProgression: 0.75,
-            lastReadLocatorJSON: "{\"href\":\"/ch1\"}"
+            coverImageName: "cover.jpg"
         )
         let data = try JSONEncoder().encode(book)
         let decoded = try JSONDecoder().decode(Book.self, from: data)
         #expect(decoded.coverImageName == "cover.jpg")
-        #expect(decoded.lastReadProgression == 0.75)
-        #expect(decoded.lastReadLocatorJSON == "{\"href\":\"/ch1\"}")
     }
 }
 
@@ -48,7 +41,9 @@ struct BookTests {
 struct BookmarkTests {
     @Test func defaultValues() {
         let now = Date.now
+        let profileID = UUID()
         let bookmark = Bookmark(
+            profileID: profileID,
             bookID: UUID(),
             locatorJSON: "{}",
             title: "Chapter 1",
@@ -56,7 +51,7 @@ struct BookmarkTests {
             sticker: .star
         )
         #expect(bookmark.title == "Chapter 1")
-        #expect(bookmark.profileID == nil)
+        #expect(bookmark.profileID == profileID)
         #expect(bookmark.progression == 0.5)
         #expect(bookmark.sticker == .star)
         #expect(bookmark.createdAt.timeIntervalSince(now) < 1)
@@ -85,6 +80,7 @@ struct BookmarkTests {
     @Test func allStickersSurviveCoding() throws {
         for sticker in BookmarkSticker.allCases {
             let bookmark = Bookmark(
+                profileID: UUID(),
                 bookID: UUID(),
                 locatorJSON: "{}",
                 title: nil,
@@ -129,7 +125,9 @@ struct BookmarkStickerTests {
 struct SavedWordTests {
     @Test func defaultValues() {
         let now = Date.now
+        let profileID = UUID()
         let word = SavedWord(
+            profileID: profileID,
             word: "adventure",
             displayWord: "Adventure",
             bookID: UUID(),
@@ -140,7 +138,7 @@ struct SavedWordTests {
         #expect(word.lastTappedAt.timeIntervalSince(now) < 1)
         #expect(word.word == "adventure")
         #expect(word.displayWord == "Adventure")
-        #expect(word.profileID == nil)
+        #expect(word.profileID == profileID)
     }
 
     @Test func codableRoundTrip() throws {

@@ -18,7 +18,7 @@ import Foundation
 
 struct SavedWord: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
-    let profileID: UUID?
+    let profileID: UUID
     let word: String
     let displayWord: String
     let bookID: UUID
@@ -29,7 +29,7 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable {
 
     init(
         id: UUID = UUID(),
-        profileID: UUID? = nil,
+        profileID: UUID,
         word: String,
         displayWord: String,
         bookID: UUID,
@@ -47,30 +47,5 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable {
         self.tapCount = tapCount
         self.savedAt = savedAt
         self.lastTappedAt = lastTappedAt
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case profileID
-        case word
-        case displayWord
-        case bookID
-        case bookTitle
-        case tapCount
-        case savedAt
-        case lastTappedAt
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        profileID = try container.decodeIfPresent(UUID.self, forKey: .profileID)
-        word = try container.decode(String.self, forKey: .word)
-        displayWord = try container.decode(String.self, forKey: .displayWord)
-        bookID = try container.decode(UUID.self, forKey: .bookID)
-        bookTitle = try container.decode(String.self, forKey: .bookTitle)
-        tapCount = try container.decode(Int.self, forKey: .tapCount)
-        savedAt = try container.decode(Date.self, forKey: .savedAt)
-        lastTappedAt = try container.decode(Date.self, forKey: .lastTappedAt)
     }
 }
