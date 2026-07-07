@@ -83,11 +83,6 @@ Phase 1 fix verification (behavior-only, no unit coverage):
   after a tap, then relaunching (flush-on-background, INT-344).
 - A malformed or unopenable EPUB shows a recoverable error with a working
   "Try Again" button instead of crashing (INT-341).
-- An OPDS catalog whose links are relative resolves and downloads correctly
-  (INT-342).
-- If the Keychain rejects a PIN save, the PIN is not silently treated as set
-  and an error alert appears (INT-347, hard to stage; verify the alert path
-  exists in code if it cannot be triggered).
 
 ## App Store Connect Fields To Complete Manually
 
@@ -107,16 +102,14 @@ review:
 - App privacy answers: use `docs/app-store-privacy-review.md`; the current
   repo posture is no tracking and no collected data.
 - Beta App Description: describe Piperly as an iPad EPUB reader for kids with
-  local reading state and parent-gated OPDS browsing.
-- Reviewer notes: describe local-only reading state, parent-gated OPDS
-  browsing, and the absence of ads, analytics, tracking, in-app purchases,
-  social features, account creation, or a developer-hosted backend.
-- Sign-in information: not required for app accounts; if the reviewer should
-  test a private OPDS server, provide test server credentials in beta review
-  notes.
+  local reading state.
+- Reviewer notes: describe local-only reading state and the absence of ads,
+  analytics, tracking, in-app purchases, social features, account creation,
+  external catalog browsing, or a developer-hosted backend.
+- Sign-in information: not required.
 - Export compliance: answer in App Store Connect based on Apple's current
   questionnaire. Piperly does not implement custom encryption in the app code;
-  OPDS credentials, when configured, are sent to the parent-configured server.
+  it relies on Apple platform networking and Readium dependencies.
 - Contact information: provide the current review contact details.
 - Testers: add internal testers after processing, and add external tester
   groups before submitting for beta review.
@@ -127,7 +120,7 @@ The repo-side release posture has changed in a few important places:
 
 - App icon alpha has already been fixed.
 - A launch screen exists and is wired through `UILaunchStoryboardName`.
-- Browse and server setup are parent-gated.
+- External catalog browsing has been removed.
 - A privacy and child-safety review now exists in
   `docs/app-store-privacy-review.md`.
 

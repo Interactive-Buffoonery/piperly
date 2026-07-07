@@ -12,8 +12,7 @@
 
 	<!--
 		No data collected by Interactive Buffoonery or integrated analytics/ads.
-		Piperly stores reading data on device. Parent-configured OPDS requests
-		are sent only to the server URL entered in Parent Controls.
+		Piperly stores reading data on device.
 	-->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array/>

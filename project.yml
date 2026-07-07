@@ -62,9 +62,6 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UISupportsDocumentBrowser: true
-        NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
-        NSLocalNetworkUsageDescription: "Piperly connects to your book server to browse and download books."
         CFBundleDocumentTypes:
           - CFBundleTypeName: EPUB
             LSItemContentTypes:
@@ -113,8 +110,6 @@ targets:
         product: ReadiumStreamer
       - package: ReadiumSwiftToolkit
         product: ReadiumNavigator
-      - package: ReadiumSwiftToolkit
-        product: ReadiumOPDS
 
   PiperlyTests:
     type: bundle.unit-test
