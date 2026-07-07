@@ -36,7 +36,7 @@ struct WordsView: View {
         ZStack {
             Piperly.Colors.background.ignoresSafeArea()
 
-            if bookStore.savedWords.isEmpty {
+            if activeWords.isEmpty {
                 emptyState
             } else {
                 VStack(spacing: 0) {
@@ -76,7 +76,7 @@ struct WordsView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                         .foregroundStyle(Piperly.Colors.accent)
-                    Text("\(bookStore.savedWords.count) words collected")
+                    Text("\(activeWords.count) words collected")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundStyle(Piperly.Colors.textPrimary)
                 }
@@ -139,16 +139,20 @@ struct WordsView: View {
     }
 
     private var sortedWords: [SavedWord] {
-        bookStore.savedWords.sorted { $0.lastTappedAt > $1.lastTappedAt }
+        activeWords.sorted { $0.lastTappedAt > $1.lastTappedAt }
     }
 
     private var groupedByBook: [(bookTitle: String, bookID: UUID, words: [SavedWord])] {
-        Dictionary(grouping: bookStore.savedWords, by: \.bookID)
+        Dictionary(grouping: activeWords, by: \.bookID)
             .map { bookID, words in
                 (bookTitle: words.first?.bookTitle ?? "Unknown",
                  bookID: bookID,
                  words: words.sorted { $0.lastTappedAt > $1.lastTappedAt })
             }
             .sorted { ($0.words.first?.lastTappedAt ?? .distantPast) > ($1.words.first?.lastTappedAt ?? .distantPast) }
+    }
+
+    private var activeWords: [SavedWord] {
+        bookStore.wordsForActiveProfile
     }
 }

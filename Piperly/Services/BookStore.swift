@@ -22,15 +22,22 @@ import SwiftUI
 @MainActor
 class BookStore: ObservableObject {
     @Published var books: [Book] = []
+    @Published var profiles: [ReaderProfile] = []
+    @Published var selectedProfileID: UUID?
+    @Published var readingStates: [ReadingState] = []
     @Published var bookmarks: [Bookmark] = []
     @Published var savedWords: [SavedWord] = []
 
     private let documentsURL: URL
     private let coversURL: URL
     private let booksKey = "piperly_books"
+    private let profilesKey = "piperly_reader_profiles"
+    private let selectedProfileKey = "piperly_selected_profile_id"
+    private let readingStatesKey = "piperly_reading_states"
     private let bookmarksKey = "piperly_bookmarks"
     private let savedWordsKey = "piperly_saved_words"
     private var debouncedBooksSave: Task<Void, Never>?
+    private var debouncedReadingStatesSave: Task<Void, Never>?
     private var debouncedWordsSave: Task<Void, Never>?
 
     init() {
@@ -43,8 +50,13 @@ class BookStore: ObservableObject {
         Self.excludeFromBackup(documentsURL)
         Self.excludeFromBackup(coversURL)
         loadBooks()
+        loadProfiles()
+        loadSelectedProfileID()
+        ensureDefaultProfile()
+        loadReadingStates()
         loadBookmarks()
         loadSavedWords()
+        migrateLocalReadingDataToDefaultProfileIfNeeded()
     }
 
     /// Books are re-importable and covers are re-derivable via `backfillCovers()`,
@@ -70,12 +82,90 @@ class BookStore: ObservableObject {
         }
     }
 
+    func loadProfiles() {
+        guard let data = UserDefaults.standard.data(forKey: profilesKey),
+              let saved = try? JSONDecoder().decode([ReaderProfile].self, from: data) else {
+            return
+        }
+        profiles = saved
+    }
+
+    func saveProfiles() {
+        if let data = try? JSONEncoder().encode(profiles) {
+            UserDefaults.standard.set(data, forKey: profilesKey)
+        }
+    }
+
+    func loadSelectedProfileID() {
+        guard let rawValue = UserDefaults.standard.string(forKey: selectedProfileKey),
+              let id = UUID(uuidString: rawValue) else {
+            return
+        }
+        selectedProfileID = id
+    }
+
+    func saveSelectedProfileID() {
+        guard let selectedProfileID else { return }
+        UserDefaults.standard.set(selectedProfileID.uuidString, forKey: selectedProfileKey)
+    }
+
+    func ensureDefaultProfile() {
+        if profiles.isEmpty {
+            profiles = [ReaderProfile()]
+            saveProfiles()
+        }
+
+        if selectedProfileID.map({ selectedID in profiles.contains { $0.id == selectedID } }) != true {
+            selectedProfileID = profiles[0].id
+            saveSelectedProfileID()
+        }
+    }
+
+    var activeProfile: ReaderProfile {
+        ensureDefaultProfile()
+        guard let selectedProfileID else { return profiles[0] }
+        return profiles.first { $0.id == selectedProfileID } ?? profiles[0]
+    }
+
+    private var activeProfileID: UUID {
+        activeProfile.id
+    }
+
+    func selectProfile(_ profileID: UUID) {
+        guard profiles.contains(where: { $0.id == profileID }) else { return }
+        selectedProfileID = profileID
+        saveSelectedProfileID()
+    }
+
+    func loadReadingStates() {
+        guard let data = UserDefaults.standard.data(forKey: readingStatesKey),
+              let saved = try? JSONDecoder().decode([ReadingState].self, from: data) else {
+            return
+        }
+        readingStates = saved
+    }
+
+    func saveReadingStates() {
+        if let data = try? JSONEncoder().encode(readingStates) {
+            UserDefaults.standard.set(data, forKey: readingStatesKey)
+        }
+    }
+
     private func scheduleSaveBooks() {
         debouncedBooksSave?.cancel()
         debouncedBooksSave = Task { [weak self] in
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             self?.saveBooks()
+        }
+    }
+
+    private func scheduleSaveReadingStates() {
+        debouncedReadingStatesSave?.cancel()
+        debouncedReadingStatesSave = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            self?.saveReadingStates()
         }
     }
 
@@ -94,9 +184,12 @@ class BookStore: ObservableObject {
     func flushPendingSaves() {
         debouncedBooksSave?.cancel()
         debouncedBooksSave = nil
+        debouncedReadingStatesSave?.cancel()
+        debouncedReadingStatesSave = nil
         debouncedWordsSave?.cancel()
         debouncedWordsSave = nil
         saveBooks()
+        saveReadingStates()
         saveSavedWords()
     }
 
@@ -144,17 +237,38 @@ class BookStore: ObservableObject {
     }
 
     func updateProgress(for bookID: UUID, progression: Double) {
-        if let index = books.firstIndex(where: { $0.id == bookID }) {
-            books[index].lastReadProgression = progression
-            scheduleSaveBooks()
+        let profileID = activeProfileID
+        if let index = readingStates.firstIndex(where: { $0.bookID == bookID && $0.profileID == profileID }) {
+            readingStates[index].lastReadProgression = progression
+            readingStates[index].updatedAt = .now
+        } else {
+            readingStates.append(ReadingState(
+                profileID: profileID,
+                bookID: bookID,
+                lastReadProgression: progression
+            ))
         }
+        scheduleSaveReadingStates()
     }
 
     func updateLocator(for bookID: UUID, locatorJSON: String) {
-        if let index = books.firstIndex(where: { $0.id == bookID }) {
-            books[index].lastReadLocatorJSON = locatorJSON
-            scheduleSaveBooks()
+        let profileID = activeProfileID
+        if let index = readingStates.firstIndex(where: { $0.bookID == bookID && $0.profileID == profileID }) {
+            readingStates[index].lastReadLocatorJSON = locatorJSON
+            readingStates[index].updatedAt = .now
+        } else {
+            readingStates.append(ReadingState(
+                profileID: profileID,
+                bookID: bookID,
+                lastReadLocatorJSON: locatorJSON
+            ))
         }
+        scheduleSaveReadingStates()
+    }
+
+    func readingState(for bookID: UUID) -> ReadingState? {
+        let profileID = activeProfileID
+        return readingStates.first { $0.bookID == bookID && $0.profileID == profileID }
     }
 
     // MARK: - Bookmarks
@@ -175,6 +289,7 @@ class BookStore: ObservableObject {
 
     func addBookmark(for bookID: UUID, locatorJSON: String, title: String?, progression: Double, sticker: BookmarkSticker) {
         let bookmark = Bookmark(
+            profileID: activeProfileID,
             bookID: bookID,
             locatorJSON: locatorJSON,
             title: title,
@@ -191,15 +306,23 @@ class BookStore: ObservableObject {
     }
 
     func bookmarks(for bookID: UUID) -> [Bookmark] {
-        bookmarks.filter { $0.bookID == bookID }.sorted { $0.progression < $1.progression }
+        let profileID = activeProfileID
+        return bookmarks.filter { $0.bookID == bookID && $0.profileID == profileID }
+            .sorted { $0.progression < $1.progression }
     }
 
     func isBookmarked(bookID: UUID, progression: Double) -> Bool {
-        bookmarks.contains { $0.bookID == bookID && abs($0.progression - progression) < 0.001 }
+        let profileID = activeProfileID
+        return bookmarks.contains {
+            $0.bookID == bookID && $0.profileID == profileID && abs($0.progression - progression) < 0.001
+        }
     }
 
     func findBookmark(bookID: UUID, progression: Double) -> Bookmark? {
-        bookmarks.first { $0.bookID == bookID && abs($0.progression - progression) < 0.001 }
+        let profileID = activeProfileID
+        return bookmarks.first {
+            $0.bookID == bookID && $0.profileID == profileID && abs($0.progression - progression) < 0.001
+        }
     }
 
     // MARK: - Saved Words
@@ -221,13 +344,15 @@ class BookStore: ObservableObject {
     @discardableResult
     func saveWordReturningIsNew(_ word: String, bookID: UUID, bookTitle: String) -> Bool {
         let canonical = word.lowercased()
-        if let index = savedWords.firstIndex(where: { $0.word == canonical && $0.bookID == bookID }) {
+        let profileID = activeProfileID
+        if let index = savedWords.firstIndex(where: { $0.word == canonical && $0.bookID == bookID && $0.profileID == profileID }) {
             savedWords[index].tapCount += 1
             savedWords[index].lastTappedAt = .now
             scheduleSaveWords()
             return false
         } else {
             let saved = SavedWord(
+                profileID: profileID,
                 word: canonical,
                 displayWord: word,
                 bookID: bookID,
@@ -245,8 +370,14 @@ class BookStore: ObservableObject {
     }
 
     func words(for bookID: UUID) -> [SavedWord] {
-        savedWords.filter { $0.bookID == bookID }
+        let profileID = activeProfileID
+        return savedWords.filter { $0.bookID == bookID && $0.profileID == profileID }
             .sorted { $0.lastTappedAt > $1.lastTappedAt }
+    }
+
+    var wordsForActiveProfile: [SavedWord] {
+        let profileID = activeProfileID
+        return savedWords.filter { $0.profileID == profileID }
     }
 
     // MARK: - Samples
@@ -294,7 +425,13 @@ class BookStore: ObservableObject {
             try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverName))
         }
         books.removeAll { $0.id == book.id }
+        readingStates.removeAll { $0.bookID == book.id }
+        bookmarks.removeAll { $0.bookID == book.id }
+        savedWords.removeAll { $0.bookID == book.id }
         saveBooks()
+        saveReadingStates()
+        saveBookmarks()
+        saveSavedWords()
     }
 
     func openPublication(at url: URL) async throws -> Publication {
@@ -346,6 +483,64 @@ class BookStore: ObservableObject {
             changed = true
         }
         if changed { saveBooks() }
+    }
+
+    private func migrateLocalReadingDataToDefaultProfileIfNeeded() {
+        let profileID = activeProfileID
+        var changedReadingStates = false
+        var changedBookmarks = false
+        var changedSavedWords = false
+
+        for book in books where readingStates.first(where: { $0.bookID == book.id && $0.profileID == profileID }) == nil {
+            if book.lastReadProgression > 0 || book.lastReadLocatorJSON != nil {
+                readingStates.append(ReadingState(
+                    profileID: profileID,
+                    bookID: book.id,
+                    lastReadProgression: book.lastReadProgression,
+                    lastReadLocatorJSON: book.lastReadLocatorJSON
+                ))
+                changedReadingStates = true
+            }
+        }
+
+        if bookmarks.contains(where: { $0.profileID == nil }) {
+            bookmarks = bookmarks.map { bookmark in
+                guard bookmark.profileID == nil else { return bookmark }
+                return Bookmark(
+                    id: bookmark.id,
+                    profileID: profileID,
+                    bookID: bookmark.bookID,
+                    locatorJSON: bookmark.locatorJSON,
+                    title: bookmark.title,
+                    progression: bookmark.progression,
+                    sticker: bookmark.sticker,
+                    createdAt: bookmark.createdAt
+                )
+            }
+            changedBookmarks = true
+        }
+
+        if savedWords.contains(where: { $0.profileID == nil }) {
+            savedWords = savedWords.map { word in
+                guard word.profileID == nil else { return word }
+                return SavedWord(
+                    id: word.id,
+                    profileID: profileID,
+                    word: word.word,
+                    displayWord: word.displayWord,
+                    bookID: word.bookID,
+                    bookTitle: word.bookTitle,
+                    tapCount: word.tapCount,
+                    savedAt: word.savedAt,
+                    lastTappedAt: word.lastTappedAt
+                )
+            }
+            changedSavedWords = true
+        }
+
+        if changedReadingStates { saveReadingStates() }
+        if changedBookmarks { saveBookmarks() }
+        if changedSavedWords { saveSavedWords() }
     }
 }
 

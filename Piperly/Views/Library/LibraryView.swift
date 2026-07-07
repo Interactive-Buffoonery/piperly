@@ -41,6 +41,7 @@ struct LibraryView: View {
                         ForEach(bookStore.books) { book in
                             BookCard(
                                 book: book,
+                                progress: bookStore.readingState(for: book.id)?.lastReadProgression ?? 0,
                                 coverImage: bookStore.coverImage(for: book)
                             ) {
                                 bookToDelete = book

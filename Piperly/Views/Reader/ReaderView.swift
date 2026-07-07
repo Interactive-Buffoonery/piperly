@@ -230,7 +230,7 @@ struct ReaderView: View {
     }
 
     private var currentProgression: Double {
-        currentLocator?.locations.totalProgression ?? book.lastReadProgression
+        currentLocator?.locations.totalProgression ?? bookStore.readingState(for: book.id)?.lastReadProgression ?? 0
     }
 
     private var isCurrentPageBookmarked: Bool {
@@ -271,7 +271,7 @@ struct ReaderView: View {
     }
 
     private var restoredLocator: Locator? {
-        guard let json = book.lastReadLocatorJSON else { return nil }
+        guard let json = bookStore.readingState(for: book.id)?.lastReadLocatorJSON else { return nil }
         return try? Locator(jsonString: json)
     }
 

@@ -56,6 +56,7 @@ struct BookmarkTests {
             sticker: .star
         )
         #expect(bookmark.title == "Chapter 1")
+        #expect(bookmark.profileID == nil)
         #expect(bookmark.progression == 0.5)
         #expect(bookmark.sticker == .star)
         #expect(bookmark.createdAt.timeIntervalSince(now) < 1)
@@ -63,6 +64,7 @@ struct BookmarkTests {
 
     @Test func codableRoundTrip() throws {
         let bookmark = Bookmark(
+            profileID: UUID(),
             bookID: UUID(),
             locatorJSON: "{\"href\":\"/ch2\"}",
             title: "Chapter 2",
@@ -72,6 +74,7 @@ struct BookmarkTests {
         let data = try JSONEncoder().encode(bookmark)
         let decoded = try JSONDecoder().decode(Bookmark.self, from: data)
         #expect(decoded.id == bookmark.id)
+        #expect(decoded.profileID == bookmark.profileID)
         #expect(decoded.bookID == bookmark.bookID)
         #expect(decoded.locatorJSON == bookmark.locatorJSON)
         #expect(decoded.title == bookmark.title)
@@ -137,10 +140,12 @@ struct SavedWordTests {
         #expect(word.lastTappedAt.timeIntervalSince(now) < 1)
         #expect(word.word == "adventure")
         #expect(word.displayWord == "Adventure")
+        #expect(word.profileID == nil)
     }
 
     @Test func codableRoundTrip() throws {
         let word = SavedWord(
+            profileID: UUID(),
             word: "mysterious",
             displayWord: "Mysterious",
             bookID: UUID(),
@@ -150,11 +155,61 @@ struct SavedWordTests {
         let data = try JSONEncoder().encode(word)
         let decoded = try JSONDecoder().decode(SavedWord.self, from: data)
         #expect(decoded.id == word.id)
+        #expect(decoded.profileID == word.profileID)
         #expect(decoded.word == word.word)
         #expect(decoded.displayWord == word.displayWord)
         #expect(decoded.bookID == word.bookID)
         #expect(decoded.bookTitle == word.bookTitle)
         #expect(decoded.tapCount == 3)
+    }
+}
+
+// MARK: - ReaderProfile
+
+@Suite("ReaderProfile")
+struct ReaderProfileTests {
+    @Test func defaultValuesAvoidPersonalInformation() {
+        let profile = ReaderProfile()
+        #expect(profile.name == "Reader")
+        #expect(profile.avatarSymbol == "person.crop.circle.fill")
+        #expect(profile.colorName == "accent")
+    }
+
+    @Test func codableRoundTrip() throws {
+        let profile = ReaderProfile(name: "Ari", avatarSymbol: "star.fill", colorName: "yellow")
+        let data = try JSONEncoder().encode(profile)
+        let decoded = try JSONDecoder().decode(ReaderProfile.self, from: data)
+        #expect(decoded.id == profile.id)
+        #expect(decoded.name == "Ari")
+        #expect(decoded.avatarSymbol == "star.fill")
+        #expect(decoded.colorName == "yellow")
+    }
+}
+
+// MARK: - ReadingState
+
+@Suite("ReadingState")
+struct ReadingStateTests {
+    @Test func defaultValues() {
+        let state = ReadingState(profileID: UUID(), bookID: UUID())
+        #expect(state.lastReadProgression == 0)
+        #expect(state.lastReadLocatorJSON == nil)
+    }
+
+    @Test func codableRoundTrip() throws {
+        let state = ReadingState(
+            profileID: UUID(),
+            bookID: UUID(),
+            lastReadProgression: 0.42,
+            lastReadLocatorJSON: "{\"href\":\"/chapter\"}"
+        )
+        let data = try JSONEncoder().encode(state)
+        let decoded = try JSONDecoder().decode(ReadingState.self, from: data)
+        #expect(decoded.id == state.id)
+        #expect(decoded.profileID == state.profileID)
+        #expect(decoded.bookID == state.bookID)
+        #expect(decoded.lastReadProgression == 0.42)
+        #expect(decoded.lastReadLocatorJSON == "{\"href\":\"/chapter\"}")
     }
 }
 
