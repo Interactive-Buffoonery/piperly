@@ -11,8 +11,6 @@ Piperly loads EPUB books, wraps every word in a tappable element, and uses on-de
 - **Word list** — automatically tracks tapped words with tap counts and book source
 - **Sticker bookmarks** — kids mark pages with fun stickers instead of boring bookmark icons
 - **7 reader themes** — Piperly, Sunset, Ocean, Forest, Midnight, Cream, High Contrast
-- **OPDS catalog browsing** — connect to book servers to discover and download EPUBs
-- **PIN-protected settings** — parents control voice, theme, and server settings
 
 ## Requirements
 
@@ -82,32 +80,20 @@ provisioning profiles, and local account settings out of the repository.
 See [docs/app-store-privacy-review.md](docs/app-store-privacy-review.md) for the
 current App Store Connect privacy answers, Kids Category posture, and external
 privacy policy draft. The current repo posture is no tracking and no collected
-data; local reading state remains on device, and optional OPDS access is
-parent-gated.
-
-### Parent Gate Regression Checklist
-
-- Fresh install with no PIN: **Browse** prompts for parent PIN setup before any
-  catalog content loads.
-- Fresh install with no PIN: **Settings** shows reading settings and parent PIN
-  setup, but hides server URL, username, and password fields.
-- After PIN setup: **Browse** requires the PIN before catalog browsing.
-- After PIN setup: **Settings > Parent Controls** requires the PIN before server
-  configuration, while library reading remains available without a PIN.
+data; local reading state remains on device.
 
 ## Project Structure
 
 ```
 Piperly/
 ├── App/                  # App entry point
-├── Models/               # Book, Bookmark, SavedWord, CatalogItem, Voice, etc.
-├── Services/             # BookStore, TTSEngine, OPDSService, PINManager, Keychain
+├── Models/               # Book, Bookmark, SavedWord, Voice, etc.
+├── Services/             # BookStore and TTSEngine
 ├── Theme/                # Colors, Typography, ReaderTheme
 ├── Views/
 │   ├── Library/          # Book grid, import, book cards
 │   ├── Reader/           # EPUB reader, toolbar, word tap, TOC, bookmarks
-│   ├── Settings/         # PIN gate, voice setup, reading settings
-│   ├── Catalog/          # OPDS server browsing and download
+│   ├── Settings/         # Voice setup and reading settings
 │   └── Words/            # Saved word list and word chips
 ├── Resources/
 │   ├── Assets.xcassets/  # App icon and colors

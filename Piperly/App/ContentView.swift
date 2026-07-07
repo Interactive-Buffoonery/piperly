@@ -18,24 +18,16 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var bookStore: BookStore
-    @EnvironmentObject var pinManager: PINManager
-    @EnvironmentObject var opdsService: OPDSService
     @State private var selectedBook: Book?
     @State private var selectedTab: ContentTab = .library
     @State private var showingSettings = false
     @State private var showingImporter = false
-    @State private var browseUnlocked = false
-    @State private var showBrowsePIN = false
-    @State private var showBrowsePINSetup = false
-    @State private var browsePINKey = UUID()
-    @State private var pinErrorMessage: String?
 
     let ttsEngine: TTSEngine
 
     enum ContentTab: String, CaseIterable {
         case library = "My Books"
         case words = "Words"
-        case browse = "Browse"
     }
 
     var body: some View {
@@ -91,10 +83,6 @@ struct ContentView: View {
                     )
                 case .words:
                     WordsView(ttsEngine: ttsEngine)
-                case .browse:
-                    CatalogView(onOpenBook: { book in
-                        selectedBook = book
-                    })
                 }
             }
             .background(Piperly.Colors.background.ignoresSafeArea())
@@ -105,98 +93,7 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
-                    .environmentObject(opdsService)
-                    .environmentObject(pinManager)
-            }
-            .onChange(of: selectedTab) { _, newTab in
-                guard newTab == .browse else { return }
-
-                switch ParentCatalogAccessPolicy.state(isPINSet: pinManager.isPINSet, isUnlocked: browseUnlocked) {
-                case .allowed:
-                    break
-                case .needsPINSetup:
-                    selectedTab = .library
-                    showBrowsePINSetup = true
-                case .needsPINVerification:
-                    selectedTab = .library
-                    browsePINKey = UUID()
-                    showBrowsePIN = true
-                }
-            }
-            .onChange(of: pinManager.isPINSet) { _, isPINSet in
-                guard !isPINSet else { return }
-
-                browseUnlocked = false
-                showBrowsePIN = false
-                showBrowsePINSetup = false
-
-                if selectedTab == .browse {
-                    selectedTab = .library
-                }
-            }
-            .fullScreenCover(isPresented: $showBrowsePINSetup) {
-                PINFlowView(
-                    step: .setNew,
-                    onCancel: { showBrowsePINSetup = false },
-                    onComplete: { pin in
-                        do {
-                            try pinManager.setPIN(pin)
-                            browseUnlocked = true
-                            showBrowsePINSetup = false
-                            selectedTab = .browse
-                        } catch {
-                            showBrowsePINSetup = false
-                            pinErrorMessage = "Couldn't save the PIN. Please try again."
-                        }
-                    }
-                )
-            }
-            .fullScreenCover(isPresented: $showBrowsePIN) {
-                ZStack {
-                    Piperly.Colors.background.ignoresSafeArea()
-
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Button {
-                                showBrowsePIN = false
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(Piperly.Colors.textTertiary)
-                            }
-                            .padding()
-                        }
-                        Spacer()
-                    }
-
-                    PINPadView(
-                        title: "Enter PIN",
-                        subtitle: "Ask a grown-up for the code"
-                    ) { pin in
-                        if pinManager.verifyPIN(pin) {
-                            browseUnlocked = true
-                            showBrowsePIN = false
-                            selectedTab = .browse
-                        } else {
-                            browsePINKey = UUID()
-                        }
-                    }
-                    .id(browsePINKey)
-                }
-            }
-            .alert("Couldn't Save PIN", isPresented: pinErrorBinding, presenting: pinErrorMessage) { _ in
-                Button("OK", role: .cancel) { pinErrorMessage = nil }
-            } message: { message in
-                Text(message)
             }
         }
-    }
-
-    private var pinErrorBinding: Binding<Bool> {
-        Binding(
-            get: { pinErrorMessage != nil },
-            set: { if !$0 { pinErrorMessage = nil } }
-        )
     }
 }
