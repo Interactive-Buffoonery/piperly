@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import SwiftUI
+import AVFoundation
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -22,15 +23,28 @@ struct SettingsView: View {
     @AppStorage("readerFontSize") private var fontSize: Double = 22
     @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
     @AppStorage("speechRate") private var speechRate: Double = 0.45
+    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
+    @State private var isVoiceListExpanded = false
+    @State private var voices: [Voice] = []
+
+    let ttsEngine: TTSEngine
 
     private var theme: ReaderTheme {
         ReaderTheme(rawValue: selectedTheme) ?? .piperly
+    }
+
+    private var selectedVoiceName: String {
+        if let voice = voices.first(where: { $0.id == selectedVoiceIdentifier }) {
+            return voice.name
+        }
+        return voices.first?.name ?? "Choose Voice"
     }
 
     var body: some View {
         NavigationStack {
             List {
                 readingSection
+                voicesSection
             }
             .scrollContentBackground(.hidden)
             .background(Piperly.Colors.background)
@@ -45,6 +59,16 @@ struct SettingsView: View {
             .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+        .onAppear {
+            refreshVoices()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: AVSpeechSynthesizer.availableVoicesDidChangeNotification
+            )
+        ) { _ in
+            refreshVoices()
         }
         .presentationDetents([.large])
         .presentationBackground(Piperly.Colors.background)
@@ -82,7 +106,9 @@ struct SettingsView: View {
                     HStack(spacing: 14) {
                         ForEach(ReaderTheme.allCases) { readerTheme in
                             Button {
-                                selectedTheme = readerTheme.rawValue
+                                withAnimation(.snappy) {
+                                    selectedTheme = readerTheme.rawValue
+                                }
                             } label: {
                                 VStack(spacing: 6) {
                                     Circle()
@@ -116,8 +142,77 @@ struct SettingsView: View {
                     }
                     .padding(.vertical, 2)
                 }
+
+                ReaderThemePreview(theme: theme, fontSize: fontSize)
             }
             .padding(.vertical, 4)
+        } header: {
+            Text("Reading")
+                .foregroundStyle(Piperly.Colors.textSecondary)
+        }
+        .listRowBackground(Piperly.Colors.surface)
+    }
+
+    private var voicesSection: some View {
+        Section {
+            Button {
+                withAnimation(.snappy) {
+                    isVoiceListExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Piperly.Colors.accent)
+                        .frame(width: 30)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Voice")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(Piperly.Colors.textPrimary)
+                        Text(selectedVoiceName)
+                            .font(Piperly.Typography.caption)
+                            .foregroundStyle(Piperly.Colors.textTertiary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Piperly.Colors.textTertiary)
+                        .rotationEffect(.degrees(isVoiceListExpanded ? 90 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Voice")
+            .accessibilityValue(selectedVoiceName)
+            .accessibilityHint(isVoiceListExpanded ? "Collapse voice list" : "Expand voice list")
+
+            if isVoiceListExpanded {
+                VStack(spacing: 10) {
+                    if voices.isEmpty {
+                        unavailableVoicesMessage
+                    } else {
+                        ForEach(voices) { voice in
+                            SettingsVoiceRow(
+                                voice: voice,
+                                isSelected: voice.id == selectedVoiceIdentifier,
+                                onSelect: { selectedVoiceIdentifier = voice.id },
+                                onPreview: {
+                                    ttsEngine.speak(
+                                        word: "Hi, I'm \(voice.name)!",
+                                        voiceIdentifier: voice.id,
+                                        rate: Float(speechRate)
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Voice Speed")
@@ -141,9 +236,124 @@ struct SettingsView: View {
             }
             .padding(.vertical, 4)
         } header: {
-            Text("Reading")
+            Text("Voices")
                 .foregroundStyle(Piperly.Colors.textSecondary)
         }
         .listRowBackground(Piperly.Colors.surface)
+    }
+
+    private var unavailableVoicesMessage: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "speaker.slash")
+                .font(.system(size: 24))
+                .foregroundStyle(Piperly.Colors.textTertiary)
+            Text("No voices available")
+                .font(Piperly.Typography.body)
+                .foregroundStyle(Piperly.Colors.textSecondary)
+            Text("Download Premium or Enhanced voices in the iOS Settings app under Accessibility > Read & Speak or Spoken Content > Voices.")
+                .font(Piperly.Typography.caption)
+                .foregroundStyle(Piperly.Colors.textTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+    }
+
+    private func refreshVoices() {
+        voices = Voice.availableVoices()
+        if !voices.contains(where: { $0.id == selectedVoiceIdentifier }),
+           let first = voices.first {
+            selectedVoiceIdentifier = first.id
+        }
+    }
+}
+
+private struct ReaderThemePreview: View {
+    let theme: ReaderTheme
+    let fontSize: Double
+
+    private var sampleFont: Font {
+        theme.fontFamily == .serif
+            ? .system(size: fontSize, weight: .regular, design: .serif)
+            : .system(size: fontSize, weight: .regular, design: .default)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("The little door opened into a garden full of warm light.")
+                .font(sampleFont)
+                .lineSpacing(6)
+                .foregroundStyle(Color(hex: theme.textColor))
+
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(hex: theme.textColor).opacity(0.28))
+                    .frame(width: 76, height: 7)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(hex: theme.textColor).opacity(0.18))
+                    .frame(width: 118, height: 7)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(hex: theme.backgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color(hex: theme.textColor).opacity(theme.isDark ? 0.18 : 0.12), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Theme preview")
+    }
+}
+
+private struct SettingsVoiceRow: View {
+    let voice: Voice
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onPreview: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: onPreview) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(Piperly.Colors.accent)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Preview \(voice.name)")
+
+            Button(action: onSelect) {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(voice.name)
+                            .font(Piperly.Typography.body)
+                            .foregroundStyle(Piperly.Colors.textPrimary)
+                        Text("\(voice.language) \u{2022} \(voice.quality.rawValue)")
+                            .font(Piperly.Typography.caption)
+                            .foregroundStyle(Piperly.Colors.textTertiary)
+                    }
+
+                    Spacer()
+
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Piperly.Colors.accent)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(isSelected ? Piperly.Colors.surfaceElevated : Piperly.Colors.background.opacity(0.45))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(voice.name)
+            .accessibilityValue(isSelected ? "Selected" : voice.quality.rawValue)
+        }
     }
 }

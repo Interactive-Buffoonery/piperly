@@ -91,8 +91,8 @@ struct ContentView: View {
                 ReaderView(book: book, ttsEngine: ttsEngine)
                     .environmentObject(bookStore)
             }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
+            .fullScreenCover(isPresented: $showingSettings) {
+                SettingsView(ttsEngine: ttsEngine)
             }
         }
     }
