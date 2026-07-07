@@ -124,7 +124,7 @@ private struct VoiceCard: View {
                 .overlay(
                     Text(String(voice.name.prefix(1)))
                         .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Piperly.Colors.background)
                 )
 
             VStack(alignment: .leading, spacing: 2) {

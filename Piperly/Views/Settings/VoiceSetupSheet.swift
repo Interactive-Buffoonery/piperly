@@ -99,7 +99,7 @@ struct VoiceSetupSheet: View {
                         } label: {
                             Label("Refresh Voices", systemImage: "arrow.clockwise")
                                 .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Piperly.Colors.background)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(Piperly.Colors.accent)
@@ -184,7 +184,7 @@ private struct VoiceRow: View {
                     .overlay(
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Piperly.Colors.background)
                     )
 
                 VStack(alignment: .leading, spacing: 2) {

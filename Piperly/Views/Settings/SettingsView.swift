@@ -351,7 +351,7 @@ private struct SettingsVoiceRow: View {
             Button(action: onPreview) {
                 Image(systemName: "play.fill")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Piperly.Colors.background)
                     .frame(width: 34, height: 34)
                     .background(Piperly.Colors.accent)
                     .clipShape(Circle())
@@ -654,7 +654,7 @@ private struct AvatarChoiceIcon: View {
 
         Image(systemName: symbol)
             .font(.system(size: 24, weight: .semibold))
-            .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(tint))
+            .foregroundStyle(isSelected ? AnyShapeStyle(Piperly.Colors.background) : AnyShapeStyle(tint))
             .frame(width: 54, height: 54)
             .background(isSelected ? tint : Piperly.Colors.surfaceElevated)
             .clipShape(Circle())
@@ -698,7 +698,7 @@ private struct ColorChoiceCircle: View {
             .overlay {
                 Image(systemName: "checkmark")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Piperly.Colors.background)
                     .opacity(isSelected ? 1 : 0)
             }
             .overlay {
@@ -821,7 +821,7 @@ private struct ProfileAvatarBadge: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: size * 0.48, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Piperly.Colors.background)
             .frame(width: size, height: size)
             .background(profileColor(colorName))
             .clipShape(Circle())
