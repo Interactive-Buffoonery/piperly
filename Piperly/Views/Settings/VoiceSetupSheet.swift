@@ -35,82 +35,61 @@ struct VoiceSetupSheet: View {
                 Piperly.Colors.background.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 16) {
                         Image(systemName: "waveform.circle.fill")
-                            .font(.system(size: 64))
+                            .font(.system(size: 48))
                             .foregroundStyle(Piperly.Colors.accent)
-                            .padding(.top, 8)
+                            .padding(.top, 4)
 
-                        Text("Set Up Voices")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                        Text("Pick a Voice")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
                             .foregroundStyle(Piperly.Colors.textPrimary)
 
-                        // swiftlint:disable:next line_length
-                        Text("Piperly uses high-quality on-device voices to read words aloud. For the best experience, download Premium or Enhanced voices.")
+                        Text("Tap a voice to hear it. Then choose your favorite to read words aloud.")
                             .font(Piperly.Typography.body)
                             .foregroundStyle(Piperly.Colors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)
 
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("How to download:")
-                                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                .foregroundStyle(Piperly.Colors.textPrimary)
-                            Text(voiceSettingsPath)
-                                .font(.system(size: 14, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Piperly.Colors.accent)
-                            Text("Tap a voice, then tap download for Premium or Enhanced quality.")
-                                .font(Piperly.Typography.caption)
-                                .foregroundStyle(Piperly.Colors.textTertiary)
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Piperly.Colors.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                        VStack(spacing: 8) {
-                            HStack {
-                                Image(systemName: hasHighQualityVoices
-                                    ? "checkmark.circle.fill" : "info.circle.fill")
-                                    .foregroundStyle(hasHighQualityVoices
-                                        ? Piperly.Colors.success : Piperly.Colors.warning)
-                                Text(hasHighQualityVoices
-                                    ? "\(voices.count) voice\(voices.count == 1 ? "" : "s") available"
-                                    : "Using built-in voices (download Premium for better quality)")
-                                    .font(Piperly.Typography.body)
-                                    .foregroundStyle(Piperly.Colors.textPrimary)
-                            }
-
-                            ForEach(voices.prefix(5)) { voice in
-                                HStack(spacing: 10) {
-                                    Circle()
-                                        .fill(voice.color)
-                                        .frame(width: 32, height: 32)
-                                        .overlay(
-                                            Text(String(voice.name.prefix(1)))
-                                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                                .foregroundStyle(.white)
+                        LazyVStack(spacing: 10) {
+                            ForEach(voices) { voice in
+                                VoiceRow(
+                                    voice: voice,
+                                    isSelected: voice.id == selectedVoiceIdentifier,
+                                    onTap: {
+                                        selectedVoiceIdentifier = voice.id
+                                        ttsEngine.speak(
+                                            word: previewPhrase,
+                                            voiceIdentifier: voice.id,
+                                            rate: 0.45
                                         )
-                                    Text(voice.name)
-                                        .font(Piperly.Typography.body)
-                                        .foregroundStyle(Piperly.Colors.textPrimary)
-                                    Spacer()
-                                    Text(voice.quality.rawValue)
-                                        .font(Piperly.Typography.caption)
-                                        .foregroundStyle(Piperly.Colors.textTertiary)
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Piperly.Colors.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    }
+                                )
                             }
                         }
-                        .padding(.horizontal, 8)
+
+                        if !hasHighQualityVoices {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Label("Want better voices?", systemImage: "sparkles")
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Piperly.Colors.textPrimary)
+                                Text(voiceSettingsPath)
+                                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(Piperly.Colors.accent)
+                                Text("Download a Premium or Enhanced voice, then tap Refresh.")
+                                    .font(Piperly.Typography.caption)
+                                    .foregroundStyle(Piperly.Colors.textTertiary)
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Piperly.Colors.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
                     }
                     .frame(maxWidth: 540)
                     .frame(maxWidth: .infinity)
                     .padding(16)
-                    .padding(.bottom, 120)
+                    .padding(.bottom, 24)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .safeAreaInset(edge: .bottom) {
@@ -131,6 +110,7 @@ struct VoiceSetupSheet: View {
                             if let first = voices.first, selectedVoiceIdentifier.isEmpty {
                                 selectedVoiceIdentifier = first.id
                             }
+                            ttsEngine.stop()
                             hasCompletedVoiceSetup = true
                             dismiss()
                         } label: {
@@ -171,8 +151,14 @@ struct VoiceSetupSheet: View {
         }
     }
 
+    private let previewPhrase = "Hello. Welcome to Piperly."
+
     private func refreshVoices() {
         voices = Voice.availableVoices()
+        if !voices.contains(where: { $0.id == selectedVoiceIdentifier }),
+           let first = voices.first {
+            selectedVoiceIdentifier = first.id
+        }
     }
 
     private var voiceSettingsPath: String {
@@ -181,5 +167,56 @@ struct VoiceSetupSheet: View {
         } else {
             return "Settings  >  Accessibility  >  Spoken Content  >  Voices  >  English"
         }
+    }
+}
+
+private struct VoiceRow: View {
+    let voice: Voice
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 14) {
+                Circle()
+                    .fill(voice.color)
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.white)
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(voice.name)
+                        .font(Piperly.Typography.body)
+                        .foregroundStyle(Piperly.Colors.textPrimary)
+                    Text(voice.quality.rawValue)
+                        .font(Piperly.Typography.caption)
+                        .foregroundStyle(Piperly.Colors.textTertiary)
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 26))
+                    .foregroundStyle(isSelected
+                        ? AnyShapeStyle(Piperly.Colors.accent)
+                        : AnyShapeStyle(Piperly.Colors.textTertiary))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(isSelected ? Piperly.Colors.surfaceElevated : Piperly.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Piperly.Colors.accent, lineWidth: isSelected ? 2 : 0)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(voice.name), \(voice.quality.rawValue) voice")
+        .accessibilityHint("Tap to hear this voice and choose it")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
