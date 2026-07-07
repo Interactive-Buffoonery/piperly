@@ -51,7 +51,7 @@ struct VoiceSetupSheet: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)
 
-                        VStack(spacing: 10) {
+                        LazyVStack(spacing: 10) {
                             ForEach(voices) { voice in
                                 VoiceRow(
                                     voice: voice,
