@@ -18,66 +18,77 @@ import SwiftUI
 import AVFoundation
 
 struct VoicePickerSheet: View {
+    let ttsEngine: TTSEngine
+
+    var body: some View {
+        NavigationStack {
+            VoicePickerList(ttsEngine: ttsEngine, showsDoneButton: true)
+        }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+    }
+}
+
+struct VoicePickerList: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
     @State private var voices: [Voice] = []
 
     let ttsEngine: TTSEngine
+    let showsDoneButton: Bool
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Piperly.Colors.background.ignoresSafeArea()
+        ZStack {
+            Piperly.Colors.background.ignoresSafeArea()
 
-                if voices.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "speaker.wave.3")
-                            .font(.system(size: 40))
-                            .foregroundStyle(Piperly.Colors.textTertiary)
-                        Text("No enhanced voices found")
-                            .font(Piperly.Typography.body)
-                            .foregroundStyle(Piperly.Colors.textSecondary)
-                        Text("Download Premium or Enhanced voices in\nSettings > Accessibility > Vision > Read & Speak > Voices")
-                            .font(Piperly.Typography.caption)
-                            .foregroundStyle(Piperly.Colors.textTertiary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(voices) { voice in
-                                VoiceCard(
-                                    voice: voice,
-                                    isSelected: voice.id == selectedVoiceIdentifier,
-                                    onSelect: { selectedVoiceIdentifier = voice.id },
-                                    onPreview: {
-                                        ttsEngine.speak(
-                                            word: "Hi, I'm \(voice.name)!",
-                                            voiceIdentifier: voice.id,
-                                            rate: 0.45
-                                        )
-                                    }
-                                )
-                            }
+            if voices.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "speaker.wave.3")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Piperly.Colors.textTertiary)
+                    Text("No enhanced voices found")
+                        .font(Piperly.Typography.body)
+                        .foregroundStyle(Piperly.Colors.textSecondary)
+                    Text("Download Premium or Enhanced voices in\nSettings > Accessibility > Vision > Read & Speak > Voices")
+                        .font(Piperly.Typography.caption)
+                        .foregroundStyle(Piperly.Colors.textTertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(voices) { voice in
+                            VoiceCard(
+                                voice: voice,
+                                isSelected: voice.id == selectedVoiceIdentifier,
+                                onSelect: { selectedVoiceIdentifier = voice.id },
+                                onPreview: {
+                                    ttsEngine.speak(
+                                        word: "Hi, I'm \(voice.name)!",
+                                        voiceIdentifier: voice.id,
+                                        rate: 0.45
+                                    )
+                                }
+                            )
                         }
-                        .padding(16)
                     }
+                    .padding(16)
                 }
             }
-            .navigationTitle("Voices")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
+        }
+        .navigationTitle("Voices")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            if showsDoneButton {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Piperly.Colors.accent)
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
         .onAppear {
             refreshVoices()
         }

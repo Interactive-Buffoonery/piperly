@@ -24,7 +24,6 @@ struct SettingsView: View {
     @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
     @AppStorage("speechRate") private var speechRate: Double = 0.45
     @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
-    @State private var showingVoicePicker = false
     @State private var voices: [Voice] = []
 
     let ttsEngine: TTSEngine
@@ -59,9 +58,6 @@ struct SettingsView: View {
             .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
-        }
-        .sheet(isPresented: $showingVoicePicker, onDismiss: refreshVoices) {
-            VoicePickerSheet(ttsEngine: ttsEngine)
         }
         .onAppear {
             refreshVoices()
@@ -154,8 +150,8 @@ struct SettingsView: View {
 
     private var voicesSection: some View {
         Section {
-            Button {
-                showingVoicePicker = true
+            NavigationLink {
+                VoicePickerList(ttsEngine: ttsEngine, showsDoneButton: false)
             } label: {
                 HStack(spacing: 14) {
                     Image(systemName: "speaker.wave.2.fill")
@@ -171,12 +167,6 @@ struct SettingsView: View {
                             .font(Piperly.Typography.caption)
                             .foregroundStyle(Piperly.Colors.textTertiary)
                     }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Piperly.Colors.textTertiary)
                 }
                 .contentShape(Rectangle())
             }
