@@ -92,7 +92,7 @@ struct ContentView: View {
                     .environmentObject(bookStore)
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView()
+                SettingsView(ttsEngine: ttsEngine)
             }
         }
     }

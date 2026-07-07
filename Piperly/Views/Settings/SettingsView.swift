@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import SwiftUI
+import AVFoundation
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -22,9 +23,21 @@ struct SettingsView: View {
     @AppStorage("readerFontSize") private var fontSize: Double = 22
     @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
     @AppStorage("speechRate") private var speechRate: Double = 0.45
+    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
+    @State private var showingVoicePicker = false
+    @State private var voices: [Voice] = []
+
+    let ttsEngine: TTSEngine
 
     private var theme: ReaderTheme {
         ReaderTheme(rawValue: selectedTheme) ?? .piperly
+    }
+
+    private var selectedVoiceName: String {
+        if let voice = voices.first(where: { $0.id == selectedVoiceIdentifier }) {
+            return voice.name
+        }
+        return voices.first?.name ?? "Choose Voice"
     }
 
     var body: some View {
@@ -45,6 +58,19 @@ struct SettingsView: View {
             .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+        .sheet(isPresented: $showingVoicePicker) {
+            VoicePickerSheet(ttsEngine: ttsEngine)
+        }
+        .onAppear {
+            refreshVoices()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: AVSpeechSynthesizer.availableVoicesDidChangeNotification
+            )
+        ) { _ in
+            refreshVoices()
         }
         .presentationDetents([.large])
         .presentationBackground(Piperly.Colors.background)
@@ -119,6 +145,36 @@ struct SettingsView: View {
             }
             .padding(.vertical, 4)
 
+            Button {
+                showingVoicePicker = true
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Piperly.Colors.accent)
+                        .frame(width: 30)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Voice")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(Piperly.Colors.textPrimary)
+                        Text(selectedVoiceName)
+                            .font(Piperly.Typography.caption)
+                            .foregroundStyle(Piperly.Colors.textTertiary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Piperly.Colors.textTertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Voice")
+            .accessibilityValue(selectedVoiceName)
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("Voice Speed")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
@@ -145,5 +201,9 @@ struct SettingsView: View {
                 .foregroundStyle(Piperly.Colors.textSecondary)
         }
         .listRowBackground(Piperly.Colors.surface)
+    }
+
+    private func refreshVoices() {
+        voices = Voice.availableVoices()
     }
 }
