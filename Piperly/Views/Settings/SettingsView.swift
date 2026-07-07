@@ -106,7 +106,9 @@ struct SettingsView: View {
                     HStack(spacing: 14) {
                         ForEach(ReaderTheme.allCases) { readerTheme in
                             Button {
-                                selectedTheme = readerTheme.rawValue
+                                withAnimation(.snappy) {
+                                    selectedTheme = readerTheme.rawValue
+                                }
                             } label: {
                                 VStack(spacing: 6) {
                                     Circle()
@@ -140,6 +142,8 @@ struct SettingsView: View {
                     }
                     .padding(.vertical, 2)
                 }
+
+                ReaderThemePreview(theme: theme, fontSize: fontSize)
             }
             .padding(.vertical, 4)
         } header: {
@@ -257,6 +261,45 @@ struct SettingsView: View {
 
     private func refreshVoices() {
         voices = Voice.availableVoices()
+    }
+}
+
+private struct ReaderThemePreview: View {
+    let theme: ReaderTheme
+    let fontSize: Double
+
+    private var sampleFont: Font {
+        theme.fontFamily == .serif
+            ? .system(size: fontSize, weight: .regular, design: .serif)
+            : .system(size: fontSize, weight: .regular, design: .default)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("The little door opened into a garden full of warm light.")
+                .font(sampleFont)
+                .lineSpacing(6)
+                .foregroundStyle(Color(hex: theme.textColor))
+
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(hex: theme.textColor).opacity(0.28))
+                    .frame(width: 76, height: 7)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(hex: theme.textColor).opacity(0.18))
+                    .frame(width: 118, height: 7)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(hex: theme.backgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color(hex: theme.textColor).opacity(theme.isDark ? 0.18 : 0.12), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Theme preview")
     }
 }
 
