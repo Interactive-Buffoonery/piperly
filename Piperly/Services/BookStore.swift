@@ -140,6 +140,52 @@ class BookStore: ObservableObject {
         saveSelectedProfileID()
     }
 
+    @discardableResult
+    func addProfile(name: String, avatarSymbol: String, colorName: String) -> ReaderProfile {
+        let profile = ReaderProfile(
+            name: Self.sanitizedProfileName(name),
+            avatarSymbol: avatarSymbol,
+            colorName: colorName
+        )
+        profiles.append(profile)
+        selectedProfileID = profile.id
+        saveProfiles()
+        saveSelectedProfileID()
+        return profile
+    }
+
+    func updateProfile(_ profileID: UUID, name: String, avatarSymbol: String, colorName: String) {
+        guard let index = profiles.firstIndex(where: { $0.id == profileID }) else { return }
+        profiles[index].name = Self.sanitizedProfileName(name)
+        profiles[index].avatarSymbol = avatarSymbol
+        profiles[index].colorName = colorName
+        saveProfiles()
+    }
+
+    func deleteProfile(_ profileID: UUID) {
+        guard profiles.count > 1, profiles.contains(where: { $0.id == profileID }) else { return }
+
+        profiles.removeAll { $0.id == profileID }
+        readingStates.removeAll { $0.profileID == profileID }
+        bookmarks.removeAll { $0.profileID == profileID }
+        savedWords.removeAll { $0.profileID == profileID }
+
+        if selectedProfileID == profileID {
+            selectedProfileID = profiles[0].id
+            saveSelectedProfileID()
+        }
+
+        saveProfiles()
+        saveReadingStates()
+        saveBookmarks()
+        saveSavedWords()
+    }
+
+    private static func sanitizedProfileName(_ name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? ReaderProfile.defaultName : trimmed
+    }
+
     func loadReadingStates() {
         guard let data = UserDefaults.standard.data(forKey: readingStatesKey),
               let saved = try? JSONDecoder().decode([ReadingState].self, from: data) else {

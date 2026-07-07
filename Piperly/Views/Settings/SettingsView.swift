@@ -19,6 +19,7 @@ import AVFoundation
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var bookStore: BookStore
 
     @AppStorage("readerFontSize") private var fontSize: Double = 22
     @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
@@ -43,6 +44,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                profilesSection
                 readingSection
                 voicesSection
             }
@@ -72,6 +74,37 @@ struct SettingsView: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Piperly.Colors.background)
+    }
+
+    private var profilesSection: some View {
+        Section {
+            NavigationLink {
+                ReaderProfilesView()
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Piperly.Colors.accent)
+                        .frame(width: 30)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Reader Profiles")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(Piperly.Colors.textPrimary)
+                        Text("\(bookStore.profiles.count) profile\(bookStore.profiles.count == 1 ? "" : "s")")
+                            .font(Piperly.Typography.caption)
+                            .foregroundStyle(Piperly.Colors.textTertiary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .accessibilityLabel("Reader Profiles")
+            .accessibilityHint("Manage child reader profiles")
+        } header: {
+            Text("Family")
+                .foregroundStyle(Piperly.Colors.textSecondary)
+        }
+        .listRowBackground(Piperly.Colors.surface)
     }
 
     private var readingSection: some View {
@@ -355,5 +388,506 @@ private struct SettingsVoiceRow: View {
             .accessibilityLabel(voice.name)
             .accessibilityValue(isSelected ? "Selected" : voice.quality.rawValue)
         }
+    }
+}
+
+private struct ReaderProfilesView: View {
+    @EnvironmentObject private var bookStore: BookStore
+    @State private var isUnlocked = false
+    @State private var showingAddProfile = false
+    @State private var editingProfile: ReaderProfile?
+    @State private var profilePendingDeletion: ReaderProfile?
+
+    var body: some View {
+        Group {
+            if isUnlocked {
+                profileManagementList
+            } else {
+                ParentGateView(
+                    title: "Reader Profiles",
+                    message: "Profiles use nicknames, avatar symbols, and colors only.",
+                    successTitle: "Continue",
+                    onSuccess: { isUnlocked = true }
+                )
+            }
+        }
+        .navigationTitle("Reader Profiles")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isUnlocked {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Add Profile", systemImage: "plus") {
+                        showingAddProfile = true
+                    }
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(Piperly.Colors.accent)
+                    .accessibilityLabel("Add Profile")
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddProfile) {
+            ProfileEditorView(
+                title: "Add Profile",
+                profile: nil,
+                onSave: { draft in
+                    bookStore.addProfile(
+                        name: draft.name,
+                        avatarSymbol: draft.avatarSymbol,
+                        colorName: draft.colorName
+                    )
+                }
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Piperly.Colors.background)
+        }
+        .sheet(item: $editingProfile) { profile in
+            ProfileEditorView(
+                title: "Edit Profile",
+                profile: profile,
+                onSave: { draft in
+                    bookStore.updateProfile(
+                        profile.id,
+                        name: draft.name,
+                        avatarSymbol: draft.avatarSymbol,
+                        colorName: draft.colorName
+                    )
+                }
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Piperly.Colors.background)
+        }
+        .sheet(item: $profilePendingDeletion) { profile in
+            DeleteProfileGateView(profile: profile) {
+                bookStore.deleteProfile(profile.id)
+            }
+            .presentationDetents([.medium])
+            .presentationBackground(Piperly.Colors.background)
+        }
+    }
+
+    private var profileManagementList: some View {
+        List {
+            Section {
+                ForEach(bookStore.profiles) { profile in
+                    ReaderProfileRow(
+                        profile: profile,
+                        isSelected: profile.id == bookStore.activeProfile.id,
+                        canDelete: bookStore.profiles.count > 1,
+                        onSelect: { bookStore.selectProfile(profile.id) },
+                        onEdit: { editingProfile = profile },
+                        onDelete: { profilePendingDeletion = profile }
+                    )
+                }
+            } footer: {
+                Text("Privacy guardrails: use nicknames only. Piperly does not ask for birthdays, photos, full names, email addresses, or Apple IDs.")
+                    .foregroundStyle(Piperly.Colors.textTertiary)
+            }
+            .listRowBackground(Piperly.Colors.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .background(Piperly.Colors.background)
+    }
+}
+
+private struct ReaderProfileRow: View {
+    let profile: ReaderProfile
+    let isSelected: Bool
+    let canDelete: Bool
+    let onSelect: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ProfileAvatarBadge(symbol: profile.avatarSymbol, colorName: profile.colorName, size: 44)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(profile.name)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Piperly.Colors.textPrimary)
+                Text(isSelected ? "Current reader" : "Available reader")
+                    .font(Piperly.Typography.caption)
+                    .foregroundStyle(Piperly.Colors.textTertiary)
+            }
+
+            Spacer()
+
+            Button(isSelected ? "Selected" : "Switch", action: onSelect)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .buttonStyle(.bordered)
+                .tint(isSelected ? Piperly.Colors.success : Piperly.Colors.accent)
+                .disabled(isSelected)
+                .accessibilityLabel(isSelected ? "\(profile.name) selected" : "Switch to \(profile.name)")
+
+            Menu {
+                Button("Edit", systemImage: "pencil", action: onEdit)
+                Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+                    .disabled(!canDelete)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 34, height: 34)
+                    .contentShape(Rectangle())
+            }
+            .foregroundStyle(Piperly.Colors.accent)
+            .accessibilityLabel("More options for \(profile.name)")
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private struct ProfileEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: ProfileDraft
+
+    let title: String
+    let onSave: (ProfileDraft) -> Void
+
+    init(title: String, profile: ReaderProfile?, onSave: @escaping (ProfileDraft) -> Void) {
+        self.title = title
+        self.onSave = onSave
+        _draft = State(initialValue: ProfileDraft(profile: profile))
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    TextField("Nickname", text: $draft.name)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .accessibilityLabel("Nickname")
+                } footer: {
+                    Text(nameMessage)
+                        .foregroundStyle(nameError == nil ? Piperly.Colors.textTertiary : Piperly.Colors.error)
+                }
+                .listRowBackground(Piperly.Colors.surface)
+
+                Section("Avatar") {
+                    AvatarGridView(
+                        selectedSymbol: $draft.avatarSymbol,
+                        colorName: draft.colorName
+                    )
+                }
+                .listRowBackground(Piperly.Colors.surface)
+
+                Section {
+                    ProfileColorPickerView(selectedColorName: $draft.colorName)
+                } header: {
+                    Text("Color")
+                } footer: {
+                    Text("Profiles never use photos or account identifiers.")
+                        .foregroundStyle(Piperly.Colors.textTertiary)
+                }
+                .listRowBackground(Piperly.Colors.surface)
+            }
+            .scrollContentBackground(.hidden)
+            .background(Piperly.Colors.background)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(Piperly.Colors.accent)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(draft)
+                        dismiss()
+                    }
+                    .disabled(nameError != nil)
+                    .foregroundStyle(Piperly.Colors.accent)
+                }
+            }
+            .toolbarBackground(Piperly.Colors.surface, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+    }
+
+    private var nameMessage: String {
+        nameError ?? "Use a nickname only. Do not enter full names, birthdays, email addresses, or Apple IDs."
+    }
+
+    private var nameError: String? {
+        ProfileDraft.validationError(for: draft.name)
+    }
+}
+
+private struct AvatarGridView: View {
+    @Binding var selectedSymbol: String
+    let colorName: String
+
+    private let columns = [GridItem(.adaptive(minimum: 58), spacing: 12)]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(ProfileDraft.avatarSymbols, id: \.self) { symbol in
+                let isSelected = selectedSymbol == symbol
+
+                Button {
+                    selectedSymbol = symbol
+                } label: {
+                    AvatarChoiceIcon(
+                        symbol: symbol,
+                        colorName: colorName,
+                        isSelected: isSelected
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Avatar \(symbol)")
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+private struct AvatarChoiceIcon: View {
+    let symbol: String
+    let colorName: String
+    let isSelected: Bool
+
+    var body: some View {
+        let tint = profileColor(colorName)
+
+        Image(systemName: symbol)
+            .font(.system(size: 24, weight: .semibold))
+            .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(tint))
+            .frame(width: 54, height: 54)
+            .background(isSelected ? tint : Piperly.Colors.surfaceElevated)
+            .clipShape(Circle())
+            .overlay {
+                Circle()
+                    .stroke(Piperly.Colors.accent, lineWidth: isSelected ? 2 : 0)
+            }
+    }
+}
+
+private struct ProfileColorPickerView: View {
+    @Binding var selectedColorName: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ForEach(ProfileDraft.colorNames, id: \.self) { colorName in
+                let isSelected = selectedColorName == colorName
+
+                Button {
+                    selectedColorName = colorName
+                } label: {
+                    ColorChoiceCircle(colorName: colorName, isSelected: isSelected)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(colorName.capitalized) color")
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+private struct ColorChoiceCircle: View {
+    let colorName: String
+    let isSelected: Bool
+
+    var body: some View {
+        Circle()
+            .fill(profileColor(colorName))
+            .frame(width: 44, height: 44)
+            .overlay {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .opacity(isSelected ? 1 : 0)
+            }
+            .overlay {
+                Circle()
+                    .stroke(Piperly.Colors.textPrimary.opacity(0.35), lineWidth: 1)
+            }
+    }
+}
+
+private struct DeleteProfileGateView: View {
+    @Environment(\.dismiss) private var dismiss
+    let profile: ReaderProfile
+    let onDelete: () -> Void
+
+    var body: some View {
+        ParentGateView(
+            title: "Delete \(profile.name)?",
+            message: "This removes this profile's words, bookmarks, progress, and profile settings. Shared books stay in the library.",
+            successTitle: "Delete Profile",
+            successRole: .destructive,
+            onSuccess: {
+                onDelete()
+                dismiss()
+            }
+        )
+    }
+}
+
+private struct ParentGateView: View {
+    let title: String
+    let message: String
+    let successTitle: String
+    var successRole: ButtonRole?
+    let onSuccess: () -> Void
+
+    @State private var left = Int.random(in: 4...9)
+    @State private var right = Int.random(in: 2...8)
+    @State private var answer = ""
+    @State private var errorText: String?
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Spacer()
+
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 42))
+                .foregroundStyle(Piperly.Colors.accent)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(Piperly.Colors.textPrimary)
+                Text(message)
+                    .font(Piperly.Typography.body)
+                    .foregroundStyle(Piperly.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Parent check: what is \(left) + \(right)?")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(Piperly.Colors.textSecondary)
+
+                TextField("Answer", text: $answer)
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .padding(14)
+                    .background(Piperly.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .foregroundStyle(Piperly.Colors.textPrimary)
+                    .accessibilityLabel("Parent check answer")
+
+                if let errorText {
+                    Text(errorText)
+                        .font(Piperly.Typography.caption)
+                        .foregroundStyle(Piperly.Colors.error)
+                }
+            }
+            .frame(maxWidth: 320)
+
+            Button(role: successRole) {
+                submit()
+            } label: {
+                Text(successTitle)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .frame(maxWidth: 320)
+                    .padding(.vertical, 12)
+                    .background(Piperly.Colors.accent)
+                    .foregroundStyle(Piperly.Colors.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+        }
+        .padding(28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Piperly.Colors.background)
+    }
+
+    private func submit() {
+        guard Int(answer) == left + right else {
+            errorText = "Try again."
+            answer = ""
+            left = Int.random(in: 4...9)
+            right = Int.random(in: 2...8)
+            return
+        }
+        onSuccess()
+    }
+}
+
+private struct ProfileAvatarBadge: View {
+    let symbol: String
+    let colorName: String
+    let size: CGFloat
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.48, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(profileColor(colorName))
+            .clipShape(Circle())
+            .accessibilityHidden(true)
+    }
+}
+
+private struct ProfileDraft {
+    static let avatarSymbols = [
+        "person.crop.circle.fill",
+        "sparkles",
+        "star.fill",
+        "moon.stars.fill",
+        "sun.max.fill",
+        "leaf.fill",
+        "book.fill",
+        "heart.fill"
+    ]
+    static let colorNames = ["accent", "green", "tan", "warning", "info", "error"]
+
+    var name: String
+    var avatarSymbol: String
+    var colorName: String
+
+    init(profile: ReaderProfile?) {
+        name = profile?.name ?? ""
+        avatarSymbol = profile?.avatarSymbol ?? ReaderProfile.defaultAvatarSymbol
+        colorName = profile?.colorName ?? ReaderProfile.defaultColorName
+    }
+
+    static func validationError(for name: String) -> String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "Enter a nickname."
+        }
+        if trimmed.count > 20 {
+            return "Keep nicknames under 20 characters."
+        }
+        if trimmed.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
+            return "Use one nickname, not a full name."
+        }
+        if trimmed.rangeOfCharacter(from: .decimalDigits) != nil {
+            return "Do not enter birthdays or ages."
+        }
+        if trimmed.contains("@") || trimmed.contains(".") {
+            return "Do not enter email addresses or Apple IDs."
+        }
+        return nil
+    }
+}
+
+private func profileColor(_ name: String) -> Color {
+    switch name {
+    case "teal", "accent":
+        return Piperly.Colors.teal
+    case "green":
+        return Piperly.Colors.green
+    case "tan":
+        return Piperly.Colors.tan
+    case "warning":
+        return Piperly.Colors.warning
+    case "info":
+        return Piperly.Colors.info
+    case "error":
+        return Piperly.Colors.error
+    default:
+        return Piperly.Colors.accent
     }
 }
