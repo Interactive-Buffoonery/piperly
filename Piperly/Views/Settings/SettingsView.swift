@@ -247,10 +247,10 @@ struct SettingsView: View {
             Image(systemName: "speaker.slash")
                 .font(.system(size: 24))
                 .foregroundStyle(Piperly.Colors.textTertiary)
-            Text("No enhanced voices found")
+            Text("No voices available")
                 .font(Piperly.Typography.body)
                 .foregroundStyle(Piperly.Colors.textSecondary)
-            Text("Download Premium or Enhanced voices in Settings > Accessibility > Read & Speak > Voices.")
+            Text("Download Premium or Enhanced voices in the iOS Settings app under Accessibility > Read & Speak or Spoken Content > Voices.")
                 .font(Piperly.Typography.caption)
                 .foregroundStyle(Piperly.Colors.textTertiary)
                 .multilineTextAlignment(.center)
@@ -261,6 +261,10 @@ struct SettingsView: View {
 
     private func refreshVoices() {
         voices = Voice.availableVoices()
+        if !voices.contains(where: { $0.id == selectedVoiceIdentifier }),
+           let first = voices.first {
+            selectedVoiceIdentifier = first.id
+        }
     }
 }
 
