@@ -44,6 +44,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 readingSection
+                voicesSection
             }
             .scrollContentBackground(.hidden)
             .background(Piperly.Colors.background)
@@ -59,7 +60,7 @@ struct SettingsView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
-        .sheet(isPresented: $showingVoicePicker) {
+        .sheet(isPresented: $showingVoicePicker, onDismiss: refreshVoices) {
             VoicePickerSheet(ttsEngine: ttsEngine)
         }
         .onAppear {
@@ -144,7 +145,15 @@ struct SettingsView: View {
                 }
             }
             .padding(.vertical, 4)
+        } header: {
+            Text("Reading")
+                .foregroundStyle(Piperly.Colors.textSecondary)
+        }
+        .listRowBackground(Piperly.Colors.surface)
+    }
 
+    private var voicesSection: some View {
+        Section {
             Button {
                 showingVoicePicker = true
             } label: {
@@ -197,7 +206,7 @@ struct SettingsView: View {
             }
             .padding(.vertical, 4)
         } header: {
-            Text("Reading")
+            Text("Voices")
                 .foregroundStyle(Piperly.Colors.textSecondary)
         }
         .listRowBackground(Piperly.Colors.surface)
