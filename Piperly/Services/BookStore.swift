@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import CryptoKit
 import Foundation
 import SwiftUI
 @preconcurrency import ReadiumShared
@@ -30,6 +31,7 @@ class BookStore: ObservableObject {
 
     private let documentsURL: URL
     private let coversURL: URL
+    private let importSnapshotsURL: URL
     private let userDefaults: UserDefaults
     private let booksKey = "piperly_books"
     private let profilesKey = "piperly_reader_profiles"
@@ -40,17 +42,32 @@ class BookStore: ObservableObject {
     private var debouncedBooksSave: Task<Void, Never>?
     private var debouncedReadingStatesSave: Task<Void, Never>?
     private var debouncedWordsSave: Task<Void, Never>?
+    private var importsByContentIdentity: [String: Task<Book, Error>] = [:]
+    nonisolated private static let fileReadChunkSize = 1_048_576
 
-    init(userDefaults: UserDefaults = .standard) {
+    convenience init(userDefaults: UserDefaults = .standard) {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        self.documentsURL = docs.appendingPathComponent("Books", isDirectory: true)
-        self.coversURL = docs.appendingPathComponent("Covers", isDirectory: true)
+        self.init(
+            documentsURL: docs.appendingPathComponent("Books", isDirectory: true),
+            coversURL: docs.appendingPathComponent("Covers", isDirectory: true),
+            userDefaults: userDefaults
+        )
+    }
+
+    init(documentsURL: URL, coversURL: URL, userDefaults: UserDefaults) {
+        self.documentsURL = documentsURL
+        self.coversURL = coversURL
+        self.importSnapshotsURL = documentsURL.deletingLastPathComponent()
+            .appendingPathComponent(".PiperlyImportSnapshots", isDirectory: true)
         self.userDefaults = userDefaults
 
         try? FileManager.default.createDirectory(at: documentsURL, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: coversURL, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: importSnapshotsURL, withIntermediateDirectories: true)
+        Self.clearStaleSnapshots(in: importSnapshotsURL)
         Self.excludeFromBackup(documentsURL)
         Self.excludeFromBackup(coversURL)
+        Self.excludeFromBackup(importSnapshotsURL)
         loadBooks()
         loadProfiles()
         loadSelectedProfileID()
@@ -62,7 +79,7 @@ class BookStore: ObservableObject {
 
     /// Books are re-importable and covers are re-derivable via `backfillCovers()`,
     /// so neither belongs in iCloud backups (Apple Data Storage Guidelines).
-    private nonisolated static func excludeFromBackup(_ url: URL) {
+    nonisolated private static func excludeFromBackup(_ url: URL) {
         var url = url
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
@@ -301,18 +318,79 @@ class BookStore: ObservableObject {
         let accessing = sourceURL.startAccessingSecurityScopedResource()
         defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
 
-        let originalName = sourceURL.lastPathComponent
-        let storedFileName = Self.uniqueFileName(for: originalName)
+        let snapshotsURL = importSnapshotsURL
+        let snapshotURL = try await Task.detached(priority: .userInitiated) {
+            try Self.snapshotSource(at: sourceURL, in: snapshotsURL)
+        }.value
+        defer { try? FileManager.default.removeItem(at: snapshotURL) }
+
+        return try await importSnapshot(snapshotURL, originalName: sourceURL.lastPathComponent)
+    }
+
+    private func importSnapshot(_ snapshotURL: URL, originalName: String) async throws -> Book {
+        let contentIdentity = try await Task.detached(priority: .userInitiated) {
+            try Self.contentIdentity(for: snapshotURL)
+        }.value
+
+        if let importTask = importsByContentIdentity[contentIdentity] {
+            return try await importTask.value
+        }
+
+        let importTask = Task {
+            try await finishImport(
+                snapshotURL,
+                originalName: originalName,
+                contentIdentity: contentIdentity
+            )
+        }
+        importsByContentIdentity[contentIdentity] = importTask
+
+        do {
+            let book = try await importTask.value
+            importsByContentIdentity[contentIdentity] = nil
+            return book
+        } catch {
+            importsByContentIdentity[contentIdentity] = nil
+            throw error
+        }
+    }
+
+    private func finishImport(
+        _ snapshotURL: URL,
+        originalName: String,
+        contentIdentity: String
+    ) async throws -> Book {
+        let storedFileName = Self.storageFileName(for: contentIdentity)
         let destURL = documentsURL.appendingPathComponent(storedFileName)
 
-        try FileManager.default.copyItem(at: sourceURL, to: destURL)
+        if let existingBook = books.first(where: { $0.contentIdentity == contentIdentity }) {
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                let filesMatch = try await Task.detached(priority: .userInitiated) {
+                    try Self.filesHaveEqualBytes(snapshotURL, destURL)
+                }.value
+                guard filesMatch else { throw BookStoreError.contentIdentityCollision }
+            } else {
+                _ = try await openPublication(at: snapshotURL)
+                try await publishSnapshot(snapshotURL, to: destURL)
+            }
+            return existingBook
+        }
 
-        guard let (title, author, coverName) = try? await parseMetadataAndCover(from: destURL) else {
-            try? FileManager.default.removeItem(at: destURL)
+        guard let (title, author, coverName) = try? await parseMetadataAndCover(from: snapshotURL) else {
             throw BookStoreError.unreadableBook
         }
 
+        do {
+            try await publishSnapshot(snapshotURL, to: destURL)
+        } catch {
+            if let coverName {
+                try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverName))
+            }
+            throw error
+        }
+
         let book = Book(
+            contentIdentity: contentIdentity,
             title: title ?? URL(fileURLWithPath: originalName).deletingPathExtension().lastPathComponent,
             author: author ?? "Unknown Author",
             fileName: storedFileName,
@@ -324,10 +402,76 @@ class BookStore: ObservableObject {
         return book
     }
 
-    /// Builds a collision-free destination filename by prefixing a UUID, while
-    /// preserving the original name (and extension) for readability.
-    nonisolated static func uniqueFileName(for originalName: String) -> String {
-        "\(UUID().uuidString)-\(originalName)"
+    private func publishSnapshot(_ snapshotURL: URL, to destURL: URL) async throws {
+        if FileManager.default.fileExists(atPath: destURL.path) {
+            let filesMatch = try await Task.detached(priority: .userInitiated) {
+                try Self.filesHaveEqualBytes(snapshotURL, destURL)
+            }.value
+            guard filesMatch else { throw BookStoreError.contentIdentityCollision }
+            return
+        }
+
+        do {
+            try FileManager.default.moveItem(at: snapshotURL, to: destURL)
+        } catch {
+            guard FileManager.default.fileExists(atPath: destURL.path) else { throw error }
+            let filesMatch = try await Task.detached(priority: .userInitiated) {
+                try Self.filesHaveEqualBytes(snapshotURL, destURL)
+            }.value
+            guard filesMatch else { throw BookStoreError.contentIdentityCollision }
+        }
+    }
+
+    nonisolated private static func snapshotSource(at sourceURL: URL, in directoryURL: URL) throws -> URL {
+        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        let snapshotURL = directoryURL.appendingPathComponent("\(UUID().uuidString).epub")
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: snapshotURL)
+            return snapshotURL
+        } catch {
+            try? FileManager.default.removeItem(at: snapshotURL)
+            throw error
+        }
+    }
+
+    nonisolated private static func clearStaleSnapshots(in directoryURL: URL) {
+        guard let staleURLs = try? FileManager.default.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: nil
+        ) else { return }
+
+        for staleURL in staleURLs {
+            try? FileManager.default.removeItem(at: staleURL)
+        }
+    }
+
+    nonisolated static func contentIdentity(for url: URL) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+
+        var hasher = SHA256()
+        while let bytes = try handle.read(upToCount: fileReadChunkSize), !bytes.isEmpty {
+            hasher.update(data: bytes)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    nonisolated static func storageFileName(for contentIdentity: String) -> String {
+        "\(contentIdentity).epub"
+    }
+
+    nonisolated private static func filesHaveEqualBytes(_ firstURL: URL, _ secondURL: URL) throws -> Bool {
+        let firstHandle = try FileHandle(forReadingFrom: firstURL)
+        defer { try? firstHandle.close() }
+        let secondHandle = try FileHandle(forReadingFrom: secondURL)
+        defer { try? secondHandle.close() }
+
+        while true {
+            let firstBytes = try firstHandle.read(upToCount: fileReadChunkSize)
+            let secondBytes = try secondHandle.read(upToCount: fileReadChunkSize)
+            guard firstBytes == secondBytes else { return false }
+            guard let firstBytes, !firstBytes.isEmpty else { return true }
+        }
     }
 
     func bookURL(for book: Book) -> URL {
@@ -499,27 +643,7 @@ class BookStore: ObservableObject {
     }
 
     private func importBundledBook(from bundleURL: URL) async throws -> Book {
-        let fileName = bundleURL.lastPathComponent
-        let destURL = documentsURL.appendingPathComponent(fileName)
-
-        if !FileManager.default.fileExists(atPath: destURL.path) {
-            try FileManager.default.copyItem(at: bundleURL, to: destURL)
-        }
-
-        let (title, author, coverName) = (try? await parseMetadataAndCover(from: destURL)) ?? (nil, nil, nil)
-
-        let book = Book(
-            title: title ?? URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent,
-            author: author ?? "Unknown Author",
-            fileName: fileName,
-            coverImageName: coverName
-        )
-
-        if !books.contains(where: { $0.fileName == fileName }) {
-            books.append(book)
-            saveBooks()
-        }
-        return book
+        try await importBook(from: bundleURL)
     }
 
     func deleteBook(_ book: Book) {
@@ -593,4 +717,5 @@ class BookStore: ObservableObject {
 enum BookStoreError: Error {
     case invalidURL
     case unreadableBook
+    case contentIdentityCollision
 }

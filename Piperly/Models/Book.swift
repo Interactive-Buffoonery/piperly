@@ -18,6 +18,7 @@ import Foundation
 
 struct Book: Identifiable, Codable {
     let id: UUID
+    let contentIdentity: String
     let title: String
     let author: String
     let fileName: String
@@ -25,12 +26,14 @@ struct Book: Identifiable, Codable {
 
     init(
         id: UUID = UUID(),
+        contentIdentity: String,
         title: String,
         author: String,
         fileName: String,
         coverImageName: String? = nil
     ) {
         self.id = id
+        self.contentIdentity = contentIdentity
         self.title = title
         self.author = author
         self.fileName = fileName
