@@ -16,7 +16,7 @@
 
 import Foundation
 
-struct SavedWord: Identifiable, Codable, Hashable, Sendable {
+struct SavedWord: Identifiable, Codable, Hashable, Sendable, ProfileScoped {
     let id: UUID
     let profileID: UUID
     let word: String
@@ -26,6 +26,25 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable {
     var tapCount: Int
     let savedAt: Date
     var lastTappedAt: Date
+
+    /// Legacy blobs predate `profileID`; default it to a sentinel so the record
+    /// survives decode. BookStore rehomes the sentinel onto the active profile.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        profileID = try c.decodeIfPresent(UUID.self, forKey: .profileID) ?? ProfileScopedDefaults.legacyProfileID
+        word = try c.decode(String.self, forKey: .word)
+        displayWord = try c.decode(String.self, forKey: .displayWord)
+        bookID = try c.decode(UUID.self, forKey: .bookID)
+        bookTitle = try c.decode(String.self, forKey: .bookTitle)
+        tapCount = try c.decode(Int.self, forKey: .tapCount)
+        savedAt = try c.decode(Date.self, forKey: .savedAt)
+        lastTappedAt = try c.decode(Date.self, forKey: .lastTappedAt)
+    }
+
+    func withProfileID(_ id: UUID) -> SavedWord {
+        SavedWord(id: self.id, profileID: id, word: word, displayWord: displayWord, bookID: bookID, bookTitle: bookTitle, tapCount: tapCount, savedAt: savedAt, lastTappedAt: lastTappedAt)
+    }
 
     init(
         id: UUID = UUID(),
