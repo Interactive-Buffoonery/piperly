@@ -224,6 +224,24 @@ struct ReaderProfileTests {
         #expect(!decoded.hasCompletedVoiceSetup)
     }
 
+    // A name that was valid under the old sanitizer (spaces/digits allowed) must
+    // survive decode by being sanitized, not throw and wipe the profiles array.
+    @Test func decodingLegacyInvalidNicknameSanitizesInsteadOfThrowing() throws {
+        let id = UUID()
+        let legacyJSON = """
+        {
+          "id": "\(id.uuidString)",
+          "name": "Ari Smith12",
+          "avatarSymbol": "star.fill",
+          "colorName": "yellow",
+          "createdAt": 0
+        }
+        """
+        let decoded = try JSONDecoder().decode(ReaderProfile.self, from: Data(legacyJSON.utf8))
+        #expect(decoded.id == id)
+        #expect(decoded.name == "AriSmith")
+    }
+
     @Test func rejectsInvalidNicknames() {
         #expect(throws: ReaderProfile.NicknameValidationError.empty) {
             _ = try ReaderProfile(name: "   ")
