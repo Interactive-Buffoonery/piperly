@@ -42,12 +42,13 @@ struct LibraryView: View {
                             BookCard(
                                 book: book,
                                 progress: bookStore.readingState(for: book.id)?.lastReadProgression ?? 0,
-                                coverImage: bookStore.coverImage(for: book)
+                                coverImage: bookStore.coverImage(for: book),
+                                availability: bookStore.assetAvailability(for: book)
                             ) {
                                 bookToDelete = book
                                 showingDeleteConfirmation = true
                             }
-                            .onTapGesture { selectedBook = book }
+                            .onTapGesture { open(book) }
                         }
                     }
                     .padding(24)
@@ -147,6 +148,20 @@ struct LibraryView: View {
             Button("OK", role: .cancel) { importErrorMessage = nil }
         } message: { message in
             Text(message)
+        }
+    }
+
+    /// A local book opens in the reader. A book whose EPUB is only in iCloud (or
+    /// whose last download failed) has no file to open, so route the tap to an
+    /// asset re-download instead of falling through to "Book file not found."
+    private func open(_ book: Book) {
+        switch bookStore.assetAvailability(for: book) {
+        case .local, .downloading, .uploading:
+            selectedBook = book
+        case .remoteOnly, .retryableFailure:
+            bookStore.retryAssets(for: book)
+        case .unavailable:
+            break
         }
     }
 

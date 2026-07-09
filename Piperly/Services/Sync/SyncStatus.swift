@@ -34,6 +34,7 @@ enum LibrarySyncStatus: Sendable, Equatable {
 
 enum BookAssetSyncStatusResolver {
     static func status(for failures: [String: BookAssetTransferFailure]) -> LibrarySyncStatus {
+        if failures.values.contains(.blocked) { return .blocked(.quotaExceeded) }
         if failures.values.contains(where: { $0 == .missingLocalData || $0 == .corrupt }) {
             return .blocked(.missingLocalData)
         }

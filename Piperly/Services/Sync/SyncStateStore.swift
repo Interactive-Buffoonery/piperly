@@ -8,6 +8,9 @@ enum BookAssetTransferFailure: String, Codable, Sendable, Equatable {
     case retryable
     case missingLocalData
     case corrupt
+    /// A permanent, user-actionable failure (e.g. iCloud quota exceeded) that
+    /// must not be silently retried on backoff.
+    case blocked
 }
 
 struct AccountOwnedBookAssets: Codable, Sendable, Equatable {

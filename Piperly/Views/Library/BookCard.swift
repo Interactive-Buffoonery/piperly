@@ -20,8 +20,34 @@ struct BookCard: View {
     let book: Book
     var progress: Double
     var coverImage: UIImage?
+    var availability: BookAssetAvailability = .local
     var onDelete: (() -> Void)?
     @State private var showingMenu = false
+
+    private var assetBadge: (symbol: String, tint: Color)? {
+        switch availability {
+        case .local:
+            return nil
+        case .downloading, .uploading:
+            return ("arrow.triangle.2.circlepath.icloud", Piperly.Colors.accent)
+        case .remoteOnly:
+            return ("icloud.and.arrow.down", Piperly.Colors.accent)
+        case .retryableFailure:
+            return ("exclamationmark.icloud", Piperly.Colors.accent)
+        case .unavailable:
+            return ("xmark.icloud", Piperly.Colors.error)
+        }
+    }
+
+    private var availabilityAccessibilityLabel: String {
+        switch availability {
+        case .local: return ""
+        case .downloading, .uploading: return "Syncing from iCloud"
+        case .remoteOnly: return "Stored in iCloud, tap to download"
+        case .retryableFailure: return "Download failed, tap to retry"
+        case .unavailable: return "This book is unavailable"
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -60,6 +86,16 @@ struct BookCard: View {
                             .foregroundStyle(.white, .black.opacity(0.5))
                     }
                     .padding(6)
+                }
+
+                if let assetBadge {
+                    Image(systemName: assetBadge.symbol)
+                        .font(.system(size: 18))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(assetBadge.tint, .black.opacity(0.5))
+                        .padding(6)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                        .accessibilityLabel(availabilityAccessibilityLabel)
                 }
             }
 

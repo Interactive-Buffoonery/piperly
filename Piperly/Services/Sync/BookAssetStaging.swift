@@ -27,6 +27,10 @@ enum BookAssetError: Error, Equatable {
     case missingEPUB
     case hashMismatch
     case contentIdentityCollision
+    /// A leftover transaction directory (e.g. a rollback that failed to delete)
+    /// is blocking `prepare`. Transient and cleanable, so retryable -- distinct
+    /// from a genuinely missing local EPUB, which is permanent.
+    case staleTransaction
 }
 
 enum BookAssetFailureClassifier {
@@ -34,6 +38,7 @@ enum BookAssetFailureClassifier {
         if let assetError = error as? BookAssetError {
             switch assetError {
             case .missingEPUB: return .missingLocalData
+            case .staleTransaction: return .retryable
             case .hashMismatch, .contentIdentityCollision: return .corrupt
             }
         }
@@ -216,7 +221,7 @@ final class ProvisionalBookAssetStore {
         let unresolved = (try? fileManager.contentsOfDirectory(atPath: rootURL.path))?
             .filter { !activeTransactions.contains($0) } ?? []
         guard unresolved.isEmpty else {
-            throw BookAssetError.missingEPUB
+            throw BookAssetError.staleTransaction
         }
         guard let epub = files.epub else { throw BookAssetError.missingEPUB }
         guard try BookAssetStaging.sha256(of: epub) == identity.lowercased() else {
