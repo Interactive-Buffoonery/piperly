@@ -700,6 +700,44 @@ class BookStore: ObservableObject {
         return name
     }
 
+    /// Legacy books decoded with an empty `contentIdentity` (persisted before
+    /// stable identity existed). Hash the on-disk file, adopt the real identity,
+    /// and migrate the file to the deterministic `<hash>.epub` name so dedupe
+    /// and asset sync work. Legacy files still resolve via their old `fileName`
+    /// until migrated, so nothing breaks before this runs.
+    func backfillContentIdentities() async {
+        var changed = false
+        for i in books.indices where books[i].contentIdentity.isEmpty {
+            let currentURL = bookURL(for: books[i])
+            guard FileManager.default.fileExists(atPath: currentURL.path),
+                  let identity = try? await Task.detached(priority: .utility, operation: {
+                      try Self.contentIdentity(for: currentURL)
+                  }).value else { continue }
+
+            let storedName = Self.storageFileName(for: identity)
+            let destURL = documentsURL.appendingPathComponent(storedName)
+            if currentURL.path != destURL.path {
+                if FileManager.default.fileExists(atPath: destURL.path) {
+                    // Deterministic name already present (same bytes): drop the
+                    // duplicate legacy file rather than clobber the canonical one.
+                    try? FileManager.default.removeItem(at: currentURL)
+                } else {
+                    try? FileManager.default.moveItem(at: currentURL, to: destURL)
+                }
+            }
+            books[i] = Book(
+                id: books[i].id,
+                contentIdentity: identity,
+                title: books[i].title,
+                author: books[i].author,
+                fileName: storedName,
+                coverImageName: books[i].coverImageName
+            )
+            changed = true
+        }
+        if changed { saveBooks() }
+    }
+
     func backfillCovers() async {
         var changed = false
         for i in books.indices where books[i].coverImageName == nil {

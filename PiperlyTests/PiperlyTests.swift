@@ -32,6 +32,19 @@ struct BookTests {
         #expect(decoded.fileName == book.fileName)
     }
 
+    // Legacy blobs predate contentIdentity; decode must not throw (which under
+    // try? decode([Book].self) would wipe the whole library on upgrade).
+    @Test func decodingLegacyBookWithoutContentIdentitySurvives() throws {
+        let id = UUID()
+        let legacyJSON = """
+        {"id":"\(id.uuidString)","title":"Old Book","author":"A","fileName":"\(id.uuidString)-old.epub"}
+        """
+        let decoded = try JSONDecoder().decode(Book.self, from: Data(legacyJSON.utf8))
+        #expect(decoded.id == id)
+        #expect(decoded.contentIdentity.isEmpty)
+        #expect(decoded.fileName == "\(id.uuidString)-old.epub")
+    }
+
     @Test func codableWithAllFields() throws {
         let book = Book(
             contentIdentity: "abc123",
