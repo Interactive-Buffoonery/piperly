@@ -1134,10 +1134,18 @@ class BookStore: ObservableObject {
             guard profiles.contains(where: { $0.id == remote.profileID }),
                   let bookID = books.first(where: { $0.contentIdentity == remote.bookIdentity })?.id else { return false }
             if let index = readingStates.firstIndex(where: { $0.profileID == remote.profileID && $0.bookID == bookID }) {
-                guard remote.modifiedAt >= readingStates[index].updatedAt else { return true }
-                readingStates[index].lastReadProgression = remote.progression
-                readingStates[index].lastReadLocatorJSON = remote.locatorJSON
-                readingStates[index].updatedAt = remote.modifiedAt
+                let current = readingStates[index]
+                let local = SyncedReadingState(
+                    profileID: remote.profileID,
+                    bookIdentity: remote.bookIdentity,
+                    progression: current.lastReadProgression,
+                    locatorJSON: current.lastReadLocatorJSON,
+                    modifiedAt: current.updatedAt
+                )
+                let merged = LibraryConflictResolver.merge(local: local, remote: remote)
+                readingStates[index].lastReadProgression = merged.progression
+                readingStates[index].lastReadLocatorJSON = merged.locatorJSON
+                readingStates[index].updatedAt = merged.modifiedAt
             } else {
                 readingStates.append(ReadingState(
                     profileID: remote.profileID,
@@ -1239,16 +1247,21 @@ class BookStore: ObservableObject {
             return true
         case "ReaderProfile":
             guard let id = uuid(from: reference.recordName, prefix: "profile-") else { return true }
-            if profiles.count == 1, profiles[0].id == id {
-                let replacement = ReaderProfile()
-                guard persistSyncRecords(syncRecords(for: replacement)) else { return false }
-                profiles.append(replacement)
-                selectedProfileID = replacement.id
-            }
             profiles.removeAll { $0.id == id }
             readingStates.removeAll { $0.profileID == id }
             bookmarks.removeAll { $0.profileID == id }
             savedWords.removeAll { $0.profileID == id }
+            // Deleting the last profile leaves an empty library; recreate a default.
+            // Keyed on "no profiles exist," not a stale count, so a retry after a
+            // failed replacement-enqueue is idempotent and never spawns duplicates.
+            // The deletion itself is resolved regardless: a failed replacement
+            // enqueue must not re-run the delete, or each retry churns another profile.
+            if profiles.isEmpty {
+                let replacement = ReaderProfile()
+                _ = persistSyncRecords(syncRecords(for: replacement))
+                profiles.append(replacement)
+                selectedProfileID = replacement.id
+            }
             return true
         case "ReadingState":
             readingStates.removeAll { readingStateReference(for: $0) == reference }

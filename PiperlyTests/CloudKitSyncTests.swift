@@ -869,7 +869,7 @@ struct CloudKitSyncCorrectnessTests {
         #expect(fixture.store.syncOutboxStatus == .blocked)
     }
 
-    @Test @MainActor func failedReplacementQueueKeepsLastDeletedProfileRecoverable() throws {
+    @Test @MainActor func failedReplacementQueueStillResolvesDeletionIdempotently() throws {
         let fixture = try storeFixture(sync: FailingLibrarySync())
         defer { fixture.cleanUp() }
         let original = fixture.store.activeProfile
@@ -878,11 +878,18 @@ struct CloudKitSyncCorrectnessTests {
             recordName: "profile-\(original.id.uuidString.lowercased())"
         )
 
+        // A failed replacement enqueue must not leave the deletion unresolved:
+        // retrying the deletion would spawn a fresh default profile every time.
         let result = fixture.store.applyRemoteChanges([.delete(deletion)])
+        #expect(result.unresolvedDeletions.isEmpty)
+        #expect(fixture.store.profiles.count == 1)
+        #expect(!fixture.store.profiles.contains { $0.id == original.id })
 
-        #expect(fixture.store.profiles == [original])
-        #expect(result.unresolvedDeletions == [deletion])
-        #expect(fixture.store.syncOutboxStatus == .blocked)
+        // Re-applying the same delete is idempotent: still exactly one profile.
+        let replacementID = fixture.store.profiles[0].id
+        _ = fixture.store.applyRemoteChanges([.delete(deletion)])
+        #expect(fixture.store.profiles == [fixture.store.profiles[0]])
+        #expect(fixture.store.profiles[0].id == replacementID)
     }
 
     @Test func UUIDBackedRecordsUseOnePrefixedNamespace() {

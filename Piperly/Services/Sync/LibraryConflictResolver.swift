@@ -13,7 +13,7 @@ enum LibraryConflictResolver {
         case (.readerPreferences(let local), .readerPreferences(let remote)):
             return .readerPreferences(local.modifiedAt >= remote.modifiedAt ? local : remote)
         case (.readingState(let local), .readingState(let remote)):
-            return .readingState(local.modifiedAt >= remote.modifiedAt ? local : remote)
+            return .readingState(merge(local: local, remote: remote))
         case (.bookmark(let local), .bookmark(let remote)):
             return .bookmark(local.modifiedAt >= remote.modifiedAt ? local : remote)
         case (.savedWord(let local), .savedWord(let remote)):
@@ -35,6 +35,20 @@ enum LibraryConflictResolver {
             hasCover: newest.hasCover || older.hasCover,
             modifiedAt: max(local.modifiedAt, remote.modifiedAt)
         )
+    }
+
+    // Reading progress must not regress on a device-clock lie. `modifiedAt` is a
+    // wall clock on the writing device; a skewed-future clock would otherwise let a
+    // stale, lower progression win forever. Only accept a lower progression when the
+    // reader genuinely moved to a different position (locator changed) -- a same-locator
+    // decrease is treated as clock skew and the higher progression is kept.
+    static func merge(local: SyncedReadingState, remote: SyncedReadingState) -> SyncedReadingState {
+        let newest = local.modifiedAt >= remote.modifiedAt ? local : remote
+        let older = local.modifiedAt >= remote.modifiedAt ? remote : local
+        if newest.progression < older.progression, newest.locatorJSON == older.locatorJSON {
+            return older
+        }
+        return newest
     }
 
     private static func merge(local: SyncedSavedWord, remote: SyncedSavedWord) -> SyncedSavedWord {
