@@ -111,6 +111,18 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
         }
     }
 
+    /// Non-throwing sanitizer for decode: coerces a legacy or invalid persisted
+    /// nickname into a valid one instead of throwing, so a name that was valid
+    /// under an older rule (e.g. contained a space or digit) can't wipe the
+    /// whole profiles array on upgrade. Validation still throws at create/update.
+    private static func sanitizedNickname(_ name: String) -> String {
+        if let valid = try? validatedNickname(name) { return valid }
+        var stripped = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        stripped.removeAll { $0.isWhitespace || $0.isNumber || $0 == "@" || $0 == "." }
+        let trimmed = String(stripped.prefix(20))
+        return (try? validatedNickname(trimmed)) ?? defaultName
+    }
+
     private static func validatedNickname(_ name: String) throws -> String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
@@ -147,7 +159,7 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
-        name = try Self.validatedNickname(container.decode(String.self, forKey: .name))
+        name = Self.sanitizedNickname(try container.decode(String.self, forKey: .name))
         avatarSymbol = try container.decode(String.self, forKey: .avatarSymbol)
         colorName = try container.decode(String.self, forKey: .colorName)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
