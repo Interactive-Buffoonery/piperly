@@ -17,6 +17,8 @@ signing account details in the repository.
 - App icon: single universal 1024x1024 icon with no alpha channel
 - Privacy manifest: declares no tracking, no collected data, and UserDefaults
   required-reason API use
+- Private CloudKit container: `iCloud.com.piperly.app`; complete the setup and
+  physical-device matrix in `docs/icloud-release-checklist.md`
 
 Do not change the version or build number unless App Store Connect rejects the
 upload for a duplicate build number or the archive should use a new release
@@ -72,6 +74,8 @@ Core flows:
 - Bookmarks add/remove with stickers and reappear in the bookmark list.
 - Saved words appear in the Words tab and re-speak when tapped.
 - Reader themes and font sizes apply live.
+- Parent-gated iCloud controls enable, disable, report account/quota problems,
+  and retry without deleting local or cloud data.
 
 Phase 1 fix verification (behavior-only, no unit coverage):
 

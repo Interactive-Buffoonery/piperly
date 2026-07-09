@@ -19,6 +19,7 @@ import SwiftUI
 @main
 struct PiperlyApp: App {
     @StateObject private var bookStore: BookStore
+    @StateObject private var iCloudSyncController: ICloudSyncController
     private let ttsEngine = TTSEngine()
     @State private var showVoiceSetup = false
     @Environment(\.scenePhase) private var scenePhase
@@ -29,36 +30,34 @@ struct PiperlyApp: App {
         let store = BookStore(librarySync: router)
         _bookStore = StateObject(wrappedValue: store)
 
-        guard CloudKitLibrarySync.isEnabled() else { return }
-        Task {
-            guard let cloudSync = try? CloudKitLibrarySync(
-                enabled: true,
-                localSnapshotProvider: { [weak store] in
-                    store?.librarySnapshotRecords() ?? []
-                },
-                localBookAssetProvider: { [weak store] book in
-                    store?.localBookAssets(for: book)
-                },
-                assetStagingURL: store.assetStagingURL,
-                remoteChangeHandler: { [weak store] changes, scope in
-                    guard let store else { return .complete }
-                    if scope.isCurrentAccount {
-                        return router.applyingCurrentAccountChanges(scope: scope) {
-                            store.applyRemoteChanges(changes)
-                        }
+        _iCloudSyncController = StateObject(wrappedValue: ICloudSyncController(
+            router: router,
+            localSnapshotProvider: { [weak store] in
+                store?.librarySnapshotRecords() ?? []
+            },
+            localBookAssetProvider: { [weak store] book in
+                store?.localBookAssets(for: book)
+            },
+            assetStagingURL: store.assetStagingURL,
+            remoteChangeHandler: { [weak store] changes, scope in
+                guard let store else { return .complete }
+                if scope.isCurrentAccount {
+                    return router.applyingCurrentAccountChanges(scope: scope) {
+                        store.applyRemoteChanges(changes)
                     }
-                    return store.applyRemoteChanges(changes)
                 }
-            ) else { return }
-            await router.use(cloudSync)
-        }
+                return store.applyRemoteChanges(changes)
+            }
+        ))
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView(ttsEngine: ttsEngine)
                 .environmentObject(bookStore)
+                .environmentObject(iCloudSyncController)
                 .task {
+                    await iCloudSyncController.startIfEnabled()
                     await bookStore.importSampleBooksIfNeeded()
                 }
                 .onChange(of: bookStore.selectedProfileID, initial: true) {

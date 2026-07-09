@@ -35,7 +35,9 @@
 		6C211085478661C47382156D /* BookmarkListSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A1B958B2C979E3FC7F5F17 /* BookmarkListSheet.swift */; };
 		73ACA44C6478B51A602B48B4 /* word-tap.js in Resources */ = {isa = PBXBuildFile; fileRef = AEC8DDABC8527ECA9066D42E /* word-tap.js */; };
 		7B61C8E28DA7A9C27B7B27D6 /* reader-theme.css in Resources */ = {isa = PBXBuildFile; fileRef = 219B546B88E956F5EC6324D7 /* reader-theme.css */; };
+		7E157E48ADD1E43C562C329F /* ICloudSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300C9BECAE99B3F67325BF48 /* ICloudSyncSettingsView.swift */; };
 		80F2409594CBAF3AA74C2614 /* Voice.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9B6B19370415EA2352127 /* Voice.swift */; };
+		827FE5E3F83B6832BE3CA3EE /* ICloudSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0726ED52E3805394C07CBDB3 /* ICloudSettingsTests.swift */; };
 		876B3E27B8C741FF25C8D629 /* ImportButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 907A4ACDFF28240D2A04EC58 /* ImportButton.swift */; };
 		8BD901E5E3524F619CF71CF2 /* ReadingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB2CC0ED8AAE37072017ABF /* ReadingState.swift */; };
 		96A0782B38BA02C7827B1F6F /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B5EA42469618622432905D /* Typography.swift */; };
@@ -50,6 +52,7 @@
 		C8CD69CC9A21D1069657FB65 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 456BD662A32FF2E09E8B91CA /* Assets.xcassets */; };
 		C8EB86567BED41A31D9493EB /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32263DACC627AF31FFB42A6F /* Colors.swift */; };
 		D08A7543219A4B94086FC580 /* SyncStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B5EEAF793B1FBB4652973E /* SyncStateStore.swift */; };
+		D09253F67DC62099492F3C8F /* ICloudSyncController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5B324587C00013C076C03E /* ICloudSyncController.swift */; };
 		D70FB9ABBE67AD59491D9F22 /* ReaderNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E04B476A4331F7545247076 /* ReaderNavigator.swift */; };
 		DC10B557D03A8F34EB5681B6 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = FB84F84F12F294A465FEFEB0 /* ReadiumShared */; };
 		DF716393D2AE9BE536866564 /* BookAssetStaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EBA4D5ED091891FB10D3B5C /* BookAssetStaging.swift */; };
@@ -80,6 +83,7 @@
 /* Begin PBXFileReference section */
 		020FF465ED5DAE55F3F23078 /* BookCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCard.swift; sourceTree = "<group>"; };
 		0575D688D631F115AF497590 /* PiperlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyApp.swift; sourceTree = "<group>"; };
+		0726ED52E3805394C07CBDB3 /* ICloudSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudSettingsTests.swift; sourceTree = "<group>"; };
 		07DB7B7BEB14F0757464F4FD /* ReaderProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderProfile.swift; sourceTree = "<group>"; };
 		0B48C597C42056AFD320ACB1 /* ReaderTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderTheme.swift; sourceTree = "<group>"; };
 		0EBA4D5ED091891FB10D3B5C /* BookAssetStaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookAssetStaging.swift; sourceTree = "<group>"; };
@@ -91,6 +95,7 @@
 		1E04B476A4331F7545247076 /* ReaderNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderNavigator.swift; sourceTree = "<group>"; };
 		2051654FEEB7BC3200F4830D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		219B546B88E956F5EC6324D7 /* reader-theme.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "reader-theme.css"; sourceTree = "<group>"; };
+		300C9BECAE99B3F67325BF48 /* ICloudSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudSyncSettingsView.swift; sourceTree = "<group>"; };
 		32263DACC627AF31FFB42A6F /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		37668E902B9B08AB7690046F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		3F0C8334C49EE044ECDF320F /* VoiceSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupSheet.swift; sourceTree = "<group>"; };
@@ -99,6 +104,7 @@
 		505AE8E196D11F1F4CEC38BA /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		5E9F47EB6E2EDF5E9E04B49B /* Piperly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Piperly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		67C736D8D95AF555808BAB07 /* WordListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListSheet.swift; sourceTree = "<group>"; };
+		6D5B324587C00013C076C03E /* ICloudSyncController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudSyncController.swift; sourceTree = "<group>"; };
 		6D67EDBA545BF502AADA33A5 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderToolbar.swift; sourceTree = "<group>"; };
 		79209FD4DBEB0A7745E96BCA /* SyncStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatus.swift; sourceTree = "<group>"; };
@@ -243,6 +249,7 @@
 		73BD50056A415FA38530BC14 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				300C9BECAE99B3F67325BF48 /* ICloudSyncSettingsView.swift */,
 				CFADC6967714E5F36F446A79 /* ReadingSettingsSheet.swift */,
 				2051654FEEB7BC3200F4830D /* SettingsView.swift */,
 				0F33AE51FAB9D371EE0F1F67 /* VoicePickerSheet.swift */,
@@ -279,6 +286,7 @@
 			children = (
 				0EBA4D5ED091891FB10D3B5C /* BookAssetStaging.swift */,
 				90EA411DA826F78E32B4DA71 /* CloudKitLibrarySync.swift */,
+				6D5B324587C00013C076C03E /* ICloudSyncController.swift */,
 				144FD302072287A2F625E295 /* LibraryConflictResolver.swift */,
 				C236C568C7927FEA271E2B08 /* LibraryRecord.swift */,
 				1D2F068169DAE06D75030A39 /* LibraryRecordCodec.swift */,
@@ -307,6 +315,7 @@
 			children = (
 				E7864762CD3DC06CFF339B7C /* BookAssetTests.swift */,
 				B342D7030508E0F3805E6C75 /* CloudKitSyncTests.swift */,
+				0726ED52E3805394C07CBDB3 /* ICloudSettingsTests.swift */,
 				CEE3796984A778CA18D6B83F /* PiperlyTests.swift */,
 			);
 			path = PiperlyTests;
@@ -501,6 +510,7 @@
 			files = (
 				5EF464C9DDE293B2B3A1D360 /* BookAssetTests.swift in Sources */,
 				B24843B385E539F6569F539E /* CloudKitSyncTests.swift in Sources */,
+				827FE5E3F83B6832BE3CA3EE /* ICloudSettingsTests.swift in Sources */,
 				3AC16D4D89F0CBC50AC41C91 /* PiperlyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -526,6 +536,8 @@
 				AA8EF4C5E8B7096587E9AC6C /* CloudKitLibrarySync.swift in Sources */,
 				C8EB86567BED41A31D9493EB /* Colors.swift in Sources */,
 				06D163B795C07C40FDD4C639 /* ContentView.swift in Sources */,
+				D09253F67DC62099492F3C8F /* ICloudSyncController.swift in Sources */,
+				7E157E48ADD1E43C562C329F /* ICloudSyncSettingsView.swift in Sources */,
 				876B3E27B8C741FF25C8D629 /* ImportButton.swift in Sources */,
 				AEB761A1B95187D81344E32E /* LibraryConflictResolver.swift in Sources */,
 				4CB3CB697D6FC2D125D0CADC /* LibraryRecord.swift in Sources */,

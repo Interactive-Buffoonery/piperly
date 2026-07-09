@@ -13,6 +13,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     ) -> RemoteApplicationResult
     typealias LocalSnapshotProvider = @MainActor @Sendable () -> [LibraryRecord]
     typealias LocalBookAssetProvider = @MainActor @Sendable (SyncedBook) -> BookAssetURLs?
+    typealias StatusHandler = @MainActor @Sendable (LibrarySyncStatus) -> Void
 
     static let containerIdentifier = "iCloud.com.piperly.app"
     static let enabledDefaultsKey = "piperly_icloud_sync_enabled"
@@ -28,14 +29,29 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     private let localBookAssetProvider: LocalBookAssetProvider
     private let assetStaging: BookAssetStaging
     private let automaticallySync: Bool
+    private let statusHandler: StatusHandler
+    private let activityToken = CloudSyncActivityToken()
     private var snapshot: SyncStateSnapshot
     private var engine: CKSyncEngine?
+    private var engineActivityToken: CloudSyncActivityToken?
     private var needsAccountConfirmation = false
     private var accountTransitionInProgress = false
     private var transitionAssetApplicationInProgress = false
     private var activeUploadAssets: [String: [String: BookAssetURLs]] = [:]
     private var assetRetryQueue = BookAssetRetryQueue()
-    private(set) var status: LibrarySyncStatus
+    private var isStopped = false
+    private var lifecycleGeneration = 0
+    private(set) var status: LibrarySyncStatus {
+        didSet {
+            guard !isStopped, status != oldValue else { return }
+            let status = status
+            let activityToken = activityToken
+            Task { @MainActor [statusHandler] in
+                guard activityToken.isActive else { return }
+                statusHandler(status)
+            }
+        }
+    }
 
     init(
         enabled: Bool,
@@ -45,6 +61,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         localSnapshotProvider: @escaping LocalSnapshotProvider = { [] },
         localBookAssetProvider: @escaping LocalBookAssetProvider = { _ in nil },
         assetStagingURL: URL? = nil,
+        statusHandler: @escaping StatusHandler = { _ in },
         remoteChangeHandler: @escaping RemoteChangeHandler
     ) throws {
         self.container = container
@@ -66,6 +83,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
                 }
         ))
         self.automaticallySync = automaticallySync
+        self.statusHandler = statusHandler
         status = enabled ? BookAssetSyncStatusResolver.status(for: snapshot.bookAssetFailures) : .disabled
         needsAccountConfirmation = enabled
 
@@ -81,10 +99,14 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     private func prepareInitialAccount() async {
+        let generation = lifecycleGeneration
+        guard isActive(generation) else { return }
         guard let currentUser = try? await container.userRecordID() else {
+            guard isActive(generation) else { return }
             status = .blocked(.accountUnavailable)
             return
         }
+        guard isActive(generation) else { return }
         if SyncCurrentAccountOperations.hasOperations(snapshot: snapshot) {
             SyncCurrentAccountOperations.reQuarantine(snapshot: &snapshot)
             snapshot.confirmedAccountRecordName = nil
@@ -100,12 +122,13 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         needsAccountConfirmation = false
         persistSnapshot()
         await applyDeferredRemoteChanges()
+        guard isActive(generation) else { return }
         start()
         await resumeDurableAssetRetries()
     }
 
     func start(automaticallySync override: Bool? = nil, restorePending: Bool = true) {
-        guard status != .disabled, engine == nil, !needsAccountConfirmation else { return }
+        guard !isStopped, status != .disabled, engine == nil, !needsAccountConfirmation else { return }
         Task { @MainActor in
             UIApplication.shared.registerForRemoteNotifications()
         }
@@ -117,11 +140,14 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         configuration.automaticallySync = override ?? automaticallySync
         configuration.subscriptionID = "PiperlyLibrary-private"
         let newEngine = CKSyncEngine(configuration)
+        engineActivityToken?.invalidate()
+        engineActivityToken = CloudSyncActivityToken()
         engine = newEngine
         if restorePending { restorePendingChanges(to: newEngine) }
     }
 
     func acceptSave(_ record: LibraryRecord, scope: RemoteApplicationScope) async throws {
+        guard !isStopped else { throw SyncLifecycleError.stopped }
         let reference = record.reference
         if scope.isCurrentAccount {
             guard let accountRecordName = scope.accountRecordName,
@@ -160,6 +186,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         _ reference: LibraryRecordReference,
         scope: RemoteApplicationScope
     ) async throws {
+        guard !isStopped else { throw SyncLifecycleError.stopped }
         if scope.isCurrentAccount {
             guard let accountRecordName = scope.accountRecordName,
                   let transitionGeneration = scope.transitionGeneration else { return }
@@ -197,12 +224,46 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     func syncNow() async throws {
+        let generation = lifecycleGeneration
+        guard isActive(generation) else { throw SyncLifecycleError.stopped }
         guard let engine = activeEngine() else { return }
         try await engine.fetchChanges(CKSyncEngine.FetchChangesOptions())
+        guard isActive(generation), engine === self.engine else { throw SyncLifecycleError.stopped }
         try await engine.sendChanges(CKSyncEngine.SendChangesOptions())
+        guard isActive(generation), engine === self.engine else { throw SyncLifecycleError.stopped }
+    }
+
+    func stop() async {
+        guard !isStopped else { return }
+        isStopped = true
+        activityToken.invalidate()
+        lifecycleGeneration += 1
+        let engineToStop = detachEngine()
+        status = .disabled
+        if let engineToStop { await engineToStop.cancelOperations() }
+        cleanupActiveUploads()
+    }
+
+    func currentStatus() -> LibrarySyncStatus {
+        status
+    }
+
+    func accountConfirmationContext() -> SyncAccountConfirmationContext {
+        let hasPendingWork = !snapshot.quarantinedSaves.isEmpty
+            || !snapshot.quarantinedDeletes.isEmpty
+            || SyncCurrentAccountOperations.hasOperations(snapshot: snapshot)
+        if snapshot.didSeedExistingLibrary || snapshot.confirmedAccountRecordName != nil {
+            return hasPendingWork ? .accountChangedWithPendingWork : .accountChanged
+        }
+        return .firstEnable
+    }
+
+    func failedAssetIdentities() -> Set<String> {
+        Set(snapshot.bookAssetFailures.keys).union(snapshot.assetDownloadRetryRecordNames)
     }
 
     func requestBookAssets(contentIdentity: String) async {
+        guard !isStopped else { return }
         snapshot.recordAssetFailure(
             .retryable,
             recordName: contentIdentity,
@@ -216,7 +277,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     private func drainAssetRetryQueue() async {
         defer { assetRetryQueue.finish() }
         while !assetRetryQueue.queued.isEmpty {
-            guard !needsAccountConfirmation, !accountTransitionInProgress else { return }
+            guard !isStopped, !needsAccountConfirmation, !accountTransitionInProgress else { return }
             let requested = assetRetryQueue.takeNext()
             await performAssetRetry(for: requested)
         }
@@ -231,44 +292,49 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     private func performAssetRetry(for identities: Set<String>) async {
+        let lifecycle = lifecycleGeneration
         guard !identities.isEmpty,
+              isActive(lifecycle),
               !needsAccountConfirmation,
               !accountTransitionInProgress,
               let expectedAccount = snapshot.confirmedAccountRecordName else { return }
         let expectedGeneration = snapshot.accountTransitionGeneration
-        if let engine { await engine.cancelOperations() }
-        guard !needsAccountConfirmation,
+        let previousEngine = detachEngine()
+        if let previousEngine { await previousEngine.cancelOperations() }
+        guard isActive(lifecycle),
+              !needsAccountConfirmation,
               !accountTransitionInProgress,
               snapshot.confirmedAccountRecordName == expectedAccount,
               snapshot.accountTransitionGeneration == expectedGeneration else { return }
         cleanupActiveUploads()
-        engine = nil
         snapshot.engineState = nil
         persistSnapshot()
         start()
         guard let retryEngine = engine else { return }
         do {
             try await retryEngine.fetchChanges(CKSyncEngine.FetchChangesOptions())
+            guard isActive(lifecycle), retryEngine === engine else { return }
         } catch {
             recordRetryError(error, identities: identities)
             return
         }
         guard retryAccountMatches(expectedAccount, generation: expectedGeneration) else {
-            if let engine { await engine.cancelOperations() }
+            let staleEngine = detachEngine()
+            if let staleEngine { await staleEngine.cancelOperations() }
             cleanupActiveUploads()
-            engine = nil
             return
         }
         do {
             try await retryEngine.sendChanges(CKSyncEngine.SendChangesOptions())
+            guard isActive(lifecycle), retryEngine === engine else { return }
         } catch {
             recordRetryError(error, identities: identities)
             return
         }
         guard retryAccountMatches(expectedAccount, generation: expectedGeneration) else {
-            if let engine { await engine.cancelOperations() }
+            let staleEngine = detachEngine()
+            if let staleEngine { await staleEngine.cancelOperations() }
             cleanupActiveUploads()
-            engine = nil
             return
         }
     }
@@ -304,16 +370,20 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     private func retryAccountMatches(_ accountRecordName: String, generation: Int) -> Bool {
-        !needsAccountConfirmation
+        !isStopped
+            && !needsAccountConfirmation
             && !accountTransitionInProgress
             && snapshot.confirmedAccountRecordName == accountRecordName
             && snapshot.accountTransitionGeneration == generation
     }
 
     func accountState() async -> SyncAccountState {
-        guard status != .disabled else { return .couldNotDetermine }
+        let lifecycle = lifecycleGeneration
+        guard isActive(lifecycle), status != .disabled else { return .couldNotDetermine }
         do {
-            switch try await container.accountStatus() {
+            let accountStatus = try await container.accountStatus()
+            guard isActive(lifecycle) else { return .couldNotDetermine }
+            switch accountStatus {
             case .available:
                 return .available
             case .noAccount:
@@ -333,7 +403,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     func confirmAccountChange(policy: AccountTransitionPolicy) async throws {
-        guard needsAccountConfirmation else { return }
+        guard !isStopped, needsAccountConfirmation else { return }
         do {
             let generation = beginAccountTransition()
             let currentUser = try await container.userRecordID()
@@ -348,9 +418,9 @@ actor CloudKitLibrarySync: LibrarySyncSink {
             }
             try await fetchEngine.fetchChanges(CKSyncEngine.FetchChangesOptions())
             try requireAccountTransition(generation)
+            _ = detachEngine()
             await fetchEngine.cancelOperations()
             try requireAccountTransition(generation)
-            engine = nil
             let firstVerification = try await container.userRecordID()
             try requireAccountTransition(generation)
             try SyncAccountTransitionValidator.validate(
@@ -452,9 +522,9 @@ actor CloudKitLibrarySync: LibrarySyncSink {
             invalidateAccountTransition()
             return
         }
-        if let engine { Task { await engine.cancelOperations() } }
+        let staleEngine = detachEngine()
+        if let staleEngine { Task { await staleEngine.cancelOperations() } }
         cleanupActiveUploads()
-        engine = nil
         SyncAccountTransition.quarantine(snapshot: &snapshot)
         snapshot.confirmedAccountRecordName = nil
         needsAccountConfirmation = true
@@ -462,9 +532,18 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     private func activeEngine() -> CKSyncEngine? {
-        guard status != .disabled, !needsAccountConfirmation, !accountTransitionInProgress else { return nil }
+        guard !isStopped, status != .disabled,
+              !needsAccountConfirmation, !accountTransitionInProgress else { return nil }
         if engine == nil { start() }
         return engine
+    }
+
+    private func detachEngine() -> CKSyncEngine? {
+        let detached = engine
+        engine = nil
+        engineActivityToken?.invalidate()
+        engineActivityToken = nil
+        return detached
     }
 
     private func restorePendingChanges(to engine: CKSyncEngine) {
@@ -483,6 +562,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     private func persistSnapshot() {
+        guard !isStopped else { return }
         do {
             try stateStore.save(snapshot)
         } catch {
@@ -491,12 +571,17 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     private func persistSnapshotOrThrow() throws {
+        guard !isStopped else { throw SyncLifecycleError.stopped }
         do {
             try stateStore.save(snapshot)
         } catch {
             status = .blocked(.missingLocalData)
             throw error
         }
+    }
+
+    private func isActive(_ generation: Int) -> Bool {
+        !isStopped && lifecycleGeneration == generation
     }
 
     private func assetFailure(for error: Error) -> BookAssetTransferFailure {
@@ -636,6 +721,8 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     }
 
     private func applyDeferredRemoteChanges() async {
+        let lifecycle = lifecycleGeneration
+        guard isActive(lifecycle) else { return }
         let assets = snapshot.pendingRemoteAssets
         let changes = snapshot.deferredRemoteDeletions.map(LibraryRemoteChange.delete)
             + snapshot.deferredRemoteRecords.values.map(LibraryRemoteChange.save)
@@ -643,6 +730,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         let result = changes.isEmpty
             ? RemoteApplicationResult.complete
             : await remoteChangeHandler(changes, .normal)
+        guard isActive(lifecycle) else { return }
         snapshot.deferredRemoteRecords = Dictionary(
             uniqueKeysWithValues: result.unresolvedRecords.map { ($0.reference.recordName, $0) }
         )
@@ -654,6 +742,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
                 transitionGeneration: snapshot.accountTransitionGeneration,
                 scope: .normal
             )
+            guard isActive(lifecycle) else { return }
             applyAssetOutcomes(outcomes, deliveredAssets: assets)
         }
         persistSnapshot()
@@ -662,6 +751,9 @@ actor CloudKitLibrarySync: LibrarySyncSink {
 
 extension CloudKitLibrarySync: CKSyncEngineDelegate {
     func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+        let lifecycle = lifecycleGeneration
+        guard isActive(lifecycle), syncEngine === engine,
+              engineActivityToken?.isActive == true else { return }
         switch event {
         case .stateUpdate(let update):
             snapshot.engineState = update.stateSerialization
@@ -673,7 +765,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         case .accountChange:
             break
         case .fetchedRecordZoneChanges(let changes):
-            await handleFetched(changes)
+            await handleFetched(changes, lifecycle: lifecycle)
         case .sentRecordZoneChanges(let changes):
             handleSent(changes, syncEngine: syncEngine)
         case .sentDatabaseChanges(let changes):
@@ -701,7 +793,10 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         _ context: CKSyncEngine.SendChangesContext,
         syncEngine: CKSyncEngine
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-        guard !needsAccountConfirmation, !accountTransitionInProgress else { return nil }
+        let lifecycle = lifecycleGeneration
+        guard isActive(lifecycle), syncEngine === engine,
+              engineActivityToken?.isActive == true,
+              !needsAccountConfirmation, !accountTransitionInProgress else { return nil }
         let pending = syncEngine.state.pendingRecordZoneChanges.filter { context.options.scope.contains($0) }
         let pendingSaveNames = Set(pending.compactMap { change -> String? in
             guard case .saveRecord(let recordID) = change else { return nil }
@@ -713,9 +808,11 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         for (recordName, record) in records where pendingSaveNames.contains(recordName) {
             guard case .book(let book) = record else { continue }
             guard let source = await localBookAssetProvider(book), source.epub != nil else {
+                guard isActive(lifecycle), syncEngine === engine else { return nil }
                 recordAssetFailure(.missingLocalData, recordName: recordName)
                 continue
             }
+            guard isActive(lifecycle), syncEngine === engine else { return nil }
             do {
                 let staged = try assetStaging.stageUpload(source, recordName: recordName)
                 do {
@@ -734,7 +831,9 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         }
         persistSnapshot()
         let stagedAssets = assetsByRecordName
+        guard let engineActivityToken, engineActivityToken.isActive else { return nil }
         return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: pending) { recordID in
+            guard engineActivityToken.isActive else { return nil }
             guard let record = records[recordID.recordName] else { return nil }
             if case .book = record, stagedAssets[recordID.recordName]?.epub == nil { return nil }
             return try? LibraryRecordCodec.encode(
@@ -745,8 +844,11 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         }
     }
 
-    private func handleFetched(_ event: CKSyncEngine.Event.FetchedRecordZoneChanges) async {
-        guard !needsAccountConfirmation else { return }
+    private func handleFetched(
+        _ event: CKSyncEngine.Event.FetchedRecordZoneChanges,
+        lifecycle: Int
+    ) async {
+        guard isActive(lifecycle), !needsAccountConfirmation else { return }
         if accountTransitionInProgress {
             stageFetchedForAccountTransition(event)
             persistSnapshot()
@@ -833,6 +935,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
             let result = metadataChanges.isEmpty
                 ? RemoteApplicationResult.complete
                 : await remoteChangeHandler(metadataChanges, .normal)
+            guard isActive(lifecycle) else { return }
             snapshot.deferredRemoteRecords = Dictionary(
                 uniqueKeysWithValues: result.unresolvedRecords.map { ($0.reference.recordName, $0) }
             )
@@ -844,6 +947,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
                     transitionGeneration: snapshot.accountTransitionGeneration,
                     scope: .normal
                 )
+                guard isActive(lifecycle) else { return }
                 applyAssetOutcomes(assetOutcomes, deliveredAssets: deliveredAssetFiles)
             }
         }
@@ -1001,6 +1105,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
     }
 
     private func apply(error: CKError) {
+        guard !isStopped else { return }
         let failure = CloudKitErrorClassifier.classify(error)
         if case .retryable(let retryAfter) = failure {
             status = .waitingToRetry(retryAfter)
@@ -1028,7 +1133,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         snapshot.accountTransitionRemoteAssets = [:]
         cleanupActiveUploads()
         snapshot.accountTransitionGeneration += 1
-        engine = nil
+        _ = detachEngine()
         snapshot.engineState = nil
         snapshot.systemFields = [:]
         snapshot.accountTransitionRemoteRecords = [:]
@@ -1042,6 +1147,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
     }
 
     private func requireAccountTransition(_ generation: Int) throws {
+        guard !isStopped else { throw SyncLifecycleError.stopped }
         try SyncAccountTransitionValidator.validateGeneration(
             expected: generation,
             current: snapshot.accountTransitionGeneration,
@@ -1145,7 +1251,8 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
 
     private func failAccountTransitionIfActive() {
         guard accountTransitionInProgress else { return }
-        if let engine { Task { await engine.cancelOperations() } }
+        let staleEngine = detachEngine()
+        if let staleEngine { Task { await staleEngine.cancelOperations() } }
         invalidateAccountTransition()
         persistSnapshot()
     }
@@ -1158,7 +1265,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         }
         cleanupActiveUploads()
         snapshot.accountTransitionGeneration += 1
-        engine = nil
+        _ = detachEngine()
         snapshot.engineState = nil
         snapshot.systemFields = [:]
         snapshot.confirmedAccountRecordName = nil
@@ -1176,6 +1283,19 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         invalidateAccountTransition()
         persistSnapshot()
         Task { await syncEngine.cancelOperations() }
+    }
+}
+
+final class CloudSyncActivityToken: @unchecked Sendable {
+    private let lock = NSLock()
+    private var active = true
+
+    var isActive: Bool {
+        lock.withLock { active }
+    }
+
+    func invalidate() {
+        lock.withLock { active = false }
     }
 }
 

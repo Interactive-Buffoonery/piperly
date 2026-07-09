@@ -69,6 +69,16 @@ enum AccountTransitionPolicy: Sendable, Equatable {
     case keepLocalAndUploadAfterFetch
 }
 
+enum SyncAccountConfirmationContext: Sendable, Equatable {
+    case firstEnable
+    case accountChanged
+    case accountChangedWithPendingWork
+}
+
+enum SyncLifecycleError: Error, Equatable {
+    case stopped
+}
+
 enum SyncAccountTransition {
     static func quarantine(snapshot: inout SyncStateSnapshot) {
         snapshot.quarantinedSaves.merge(snapshot.pendingSaves) { _, current in current }

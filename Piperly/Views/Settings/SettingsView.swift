@@ -20,6 +20,7 @@ import AVFoundation
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var bookStore: BookStore
+    @EnvironmentObject private var iCloudSyncController: ICloudSyncController
 
     @State private var isVoiceListExpanded = false
     @State private var voices: [Voice] = []
@@ -41,6 +42,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 profilesSection
+                iCloudSection
                 readingSection
                 voicesSection
             }
@@ -70,6 +72,39 @@ struct SettingsView: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Piperly.Colors.background)
+    }
+
+    private var iCloudSection: some View {
+        Section {
+            NavigationLink {
+                ICloudSyncSettingsView()
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "icloud.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Piperly.Colors.accent)
+                        .frame(width: 30)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("iCloud Sync")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(Piperly.Colors.textPrimary)
+                        Text(ICloudStatusPresentation(iCloudSyncController.status).title)
+                            .font(Piperly.Typography.caption)
+                            .foregroundStyle(Piperly.Colors.textTertiary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .accessibilityLabel("iCloud Sync")
+            .accessibilityValue(ICloudStatusPresentation(iCloudSyncController.status).title)
+            .accessibilityHint("Opens parent controls for private iCloud sync")
+        } header: {
+            Text("Parent Controls")
+                .foregroundStyle(Piperly.Colors.textSecondary)
+        }
+        .listRowBackground(Piperly.Colors.surface)
     }
 
     private var profilesSection: some View {
@@ -724,7 +759,7 @@ private struct DeleteProfileGateView: View {
     }
 }
 
-private struct ParentGateView: View {
+struct ParentGateView: View {
     let title: String
     let message: String
     let successTitle: String

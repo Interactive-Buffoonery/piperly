@@ -235,6 +235,10 @@ actor LibrarySyncRouter: LibrarySyncing {
         await drain()
     }
 
+    func stop() {
+        target = nil
+    }
+
     nonisolated func enqueue(_ operations: [LibraryOutboxOperation]) throws {
         try outbox.append(operations)
         Task { await self.drain() }
