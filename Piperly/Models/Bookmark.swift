@@ -17,7 +17,20 @@
 import Foundation
 import SwiftUI
 
-struct Bookmark: Identifiable, Codable, Hashable {
+/// Shared behavior for records scoped to a reader profile. Lets BookStore
+/// rehome legacy records (persisted before profiles existed) onto the active
+/// profile after a tolerant decode.
+enum ProfileScopedDefaults {
+    /// Sentinel assigned when a persisted record predates `profileID`.
+    static let legacyProfileID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+}
+
+protocol ProfileScoped {
+    var profileID: UUID { get }
+    func withProfileID(_ id: UUID) -> Self
+}
+
+struct Bookmark: Identifiable, Codable, Hashable, ProfileScoped {
     let id: UUID
     let profileID: UUID
     let bookID: UUID
@@ -57,7 +70,9 @@ struct Bookmark: Identifiable, Codable, Hashable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
-        profileID = try container.decode(UUID.self, forKey: .profileID)
+        // Legacy blobs predate profileID; default to a sentinel so the record
+        // survives decode. BookStore rehomes it onto the active profile.
+        profileID = try container.decodeIfPresent(UUID.self, forKey: .profileID) ?? ProfileScopedDefaults.legacyProfileID
         bookID = try container.decode(UUID.self, forKey: .bookID)
         locatorJSON = try container.decode(String.self, forKey: .locatorJSON)
         title = try container.decodeIfPresent(String.self, forKey: .title)
@@ -65,6 +80,10 @@ struct Bookmark: Identifiable, Codable, Hashable {
         sticker = try container.decode(BookmarkSticker.self, forKey: .sticker)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? createdAt
+    }
+
+    func withProfileID(_ id: UUID) -> Bookmark {
+        Bookmark(id: self.id, profileID: id, bookID: bookID, locatorJSON: locatorJSON, title: title, progression: progression, sticker: sticker, createdAt: createdAt, modifiedAt: modifiedAt)
     }
 }
 

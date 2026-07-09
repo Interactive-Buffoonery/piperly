@@ -32,6 +32,19 @@ struct BookTests {
         #expect(decoded.fileName == book.fileName)
     }
 
+    // Legacy blobs predate contentIdentity; decode must not throw (which under
+    // try? decode([Book].self) would wipe the whole library on upgrade).
+    @Test func decodingLegacyBookWithoutContentIdentitySurvives() throws {
+        let id = UUID()
+        let legacyJSON = """
+        {"id":"\(id.uuidString)","title":"Old Book","author":"A","fileName":"\(id.uuidString)-old.epub"}
+        """
+        let decoded = try JSONDecoder().decode(Book.self, from: Data(legacyJSON.utf8))
+        #expect(decoded.id == id)
+        #expect(decoded.contentIdentity.isEmpty)
+        #expect(decoded.fileName == "\(id.uuidString)-old.epub")
+    }
+
     @Test func codableWithAllFields() throws {
         let book = Book(
             contentIdentity: "abc123",
@@ -102,6 +115,58 @@ struct BookmarkTests {
             let decoded = try JSONDecoder().decode(Bookmark.self, from: data)
             #expect(decoded.sticker == sticker)
         }
+    }
+}
+
+// MARK: - Legacy / corrupt decode (S1 data-loss guard)
+
+@Suite("LegacyDecode")
+struct LegacyDecodeTests {
+    // Legacy blobs persisted before profiles existed have no profileID key.
+    @Test func legacyBookmarkWithoutProfileIDSurvives() throws {
+        let json = """
+        {"id":"\(UUID().uuidString)","bookID":"\(UUID().uuidString)","locatorJSON":"{}","progression":0.5,"sticker":"star","createdAt":0}
+        """
+        let decoded = try JSONDecoder().decode(Bookmark.self, from: Data(json.utf8))
+        #expect(decoded.profileID == ProfileScopedDefaults.legacyProfileID)
+        #expect(decoded.progression == 0.5)
+    }
+
+    @Test func legacySavedWordWithoutProfileIDSurvives() throws {
+        let json = """
+        {"id":"\(UUID().uuidString)","word":"cat","displayWord":"cat","bookID":"\(UUID().uuidString)","bookTitle":"T","tapCount":2,"savedAt":0,"lastTappedAt":0}
+        """
+        let decoded = try JSONDecoder().decode(SavedWord.self, from: Data(json.utf8))
+        #expect(decoded.profileID == ProfileScopedDefaults.legacyProfileID)
+        #expect(decoded.word == "cat")
+    }
+
+    // One un-decodable element must NOT drop the whole array to []. Before the
+    // tolerant loader, seeding this blob wiped every bookmark on next save.
+    @Test @MainActor func corruptElementDoesNotWipeStore() throws {
+        let key = "piperly_bookmarks"
+        let good = Bookmark(profileID: UUID(), bookID: UUID(), locatorJSON: "{}", title: nil, progression: 0.3, sticker: .heart)
+        let goodJSON = String(decoding: try JSONEncoder().encode(good), as: UTF8.self)
+        let blob = "[\(goodJSON),{\"garbage\":true}]"
+        UserDefaults.standard.set(Data(blob.utf8), forKey: key)
+        defer { UserDefaults.standard.removeObject(forKey: key) }
+
+        let store = BookStore()
+        #expect(store.bookmarks.contains { $0.id == good.id })
+    }
+
+    // Total corruption (non-empty bytes, zero recovered) must not be overwritten
+    // by an empty save, so a later real save can't erase recoverable bytes.
+    @Test @MainActor func totalCorruptionIsNotOverwrittenByEmptySave() {
+        let key = "piperly_saved_words"
+        UserDefaults.standard.set(Data("[{\"garbage\":true}]".utf8), forKey: key)
+        defer { UserDefaults.standard.removeObject(forKey: key) }
+
+        let store = BookStore()
+        #expect(store.savedWords.isEmpty)
+        store.saveSavedWords()  // empty save must be refused
+        let after = UserDefaults.standard.data(forKey: key)
+        #expect(after == Data("[{\"garbage\":true}]".utf8))
     }
 }
 
@@ -233,6 +298,24 @@ struct ReaderProfileTests {
         #expect(decoded.fontSize == ReaderProfile.defaultFontSize)
         #expect(decoded.readerTheme == ReaderProfile.defaultReaderTheme)
         #expect(!decoded.hasCompletedVoiceSetup)
+    }
+
+    // A name that was valid under the old sanitizer (spaces/digits allowed) must
+    // survive decode by being sanitized, not throw and wipe the profiles array.
+    @Test func decodingLegacyInvalidNicknameSanitizesInsteadOfThrowing() throws {
+        let id = UUID()
+        let legacyJSON = """
+        {
+          "id": "\(id.uuidString)",
+          "name": "Ari Smith12",
+          "avatarSymbol": "star.fill",
+          "colorName": "yellow",
+          "createdAt": 0
+        }
+        """
+        let decoded = try JSONDecoder().decode(ReaderProfile.self, from: Data(legacyJSON.utf8))
+        #expect(decoded.id == id)
+        #expect(decoded.name == "AriSmith")
     }
 
     @Test func rejectsInvalidNicknames() {

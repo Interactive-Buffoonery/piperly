@@ -50,7 +50,10 @@ struct Book: Identifiable, Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
-        contentIdentity = try container.decode(String.self, forKey: .contentIdentity)
+        // Legacy blobs predate contentIdentity; default to "" so the book
+        // survives decode. BookStore.backfillContentIdentities() hashes the
+        // on-disk file and migrates the filename on load.
+        contentIdentity = try container.decodeIfPresent(String.self, forKey: .contentIdentity) ?? ""
         title = try container.decode(String.self, forKey: .title)
         author = try container.decode(String.self, forKey: .author)
         fileName = try container.decode(String.self, forKey: .fileName)

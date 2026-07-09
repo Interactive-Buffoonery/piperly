@@ -121,6 +121,7 @@ struct LibraryView: View {
             }
         }
         .task {
+            await bookStore.backfillContentIdentities()
             await bookStore.backfillCovers()
         }
         .fileImporter(
