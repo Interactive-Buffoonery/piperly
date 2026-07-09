@@ -43,6 +43,7 @@ struct SyncStateSnapshot: Codable, Sendable {
     var currentAccountDeletes: [LibraryRecordReference]
     var currentAccountRecordName: String?
     var currentAccountTransitionGeneration: Int?
+    var tombstones: [String: Date]
 
     static let empty = SyncStateSnapshot(
         engineState: nil,
@@ -66,7 +67,8 @@ struct SyncStateSnapshot: Codable, Sendable {
         currentAccountSaves: [:],
         currentAccountDeletes: [],
         currentAccountRecordName: nil,
-        currentAccountTransitionGeneration: nil
+        currentAccountTransitionGeneration: nil,
+        tombstones: [:]
     )
 
     private enum CodingKeys: String, CodingKey {
@@ -79,6 +81,7 @@ struct SyncStateSnapshot: Codable, Sendable {
         case accountTransitionGeneration, accountTransitionAccountRecordName
         case currentAccountSaves, currentAccountDeletes
         case currentAccountRecordName, currentAccountTransitionGeneration
+        case tombstones
     }
 
     init(
@@ -103,7 +106,8 @@ struct SyncStateSnapshot: Codable, Sendable {
         currentAccountSaves: [String: LibraryRecord],
         currentAccountDeletes: [LibraryRecordReference],
         currentAccountRecordName: String?,
-        currentAccountTransitionGeneration: Int?
+        currentAccountTransitionGeneration: Int?,
+        tombstones: [String: Date] = [:]
     ) {
         self.engineState = engineState
         self.pendingSaves = pendingSaves
@@ -127,6 +131,7 @@ struct SyncStateSnapshot: Codable, Sendable {
         self.currentAccountDeletes = currentAccountDeletes
         self.currentAccountRecordName = currentAccountRecordName
         self.currentAccountTransitionGeneration = currentAccountTransitionGeneration
+        self.tombstones = tombstones
     }
 
     init(from decoder: Decoder) throws {
@@ -205,6 +210,7 @@ struct SyncStateSnapshot: Codable, Sendable {
             Int.self,
             forKey: .currentAccountTransitionGeneration
         )
+        tombstones = try container.decodeIfPresent([String: Date].self, forKey: .tombstones) ?? [:]
     }
 }
 
