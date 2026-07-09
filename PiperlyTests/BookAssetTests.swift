@@ -131,6 +131,8 @@ struct BookAssetStagingTests {
             _ = try staging.stageUpload(BookAssetURLs(epub: missing, cover: nil), recordName: "book")
         }
         #expect(BookAssetFailureClassifier.classify(BookAssetError.missingEPUB) == .missingLocalData)
+        // A leftover transaction dir is transient/cleanable, not permanent loss.
+        #expect(BookAssetFailureClassifier.classify(BookAssetError.staleTransaction) == .retryable)
         let unreadable = NSError(
             domain: NSCocoaErrorDomain,
             code: NSFileReadNoPermissionError
@@ -389,7 +391,24 @@ struct DurableBookAssetTransferStateTests {
     @Test func durableAssetFailuresPreventIdleStatus() {
         #expect(BookAssetSyncStatusResolver.status(for: ["book": .retryable]) == .waitingToRetry(nil))
         #expect(BookAssetSyncStatusResolver.status(for: ["book": .corrupt]) == .blocked(.missingLocalData))
+        #expect(BookAssetSyncStatusResolver.status(for: ["book": .blocked]) == .blocked(.quotaExceeded))
         #expect(BookAssetSyncStatusResolver.status(for: [:]) == .idle)
+    }
+
+    @Test func quotaExceededMapsToBlockedAndNeverRetryDrivesTheLedger() {
+        let error = CKError(_nsError: NSError(
+            domain: CKErrorDomain,
+            code: CKError.Code.quotaExceeded.rawValue
+        ))
+        #expect(CloudKitErrorClassifier.classify(error) == .quotaExceeded)
+
+        // A permanent quota failure records .blocked WITHOUT a download-retry
+        // marker, so resumeDurableAssetRetries won't re-drive it into a loop.
+        let identity = String(repeating: "f", count: 64)
+        var snapshot = SyncStateSnapshot.empty
+        snapshot.recordAssetFailure(.blocked, recordName: identity, requiresDownloadRetry: false)
+        #expect(snapshot.assetDownloadRetryRecordNames.isEmpty)
+        #expect(BookAssetSyncStatusResolver.status(for: snapshot.bookAssetFailures) == .blocked(.quotaExceeded))
     }
 
     @Test func retryNetworkErrorRemainsDurableAndRetryable() {
@@ -465,6 +484,39 @@ struct BookStoreAssetLifecycleTests {
         fixture.store.deleteBook(book)
         #expect(fixture.store.books.isEmpty)
         #expect(fixture.sync.snapshot().deleted.contains(bookReference(identity)))
+    }
+
+    @Test @MainActor func evictionIsRefusedWhileBookIsActivelyRead() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let temporary = fixture.root.appendingPathComponent("open.epub")
+        try Data("book data".utf8).write(to: temporary)
+        let identity = try BookAssetStaging.sha256(of: temporary)
+        fixture.applyBook(identity: identity)
+        let prepared = fixture.store.applyRemoteChanges([
+            .bookAssets(contentIdentity: identity, files: BookAssetURLs(epub: temporary, cover: nil)),
+        ])
+        guard case .provisional(let transactionID) = prepared.assetOutcomes[identity] else {
+            Issue.record("Expected provisional download")
+            return
+        }
+        _ = fixture.store.applyRemoteChanges([
+            .finalizeBookAssets(contentIdentity: identity, transactionID: transactionID),
+            .commitBookAssets(contentIdentity: identity, transactionID: transactionID),
+        ])
+        let book = try #require(fixture.store.books.first)
+        #expect(fixture.store.assetAvailability(for: book) == .local)
+
+        fixture.store.beginReading(book)
+        fixture.store.evictAssets(for: book)
+        // File must survive so Readium's open handle stays valid.
+        #expect(FileManager.default.fileExists(atPath: fixture.store.bookURL(for: book).path))
+        #expect(fixture.store.assetAvailability(for: book) == .local)
+
+        fixture.store.endReading(book)
+        fixture.store.evictAssets(for: book)
+        #expect(!FileManager.default.fileExists(atPath: fixture.store.bookURL(for: book).path))
+        #expect(fixture.store.assetAvailability(for: book) == .remoteOnly)
     }
 
     @Test @MainActor func corruptDownloadIsUnavailableAndLocalFileLossRecoversAsRemoteOnly() throws {

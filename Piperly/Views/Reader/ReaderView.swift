@@ -193,9 +193,11 @@ struct ReaderView: View {
             }
         }
         .task {
+            bookStore.beginReading(book)
             await loadPublication()
         }
         .onDisappear {
+            bookStore.endReading(book)
             bookStore.flushPendingSaves()
         }
         .onChange(of: wordTapCoordinator.lastTap) { _, tap in

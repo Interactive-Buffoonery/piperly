@@ -53,6 +53,11 @@ class BookStore: ObservableObject {
     private var importsByContentIdentity: [String: Task<Book, Error>] = [:]
     nonisolated private static let fileReadChunkSize = 1_048_576
 
+    /// Content identities of books whose EPUB is currently open in a reader.
+    /// Readium keeps the backing file open for the session, so eviction and
+    /// reconcile must never remove these files out from under it.
+    private var activelyReadingIdentities: Set<String> = []
+
     /// Keys whose persisted bytes were non-empty but decoded to nothing (total
     /// corruption). We refuse to overwrite them with an empty array so a bad
     /// upgrade can't erase recoverable data. Cleared once real data returns.
@@ -612,7 +617,22 @@ class BookStore: ObservableObject {
         librarySync.requestBookAssets(contentIdentity: book.contentIdentity)
     }
 
+    /// Marks a book as open in a reader so its file is never evicted mid-session.
+    /// Balanced by `endReading`; call from the reader lifecycle.
+    func beginReading(_ book: Book) {
+        activelyReadingIdentities.insert(book.contentIdentity)
+    }
+
+    func endReading(_ book: Book) {
+        activelyReadingIdentities.remove(book.contentIdentity)
+    }
+
+    func isActivelyReading(_ book: Book) -> Bool {
+        activelyReadingIdentities.contains(book.contentIdentity)
+    }
+
     func evictAssets(for book: Book) {
+        guard !activelyReadingIdentities.contains(book.contentIdentity) else { return }
         try? FileManager.default.removeItem(at: bookURL(for: book))
         if let coverImageName = book.coverImageName {
             try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverImageName))
@@ -625,6 +645,11 @@ class BookStore: ObservableObject {
             let url = bookURL(for: book)
             guard FileManager.default.fileExists(atPath: url.path) else {
                 bookAssetAvailability[book.contentIdentity] = .remoteOnly
+                continue
+            }
+            // Never touch a file Readium currently has open.
+            if activelyReadingIdentities.contains(book.contentIdentity) {
+                bookAssetAvailability[book.contentIdentity] = .local
                 continue
             }
             if (try? Self.contentIdentity(for: url)) == book.contentIdentity {

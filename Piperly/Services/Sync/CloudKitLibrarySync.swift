@@ -6,6 +6,7 @@ import Foundation
 import UIKit
 
 // swiftlint:disable file_length
+// swiftlint:disable:next type_body_length
 actor CloudKitLibrarySync: LibrarySyncSink {
     typealias RemoteChangeHandler = @MainActor @Sendable (
         [LibraryRemoteChange],
@@ -341,32 +342,53 @@ actor CloudKitLibrarySync: LibrarySyncSink {
 
     private func recordRetryError(_ error: Error, identities: Set<String>) {
         let transferFailure: BookAssetTransferFailure
+        let requiresDownloadRetry: Bool
         if let cloudError = error as? CKError,
            case .retryable(let retryAfter) = CloudKitErrorClassifier.classify(cloudError) {
             transferFailure = .retryable
+            requiresDownloadRetry = true
             apply(error: cloudError)
             scheduleAssetRetry(identities, retryAfter: retryAfter)
+        } else if let cloudError = error as? CKError {
+            // quotaExceeded and other non-retryable CloudKit failures: surface
+            // the real blocked reason and stop re-driving a doomed download so
+            // it can't loop on backoff or resume forever on next launch.
+            transferFailure = .blocked
+            requiresDownloadRetry = false
+            apply(error: cloudError)
         } else {
             transferFailure = .missingLocalData
+            requiresDownloadRetry = true
             status = .blocked(.missingLocalData)
         }
         for identity in identities {
             snapshot.recordAssetFailure(
                 transferFailure,
                 recordName: identity,
-                requiresDownloadRetry: true
+                requiresDownloadRetry: requiresDownloadRetry
             )
         }
         persistSnapshot()
     }
 
+    /// Scopes the delayed retry to the account/generation it was scheduled
+    /// under. An account change during the sleep bumps the generation (or
+    /// clears the confirmed account), so a stale Task no-ops instead of
+    /// re-driving or dirtying the durable retry ledger for the old identity.
     private func scheduleAssetRetry(_ identities: Set<String>, retryAfter: Date?) {
         let delay = max(1, retryAfter?.timeIntervalSinceNow ?? 5)
+        let account = snapshot.confirmedAccountRecordName
+        let generation = snapshot.accountTransitionGeneration
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(delay))
-            guard !Task.isCancelled else { return }
-            for identity in identities { await self?.requestBookAssets(contentIdentity: identity) }
+            guard !Task.isCancelled, let account else { return }
+            await self?.resumeScheduledRetry(identities, account: account, generation: generation)
         }
+    }
+
+    private func resumeScheduledRetry(_ identities: Set<String>, account: String, generation: Int) async {
+        guard retryAccountMatches(account, generation: generation) else { return }
+        for identity in identities { await requestBookAssets(contentIdentity: identity) }
     }
 
     private func retryAccountMatches(_ accountRecordName: String, generation: Int) -> Bool {
@@ -605,6 +627,8 @@ actor CloudKitLibrarySync: LibrarySyncSink {
             status = .waitingToRetry(nil)
         case .missingLocalData, .corrupt:
             status = .blocked(.missingLocalData)
+        case .blocked:
+            status = .blocked(.quotaExceeded)
         }
     }
 
