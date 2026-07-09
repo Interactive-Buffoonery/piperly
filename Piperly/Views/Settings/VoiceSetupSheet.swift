@@ -19,8 +19,7 @@ import AVFoundation
 
 struct VoiceSetupSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("hasCompletedVoiceSetup") private var hasCompletedVoiceSetup = false
-    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
+    @EnvironmentObject private var bookStore: BookStore
     @State private var voices: [Voice] = []
 
     let ttsEngine: TTSEngine
@@ -55,9 +54,9 @@ struct VoiceSetupSheet: View {
                             ForEach(voices) { voice in
                                 VoiceRow(
                                     voice: voice,
-                                    isSelected: voice.id == selectedVoiceIdentifier,
+                                    isSelected: voice.id == bookStore.activeVoiceIdentifier,
                                     onTap: {
-                                        selectedVoiceIdentifier = voice.id
+                                        bookStore.activeVoiceIdentifierBinding.wrappedValue = voice.id
                                         ttsEngine.speak(
                                             word: previewPhrase,
                                             voiceIdentifier: voice.id,
@@ -107,11 +106,11 @@ struct VoiceSetupSheet: View {
                         }
 
                         Button {
-                            if let first = voices.first, selectedVoiceIdentifier.isEmpty {
-                                selectedVoiceIdentifier = first.id
+                            if let first = voices.first, bookStore.activeVoiceIdentifier.isEmpty {
+                                bookStore.activeVoiceIdentifierBinding.wrappedValue = first.id
                             }
                             ttsEngine.stop()
-                            hasCompletedVoiceSetup = true
+                            bookStore.completeVoiceSetup()
                             dismiss()
                         } label: {
                             Text("Continue")
@@ -155,9 +154,9 @@ struct VoiceSetupSheet: View {
 
     private func refreshVoices() {
         voices = Voice.availableVoices()
-        if !voices.contains(where: { $0.id == selectedVoiceIdentifier }),
+        if !voices.contains(where: { $0.id == bookStore.activeVoiceIdentifier }),
            let first = voices.first {
-            selectedVoiceIdentifier = first.id
+            bookStore.activeVoiceIdentifierBinding.wrappedValue = first.id
         }
     }
 

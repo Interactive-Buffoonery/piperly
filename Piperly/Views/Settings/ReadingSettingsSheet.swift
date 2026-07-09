@@ -18,12 +18,10 @@ import SwiftUI
 
 struct ReadingSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("readerFontSize") private var fontSize: Double = 22
-    @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
-    @AppStorage("speechRate") private var speechRate: Double = 0.45
+    @EnvironmentObject private var bookStore: BookStore
 
     private var theme: ReaderTheme {
-        ReaderTheme(rawValue: selectedTheme) ?? .piperly
+        bookStore.activeReaderTheme
     }
 
     var body: some View {
@@ -41,7 +39,7 @@ struct ReadingSettingsSheet: View {
                             HStack(spacing: 16) {
                                 ForEach(ReaderTheme.allCases) { t in
                                     Button {
-                                        selectedTheme = t.rawValue
+                                        bookStore.activeReaderThemeBinding.wrappedValue = t.rawValue
                                     } label: {
                                         VStack(spacing: 8) {
                                             Circle()
@@ -82,7 +80,7 @@ struct ReadingSettingsSheet: View {
                             Text("A")
                                 .font(.system(size: 14))
                                 .foregroundStyle(Piperly.Colors.textTertiary)
-                            Slider(value: $fontSize, in: 18...30, step: 1)
+                            Slider(value: bookStore.activeFontSizeBinding, in: 18...30, step: 1)
                                 .tint(Piperly.Colors.accent)
                             Text("A")
                                 .font(.system(size: 24))
@@ -98,7 +96,7 @@ struct ReadingSettingsSheet: View {
                         HStack {
                             Image(systemName: "tortoise")
                                 .foregroundStyle(Piperly.Colors.textTertiary)
-                            Slider(value: $speechRate, in: 0.30...0.60, step: 0.05)
+                            Slider(value: bookStore.activeSpeechRateBinding, in: 0.30...0.60, step: 0.05)
                                 .tint(Piperly.Colors.accent)
                             Image(systemName: "hare")
                                 .foregroundStyle(Piperly.Colors.textPrimary)

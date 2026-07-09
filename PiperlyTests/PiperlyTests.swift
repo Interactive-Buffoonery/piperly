@@ -171,16 +171,191 @@ struct ReaderProfileTests {
         #expect(profile.name == "Reader")
         #expect(profile.avatarSymbol == "person.crop.circle.fill")
         #expect(profile.colorName == "accent")
+        #expect(profile.voiceIdentifier.isEmpty)
+        #expect(profile.speechRate == 0.45)
+        #expect(profile.fontSize == 22)
+        #expect(profile.readerTheme == "piperly")
+        #expect(!profile.hasCompletedVoiceSetup)
     }
 
     @Test func codableRoundTrip() throws {
-        let profile = ReaderProfile(name: "Ari", avatarSymbol: "star.fill", colorName: "yellow")
+        let profile = try ReaderProfile(
+            name: "Ari",
+            avatarSymbol: "star.fill",
+            colorName: "yellow",
+            voiceIdentifier: "voice.ari",
+            speechRate: 0.55,
+            fontSize: 27,
+            readerTheme: "ocean",
+            hasCompletedVoiceSetup: true
+        )
         let data = try JSONEncoder().encode(profile)
         let decoded = try JSONDecoder().decode(ReaderProfile.self, from: data)
         #expect(decoded.id == profile.id)
         #expect(decoded.name == "Ari")
         #expect(decoded.avatarSymbol == "star.fill")
         #expect(decoded.colorName == "yellow")
+        #expect(decoded.voiceIdentifier == "voice.ari")
+        #expect(decoded.speechRate == 0.55)
+        #expect(decoded.fontSize == 27)
+        #expect(decoded.readerTheme == "ocean")
+        #expect(decoded.hasCompletedVoiceSetup)
+    }
+
+    @Test func decodingOlderProfileUsesPreferenceDefaults() throws {
+        let id = UUID()
+        let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let legacyJSON = """
+        {
+          "id": "\(id.uuidString)",
+          "name": "Ari",
+          "avatarSymbol": "star.fill",
+          "colorName": "yellow",
+          "createdAt": \(createdAt.timeIntervalSinceReferenceDate)
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .deferredToDate
+        let decoded = try decoder.decode(ReaderProfile.self, from: Data(legacyJSON.utf8))
+        #expect(decoded.voiceIdentifier.isEmpty)
+        #expect(decoded.speechRate == ReaderProfile.defaultSpeechRate)
+        #expect(decoded.fontSize == ReaderProfile.defaultFontSize)
+        #expect(decoded.readerTheme == ReaderProfile.defaultReaderTheme)
+        #expect(!decoded.hasCompletedVoiceSetup)
+    }
+
+    @Test func rejectsInvalidNicknames() {
+        #expect(throws: ReaderProfile.NicknameValidationError.empty) {
+            _ = try ReaderProfile(name: "   ")
+        }
+        #expect(throws: ReaderProfile.NicknameValidationError.containsWhitespace) {
+            _ = try ReaderProfile(name: "Ari Smith")
+        }
+        #expect(throws: ReaderProfile.NicknameValidationError.containsDigits) {
+            _ = try ReaderProfile(name: "Ari12")
+        }
+        #expect(throws: ReaderProfile.NicknameValidationError.containsAccountIdentifier) {
+            _ = try ReaderProfile(name: "ari@example.com")
+        }
+    }
+}
+
+// MARK: - Reader Profile Preferences
+
+@Suite("ReaderProfilePreferences", .serialized)
+struct ReaderProfilePreferenceTests {
+    @Test @MainActor func switchingProfilesChangesActivePreferences() throws {
+        let (store, defaults, suiteName) = makeStore()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let firstProfileID = store.activeProfile.id
+        store.updateActiveProfile {
+            $0.voiceIdentifier = "voice.first"
+            $0.fontSize = 24
+        }
+        let secondProfile = try store.addProfile(
+            name: "Bee",
+            avatarSymbol: "star.fill",
+            colorName: "green"
+        )
+
+        #expect(store.activeProfile.id == secondProfile.id)
+        #expect(store.activeVoiceIdentifier.isEmpty)
+        #expect(store.activeFontSize == ReaderProfile.defaultFontSize)
+
+        store.selectProfile(firstProfileID)
+        #expect(store.activeVoiceIdentifier == "voice.first")
+        #expect(store.activeFontSize == 24)
+    }
+
+    @Test @MainActor func preferencesStayIsolatedBetweenProfiles() throws {
+        let (store, defaults, suiteName) = makeStore()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let firstProfileID = store.activeProfile.id
+        store.updateActiveProfile {
+            $0.voiceIdentifier = "voice.first"
+            $0.speechRate = 0.35
+            $0.fontSize = 19
+            $0.readerTheme = "forest"
+            $0.hasCompletedVoiceSetup = true
+        }
+        let secondProfile = try store.addProfile(
+            name: "Bee",
+            avatarSymbol: "moon.fill",
+            colorName: "info"
+        )
+        store.updateActiveProfile {
+            $0.voiceIdentifier = "voice.second"
+            $0.speechRate = 0.60
+            $0.fontSize = 30
+            $0.readerTheme = "nightOwl"
+        }
+
+        store.selectProfile(firstProfileID)
+        #expect(store.activeProfile.voiceIdentifier == "voice.first")
+        #expect(store.activeProfile.speechRate == 0.35)
+        #expect(store.activeProfile.fontSize == 19)
+        #expect(store.activeProfile.readerTheme == "forest")
+        #expect(store.activeProfile.hasCompletedVoiceSetup)
+
+        store.selectProfile(secondProfile.id)
+        #expect(store.activeProfile.voiceIdentifier == "voice.second")
+        #expect(store.activeProfile.speechRate == 0.60)
+        #expect(store.activeProfile.fontSize == 30)
+        #expect(store.activeProfile.readerTheme == "nightOwl")
+        #expect(!store.activeProfile.hasCompletedVoiceSetup)
+    }
+
+    @Test @MainActor func preferencesPersistAcrossStoreReload() throws {
+        let (store, defaults, suiteName) = makeStore()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        store.updateActiveProfile {
+            $0.voiceIdentifier = "voice.persisted"
+            $0.speechRate = 0.50
+            $0.fontSize = 26
+            $0.readerTheme = "lavender"
+            $0.hasCompletedVoiceSetup = true
+        }
+
+        let reloadedStore = BookStore(userDefaults: defaults)
+        #expect(reloadedStore.activeProfile.id == store.activeProfile.id)
+        #expect(reloadedStore.activeVoiceIdentifier == "voice.persisted")
+        #expect(reloadedStore.activeSpeechRate == 0.50)
+        #expect(reloadedStore.activeFontSize == 26)
+        #expect(reloadedStore.activeReaderTheme == .lavender)
+        #expect(reloadedStore.activeProfile.hasCompletedVoiceSetup)
+    }
+
+    @Test @MainActor func serviceRejectsInvalidNicknameWithoutRemovingDefault() {
+        let (store, defaults, suiteName) = makeStore()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        #expect(throws: ReaderProfile.NicknameValidationError.containsWhitespace) {
+            _ = try store.addProfile(
+                name: "Ari Smith",
+                avatarSymbol: "star.fill",
+                colorName: "green"
+            )
+        }
+        #expect(store.profiles.count == 1)
+        #expect(store.activeProfile.name == ReaderProfile.defaultName)
+
+        #expect(throws: ReaderProfile.NicknameValidationError.containsDigits) {
+            try store.updateProfile(
+                store.activeProfile.id,
+                name: "Reader2",
+                avatarSymbol: "star.fill",
+                colorName: "green"
+            )
+        }
+        #expect(store.activeProfile.name == ReaderProfile.defaultName)
+    }
+
+    @MainActor
+    private func makeStore() -> (BookStore, UserDefaults, String) {
+        let suiteName = "PiperlyTests.ReaderProfilePreferences.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return (BookStore(userDefaults: defaults), defaults, suiteName)
     }
 }
 

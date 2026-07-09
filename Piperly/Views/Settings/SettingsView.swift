@@ -21,21 +21,17 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var bookStore: BookStore
 
-    @AppStorage("readerFontSize") private var fontSize: Double = 22
-    @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
-    @AppStorage("speechRate") private var speechRate: Double = 0.45
-    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
     @State private var isVoiceListExpanded = false
     @State private var voices: [Voice] = []
 
     let ttsEngine: TTSEngine
 
     private var theme: ReaderTheme {
-        ReaderTheme(rawValue: selectedTheme) ?? .piperly
+        bookStore.activeReaderTheme
     }
 
     private var selectedVoiceName: String {
-        if let voice = voices.first(where: { $0.id == selectedVoiceIdentifier }) {
+        if let voice = voices.first(where: { $0.id == bookStore.activeVoiceIdentifier }) {
             return voice.name
         }
         return voices.first?.name ?? "Choose Voice"
@@ -116,7 +112,7 @@ struct SettingsView: View {
                 HStack {
                     Image(systemName: "textformat.size.smaller")
                         .foregroundStyle(Piperly.Colors.textTertiary)
-                    Slider(value: $fontSize, in: 18...30, step: 1) {
+                    Slider(value: bookStore.activeFontSizeBinding, in: 18...30, step: 1) {
                         Text("Font Size")
                     } minimumValueLabel: {
                         Image(systemName: "textformat.size.smaller")
@@ -140,7 +136,7 @@ struct SettingsView: View {
                         ForEach(ReaderTheme.allCases) { readerTheme in
                             Button {
                                 withAnimation(.snappy) {
-                                    selectedTheme = readerTheme.rawValue
+                                    bookStore.activeReaderThemeBinding.wrappedValue = readerTheme.rawValue
                                 }
                             } label: {
                                 VStack(spacing: 6) {
@@ -176,7 +172,7 @@ struct SettingsView: View {
                     .padding(.vertical, 2)
                 }
 
-                ReaderThemePreview(theme: theme, fontSize: fontSize)
+                ReaderThemePreview(theme: theme, fontSize: bookStore.activeFontSize)
             }
             .padding(.vertical, 4)
         } header: {
@@ -230,13 +226,13 @@ struct SettingsView: View {
                         ForEach(voices) { voice in
                             SettingsVoiceRow(
                                 voice: voice,
-                                isSelected: voice.id == selectedVoiceIdentifier,
-                                onSelect: { selectedVoiceIdentifier = voice.id },
+                                isSelected: voice.id == bookStore.activeVoiceIdentifier,
+                                onSelect: { bookStore.activeVoiceIdentifierBinding.wrappedValue = voice.id },
                                 onPreview: {
                                     ttsEngine.speak(
                                         word: "Hi, I'm \(voice.name)!",
                                         voiceIdentifier: voice.id,
-                                        rate: Float(speechRate)
+                                        rate: Float(bookStore.activeSpeechRate)
                                     )
                                 }
                             )
@@ -254,7 +250,7 @@ struct SettingsView: View {
                 HStack {
                     Image(systemName: "tortoise")
                         .foregroundStyle(Piperly.Colors.textTertiary)
-                    Slider(value: $speechRate, in: 0.30...0.60, step: 0.05) {
+                    Slider(value: bookStore.activeSpeechRateBinding, in: 0.30...0.60, step: 0.05) {
                         Text("Voice Speed")
                     } minimumValueLabel: {
                         Image(systemName: "tortoise")
@@ -294,9 +290,9 @@ struct SettingsView: View {
 
     private func refreshVoices() {
         voices = Voice.availableVoices()
-        if !voices.contains(where: { $0.id == selectedVoiceIdentifier }),
+        if !voices.contains(where: { $0.id == bookStore.activeVoiceIdentifier }),
            let first = voices.first {
-            selectedVoiceIdentifier = first.id
+            bookStore.activeVoiceIdentifierBinding.wrappedValue = first.id
         }
     }
 }
@@ -430,7 +426,7 @@ private struct ReaderProfilesView: View {
                 title: "Add Profile",
                 profile: nil,
                 onSave: { draft in
-                    bookStore.addProfile(
+                    try bookStore.addProfile(
                         name: draft.name,
                         avatarSymbol: draft.avatarSymbol,
                         colorName: draft.colorName
@@ -445,7 +441,7 @@ private struct ReaderProfilesView: View {
                 title: "Edit Profile",
                 profile: profile,
                 onSave: { draft in
-                    bookStore.updateProfile(
+                    try bookStore.updateProfile(
                         profile.id,
                         name: draft.name,
                         avatarSymbol: draft.avatarSymbol,
@@ -542,9 +538,9 @@ private struct ProfileEditorView: View {
     @State private var draft: ProfileDraft
 
     let title: String
-    let onSave: (ProfileDraft) -> Void
+    let onSave: (ProfileDraft) throws -> Void
 
-    init(title: String, profile: ReaderProfile?, onSave: @escaping (ProfileDraft) -> Void) {
+    init(title: String, profile: ReaderProfile?, onSave: @escaping (ProfileDraft) throws -> Void) {
         self.title = title
         self.onSave = onSave
         _draft = State(initialValue: ProfileDraft(profile: profile))
@@ -593,8 +589,9 @@ private struct ProfileEditorView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        onSave(draft)
-                        dismiss()
+                        if (try? onSave(draft)) != nil {
+                            dismiss()
+                        }
                     }
                     .disabled(nameError != nil)
                     .foregroundStyle(Piperly.Colors.accent)
@@ -853,23 +850,7 @@ private struct ProfileDraft {
     }
 
     static func validationError(for name: String) -> String? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            return "Enter a nickname."
-        }
-        if trimmed.count > 20 {
-            return "Keep nicknames under 20 characters."
-        }
-        if trimmed.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
-            return "Use one nickname, not a full name."
-        }
-        if trimmed.rangeOfCharacter(from: .decimalDigits) != nil {
-            return "Do not enter birthdays or ages."
-        }
-        if trimmed.contains("@") || trimmed.contains(".") {
-            return "Do not enter email addresses or Apple IDs."
-        }
-        return nil
+        ReaderProfile.nicknameValidationError(for: name)?.localizedDescription
     }
 }
 

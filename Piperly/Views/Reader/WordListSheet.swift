@@ -21,8 +21,6 @@ struct WordListSheet: View {
     let bookID: UUID
     let ttsEngine: TTSEngine
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
-    @AppStorage("speechRate") private var speechRate: Double = 0.45
 
     private var words: [SavedWord] {
         bookStore.words(for: bookID)
@@ -51,8 +49,8 @@ struct WordListSheet: View {
                             Button {
                                 ttsEngine.speak(
                                     word: word.displayWord,
-                                    voiceIdentifier: selectedVoiceIdentifier,
-                                    rate: Float(speechRate)
+                                    voiceIdentifier: bookStore.activeVoiceIdentifier,
+                                    rate: Float(bookStore.activeSpeechRate)
                                 )
                             } label: {
                                 HStack {

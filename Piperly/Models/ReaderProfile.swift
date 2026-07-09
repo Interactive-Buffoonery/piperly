@@ -20,24 +20,146 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
     static let defaultName = "Reader"
     static let defaultAvatarSymbol = "person.crop.circle.fill"
     static let defaultColorName = "accent"
+    static let defaultVoiceIdentifier = ""
+    static let defaultSpeechRate = 0.45
+    static let defaultFontSize = 22.0
+    static let defaultReaderTheme = "piperly"
+
+    enum NicknameValidationError: Error, Equatable, LocalizedError {
+        case empty
+        case tooLong
+        case containsWhitespace
+        case containsDigits
+        case containsAccountIdentifier
+
+        var errorDescription: String? {
+            switch self {
+            case .empty:
+                "Enter a nickname."
+            case .tooLong:
+                "Keep nicknames under 20 characters."
+            case .containsWhitespace:
+                "Use one nickname, not a full name."
+            case .containsDigits:
+                "Do not enter birthdays or ages."
+            case .containsAccountIdentifier:
+                "Do not enter email addresses or Apple IDs."
+            }
+        }
+    }
 
     let id: UUID
-    var name: String
+    private(set) var name: String
     var avatarSymbol: String
     var colorName: String
     let createdAt: Date
+    var voiceIdentifier: String
+    var speechRate: Double
+    var fontSize: Double
+    var readerTheme: String
+    var hasCompletedVoiceSetup: Bool
 
     init(
         id: UUID = UUID(),
-        name: String = Self.defaultName,
+        name: String,
         avatarSymbol: String = Self.defaultAvatarSymbol,
         colorName: String = Self.defaultColorName,
-        createdAt: Date = .now
-    ) {
+        createdAt: Date = .now,
+        voiceIdentifier: String = Self.defaultVoiceIdentifier,
+        speechRate: Double = Self.defaultSpeechRate,
+        fontSize: Double = Self.defaultFontSize,
+        readerTheme: String = Self.defaultReaderTheme,
+        hasCompletedVoiceSetup: Bool = false
+    ) throws {
         self.id = id
-        self.name = name
+        self.name = try Self.validatedNickname(name)
         self.avatarSymbol = avatarSymbol
         self.colorName = colorName
         self.createdAt = createdAt
+        self.voiceIdentifier = voiceIdentifier
+        self.speechRate = speechRate
+        self.fontSize = fontSize
+        self.readerTheme = readerTheme
+        self.hasCompletedVoiceSetup = hasCompletedVoiceSetup
+    }
+
+    init() {
+        id = UUID()
+        name = Self.defaultName
+        avatarSymbol = Self.defaultAvatarSymbol
+        colorName = Self.defaultColorName
+        createdAt = .now
+        voiceIdentifier = Self.defaultVoiceIdentifier
+        speechRate = Self.defaultSpeechRate
+        fontSize = Self.defaultFontSize
+        readerTheme = Self.defaultReaderTheme
+        hasCompletedVoiceSetup = false
+    }
+
+    mutating func updateNickname(_ name: String) throws {
+        self.name = try Self.validatedNickname(name)
+    }
+
+    static func nicknameValidationError(for name: String) -> NicknameValidationError? {
+        do {
+            _ = try validatedNickname(name)
+            return nil
+        } catch let error as NicknameValidationError {
+            return error
+        } catch {
+            return .empty
+        }
+    }
+
+    private static func validatedNickname(_ name: String) throws -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            throw NicknameValidationError.empty
+        }
+        if trimmed.count > 20 {
+            throw NicknameValidationError.tooLong
+        }
+        if trimmed.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
+            throw NicknameValidationError.containsWhitespace
+        }
+        if trimmed.rangeOfCharacter(from: .decimalDigits) != nil {
+            throw NicknameValidationError.containsDigits
+        }
+        if trimmed.contains("@") || trimmed.contains(".") {
+            throw NicknameValidationError.containsAccountIdentifier
+        }
+        return trimmed
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case avatarSymbol
+        case colorName
+        case createdAt
+        case voiceIdentifier
+        case speechRate
+        case fontSize
+        case readerTheme
+        case hasCompletedVoiceSetup
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try Self.validatedNickname(container.decode(String.self, forKey: .name))
+        avatarSymbol = try container.decode(String.self, forKey: .avatarSymbol)
+        colorName = try container.decode(String.self, forKey: .colorName)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        voiceIdentifier = try container.decodeIfPresent(String.self, forKey: .voiceIdentifier)
+            ?? Self.defaultVoiceIdentifier
+        speechRate = try container.decodeIfPresent(Double.self, forKey: .speechRate)
+            ?? Self.defaultSpeechRate
+        fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+            ?? Self.defaultFontSize
+        readerTheme = try container.decodeIfPresent(String.self, forKey: .readerTheme)
+            ?? Self.defaultReaderTheme
+        hasCompletedVoiceSetup = try container.decodeIfPresent(Bool.self, forKey: .hasCompletedVoiceSetup)
+            ?? false
     }
 }

@@ -30,6 +30,7 @@ class BookStore: ObservableObject {
 
     private let documentsURL: URL
     private let coversURL: URL
+    private let userDefaults: UserDefaults
     private let booksKey = "piperly_books"
     private let profilesKey = "piperly_reader_profiles"
     private let selectedProfileKey = "piperly_selected_profile_id"
@@ -40,10 +41,11 @@ class BookStore: ObservableObject {
     private var debouncedReadingStatesSave: Task<Void, Never>?
     private var debouncedWordsSave: Task<Void, Never>?
 
-    init() {
+    init(userDefaults: UserDefaults = .standard) {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         self.documentsURL = docs.appendingPathComponent("Books", isDirectory: true)
         self.coversURL = docs.appendingPathComponent("Covers", isDirectory: true)
+        self.userDefaults = userDefaults
 
         try? FileManager.default.createDirectory(at: documentsURL, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: coversURL, withIntermediateDirectories: true)
@@ -68,7 +70,7 @@ class BookStore: ObservableObject {
     }
 
     func loadBooks() {
-        guard let data = UserDefaults.standard.data(forKey: booksKey),
+        guard let data = userDefaults.data(forKey: booksKey),
               let saved = try? JSONDecoder().decode([Book].self, from: data) else {
             return
         }
@@ -77,12 +79,12 @@ class BookStore: ObservableObject {
 
     func saveBooks() {
         if let data = try? JSONEncoder().encode(books) {
-            UserDefaults.standard.set(data, forKey: booksKey)
+            userDefaults.set(data, forKey: booksKey)
         }
     }
 
     func loadProfiles() {
-        guard let data = UserDefaults.standard.data(forKey: profilesKey),
+        guard let data = userDefaults.data(forKey: profilesKey),
               let saved = try? JSONDecoder().decode([ReaderProfile].self, from: data) else {
             return
         }
@@ -91,12 +93,12 @@ class BookStore: ObservableObject {
 
     func saveProfiles() {
         if let data = try? JSONEncoder().encode(profiles) {
-            UserDefaults.standard.set(data, forKey: profilesKey)
+            userDefaults.set(data, forKey: profilesKey)
         }
     }
 
     func loadSelectedProfileID() {
-        guard let rawValue = UserDefaults.standard.string(forKey: selectedProfileKey),
+        guard let rawValue = userDefaults.string(forKey: selectedProfileKey),
               let id = UUID(uuidString: rawValue) else {
             return
         }
@@ -105,7 +107,7 @@ class BookStore: ObservableObject {
 
     func saveSelectedProfileID() {
         guard let selectedProfileID else { return }
-        UserDefaults.standard.set(selectedProfileID.uuidString, forKey: selectedProfileKey)
+        userDefaults.set(selectedProfileID.uuidString, forKey: selectedProfileKey)
     }
 
     /// Guarantees there is always at least one profile and a valid selection.
@@ -141,8 +143,8 @@ class BookStore: ObservableObject {
     }
 
     @discardableResult
-    func addProfile(name: String, avatarSymbol: String, colorName: String) -> ReaderProfile {
-        let profile = ReaderProfile(
+    func addProfile(name: String, avatarSymbol: String, colorName: String) throws -> ReaderProfile {
+        let profile = try ReaderProfile(
             name: Self.sanitizedProfileName(name),
             avatarSymbol: avatarSymbol,
             colorName: colorName
@@ -154,9 +156,9 @@ class BookStore: ObservableObject {
         return profile
     }
 
-    func updateProfile(_ profileID: UUID, name: String, avatarSymbol: String, colorName: String) {
+    func updateProfile(_ profileID: UUID, name: String, avatarSymbol: String, colorName: String) throws {
         guard let index = profiles.firstIndex(where: { $0.id == profileID }) else { return }
-        profiles[index].name = Self.sanitizedProfileName(name)
+        try profiles[index].updateNickname(Self.sanitizedProfileName(name))
         profiles[index].avatarSymbol = avatarSymbol
         profiles[index].colorName = colorName
         saveProfiles()
@@ -182,12 +184,65 @@ class BookStore: ObservableObject {
     }
 
     private static func sanitizedProfileName(_ name: String) -> String {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? ReaderProfile.defaultName : trimmed
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func updateActiveProfile(_ update: (inout ReaderProfile) -> Void) {
+        guard let index = profiles.firstIndex(where: { $0.id == activeProfileID }) else { return }
+        update(&profiles[index])
+        saveProfiles()
+    }
+
+    var activeVoiceIdentifier: String {
+        activeProfile.voiceIdentifier
+    }
+
+    var activeSpeechRate: Double {
+        activeProfile.speechRate
+    }
+
+    var activeFontSize: Double {
+        activeProfile.fontSize
+    }
+
+    var activeReaderTheme: ReaderTheme {
+        ReaderTheme(rawValue: activeProfile.readerTheme) ?? .piperly
+    }
+
+    var activeVoiceIdentifierBinding: Binding<String> {
+        Binding(
+            get: { self.activeVoiceIdentifier },
+            set: { value in self.updateActiveProfile { $0.voiceIdentifier = value } }
+        )
+    }
+
+    var activeSpeechRateBinding: Binding<Double> {
+        Binding(
+            get: { self.activeSpeechRate },
+            set: { value in self.updateActiveProfile { $0.speechRate = value } }
+        )
+    }
+
+    var activeFontSizeBinding: Binding<Double> {
+        Binding(
+            get: { self.activeFontSize },
+            set: { value in self.updateActiveProfile { $0.fontSize = value } }
+        )
+    }
+
+    var activeReaderThemeBinding: Binding<String> {
+        Binding(
+            get: { self.activeProfile.readerTheme },
+            set: { value in self.updateActiveProfile { $0.readerTheme = value } }
+        )
+    }
+
+    func completeVoiceSetup() {
+        updateActiveProfile { $0.hasCompletedVoiceSetup = true }
     }
 
     func loadReadingStates() {
-        guard let data = UserDefaults.standard.data(forKey: readingStatesKey),
+        guard let data = userDefaults.data(forKey: readingStatesKey),
               let saved = try? JSONDecoder().decode([ReadingState].self, from: data) else {
             return
         }
@@ -196,7 +251,7 @@ class BookStore: ObservableObject {
 
     func saveReadingStates() {
         if let data = try? JSONEncoder().encode(readingStates) {
-            UserDefaults.standard.set(data, forKey: readingStatesKey)
+            userDefaults.set(data, forKey: readingStatesKey)
         }
     }
 
@@ -323,7 +378,7 @@ class BookStore: ObservableObject {
     // MARK: - Bookmarks
 
     func loadBookmarks() {
-        guard let data = UserDefaults.standard.data(forKey: bookmarksKey),
+        guard let data = userDefaults.data(forKey: bookmarksKey),
               let saved = try? JSONDecoder().decode([Bookmark].self, from: data) else {
             return
         }
@@ -332,7 +387,7 @@ class BookStore: ObservableObject {
 
     func saveBookmarks() {
         if let data = try? JSONEncoder().encode(bookmarks) {
-            UserDefaults.standard.set(data, forKey: bookmarksKey)
+            userDefaults.set(data, forKey: bookmarksKey)
         }
     }
 
@@ -377,7 +432,7 @@ class BookStore: ObservableObject {
     // MARK: - Saved Words
 
     func loadSavedWords() {
-        guard let data = UserDefaults.standard.data(forKey: savedWordsKey),
+        guard let data = userDefaults.data(forKey: savedWordsKey),
               let saved = try? JSONDecoder().decode([SavedWord].self, from: data) else {
             return
         }
@@ -386,7 +441,7 @@ class BookStore: ObservableObject {
 
     func saveSavedWords() {
         if let data = try? JSONEncoder().encode(savedWords) {
-            UserDefaults.standard.set(data, forKey: savedWordsKey)
+            userDefaults.set(data, forKey: savedWordsKey)
         }
     }
 
@@ -432,7 +487,7 @@ class BookStore: ObservableObject {
     // MARK: - Samples
 
     func importSampleBooksIfNeeded() async {
-        let hasImportedSamples = UserDefaults.standard.bool(forKey: "piperly_samples_imported")
+        let hasImportedSamples = userDefaults.bool(forKey: "piperly_samples_imported")
         guard !hasImportedSamples else { return }
 
         let sampleFiles = Bundle.main.urls(forResourcesWithExtension: "epub", subdirectory: nil) ?? []
@@ -440,7 +495,7 @@ class BookStore: ObservableObject {
             _ = try? await importBundledBook(from: url)
         }
 
-        UserDefaults.standard.set(true, forKey: "piperly_samples_imported")
+        userDefaults.set(true, forKey: "piperly_samples_imported")
     }
 
     private func importBundledBook(from bundleURL: URL) async throws -> Book {
