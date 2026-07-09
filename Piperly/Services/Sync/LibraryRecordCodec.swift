@@ -13,7 +13,11 @@ enum LibraryRecordCodecError: Error, Equatable {
 enum LibraryRecordCodec {
     static let zoneID = CKRecordZone.ID(zoneName: "PiperlyLibrary", ownerName: CKCurrentUserDefaultName)
 
-    static func encode(_ value: LibraryRecord, systemFields: Data? = nil) throws -> CKRecord {
+    static func encode(
+        _ value: LibraryRecord,
+        systemFields: Data? = nil,
+        bookAssets: BookAssetURLs? = nil
+    ) throws -> CKRecord {
         let reference = value.reference
         let recordID = CKRecord.ID(recordName: reference.recordName, zoneID: zoneID)
         let record: CKRecord
@@ -33,6 +37,8 @@ enum LibraryRecordCodec {
             record["originalExtension"] = book.originalExtension
             record["hasCover"] = book.hasCover ? 1 : 0
             record["modifiedAt"] = book.modifiedAt
+            if let epubURL = bookAssets?.epub { record["epubAsset"] = CKAsset(fileURL: epubURL) }
+            if let coverURL = bookAssets?.cover { record["coverAsset"] = CKAsset(fileURL: coverURL) }
         case .readerProfile(let profile):
             record["nickname"] = profile.nickname
             record["avatarSymbol"] = profile.avatarSymbol
@@ -74,6 +80,15 @@ enum LibraryRecordCodec {
             record["modifiedAt"] = word.modifiedAt
         }
         return record
+    }
+
+    static func bookAssets(in record: CKRecord) -> BookAssetURLs? {
+        guard record.recordType == "Book" else { return nil }
+        let assets = BookAssetURLs(
+            epub: (record["epubAsset"] as? CKAsset)?.fileURL,
+            cover: (record["coverAsset"] as? CKAsset)?.fileURL
+        )
+        return assets.epub == nil && assets.cover == nil ? nil : assets
     }
 
     static func decode(_ record: CKRecord) throws -> LibraryRecord {

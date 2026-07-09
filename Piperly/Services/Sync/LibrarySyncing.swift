@@ -7,10 +7,12 @@ protocol LibrarySyncing: Sendable {
     func enqueue(_ operations: [LibraryOutboxOperation]) throws
     func flush() throws
     func currentOutboxStatus() -> LibraryOutboxStatus
+    func requestBookAssets(contentIdentity: String)
 }
 
 extension LibrarySyncing {
     func currentOutboxStatus() -> LibraryOutboxStatus { .ready }
+    func requestBookAssets(contentIdentity: String) {}
 
     func enqueueSave(_ record: LibraryRecord) throws {
         try enqueue([.save(record)])
@@ -24,6 +26,11 @@ extension LibrarySyncing {
 protocol LibrarySyncSink: Sendable {
     func acceptSave(_ record: LibraryRecord, scope: RemoteApplicationScope) async throws
     func acceptDelete(_ reference: LibraryRecordReference, scope: RemoteApplicationScope) async throws
+    func requestBookAssets(contentIdentity: String) async
+}
+
+extension LibrarySyncSink {
+    func requestBookAssets(contentIdentity: String) async {}
 }
 
 struct RemoteApplicationScope: Codable, Sendable, Equatable {
@@ -53,11 +60,35 @@ struct RemoteApplicationScope: Codable, Sendable, Equatable {
 enum LibraryRemoteChange: Sendable, Equatable {
     case save(LibraryRecord)
     case delete(LibraryRecordReference)
+    case bookAssets(contentIdentity: String, files: BookAssetURLs)
+    case finalizeBookAssets(contentIdentity: String, transactionID: String)
+    case commitBookAssets(contentIdentity: String, transactionID: String)
+    case rollbackBookAssets(contentIdentity: String, transactionID: String)
+}
+
+enum BookAssetApplicationOutcome: Sendable, Equatable {
+    case provisional(transactionID: String)
+    case applied(createdEPUB: Bool, createdCover: Bool)
+    case committed
+    case rolledBack
+    case retryableFailure
+    case unavailable
 }
 
 struct RemoteApplicationResult: Sendable, Equatable {
     let unresolvedRecords: [LibraryRecord]
     let unresolvedDeletions: [LibraryRecordReference]
+    let assetOutcomes: [String: BookAssetApplicationOutcome]
+
+    init(
+        unresolvedRecords: [LibraryRecord],
+        unresolvedDeletions: [LibraryRecordReference],
+        assetOutcomes: [String: BookAssetApplicationOutcome] = [:]
+    ) {
+        self.unresolvedRecords = unresolvedRecords
+        self.unresolvedDeletions = unresolvedDeletions
+        self.assetOutcomes = assetOutcomes
+    }
 
     static let complete = RemoteApplicationResult(unresolvedRecords: [], unresolvedDeletions: [])
 }
@@ -225,6 +256,10 @@ actor LibrarySyncRouter: LibrarySyncing {
         outbox.status()
     }
 
+    nonisolated func requestBookAssets(contentIdentity: String) {
+        Task { await self.target?.requestBookAssets(contentIdentity: contentIdentity) }
+    }
+
     nonisolated func applyingCurrentAccountChanges(
         scope: RemoteApplicationScope,
         _ body: () -> RemoteApplicationResult
@@ -255,6 +290,7 @@ final class FakeLibrarySync: LibrarySyncing, @unchecked Sendable {
     private let lock = NSLock()
     private var savedRecords: [LibraryRecord] = []
     private var deletedRecords: [LibraryRecordReference] = []
+    private var requestedBookAssets: [String] = []
 
     func enqueue(_ operations: [LibraryOutboxOperation]) throws {
         lock.withLock {
@@ -272,7 +308,15 @@ final class FakeLibrarySync: LibrarySyncing, @unchecked Sendable {
 
     func flush() throws {}
 
+    func requestBookAssets(contentIdentity: String) {
+        lock.withLock { requestedBookAssets.append(contentIdentity) }
+    }
+
     func snapshot() -> (saved: [LibraryRecord], deleted: [LibraryRecordReference]) {
         lock.withLock { (savedRecords, deletedRecords) }
+    }
+
+    func assetRequests() -> [String] {
+        lock.withLock { requestedBookAssets }
     }
 }

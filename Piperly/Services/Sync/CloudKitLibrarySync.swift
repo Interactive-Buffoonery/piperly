@@ -5,12 +5,14 @@ import CloudKit
 import Foundation
 import UIKit
 
+// swiftlint:disable file_length
 actor CloudKitLibrarySync: LibrarySyncSink {
     typealias RemoteChangeHandler = @MainActor @Sendable (
         [LibraryRemoteChange],
         RemoteApplicationScope
     ) -> RemoteApplicationResult
     typealias LocalSnapshotProvider = @MainActor @Sendable () -> [LibraryRecord]
+    typealias LocalBookAssetProvider = @MainActor @Sendable (SyncedBook) -> BookAssetURLs?
 
     static let containerIdentifier = "iCloud.com.piperly.app"
     static let enabledDefaultsKey = "piperly_icloud_sync_enabled"
@@ -23,11 +25,16 @@ actor CloudKitLibrarySync: LibrarySyncSink {
     private let stateStore: SyncStateStore
     private let remoteChangeHandler: RemoteChangeHandler
     private let localSnapshotProvider: LocalSnapshotProvider
+    private let localBookAssetProvider: LocalBookAssetProvider
+    private let assetStaging: BookAssetStaging
     private let automaticallySync: Bool
     private var snapshot: SyncStateSnapshot
     private var engine: CKSyncEngine?
     private var needsAccountConfirmation = false
     private var accountTransitionInProgress = false
+    private var transitionAssetApplicationInProgress = false
+    private var activeUploadAssets: [String: [String: BookAssetURLs]] = [:]
+    private var assetRetryQueue = BookAssetRetryQueue()
     private(set) var status: LibrarySyncStatus
 
     init(
@@ -36,15 +43,30 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         stateURL: URL = CloudKitLibrarySync.defaultStateURL,
         automaticallySync: Bool = true,
         localSnapshotProvider: @escaping LocalSnapshotProvider = { [] },
+        localBookAssetProvider: @escaping LocalBookAssetProvider = { _ in nil },
+        assetStagingURL: URL? = nil,
         remoteChangeHandler: @escaping RemoteChangeHandler
     ) throws {
         self.container = container
         stateStore = SyncStateStore(fileURL: stateURL)
+        snapshot = try stateStore.load()
         self.remoteChangeHandler = remoteChangeHandler
         self.localSnapshotProvider = localSnapshotProvider
+        self.localBookAssetProvider = localBookAssetProvider
+        assetStaging = BookAssetStaging(
+            rootURL: assetStagingURL ?? stateURL.deletingLastPathComponent()
+                .appendingPathComponent("AssetStaging", isDirectory: true)
+        )
+        assetStaging.clearStaleFiles(retaining: Set(
+            snapshot.pendingRemoteAssets.values.flatMap {
+                [$0.files.epub, $0.files.cover].compactMap { $0 }
+            }
+                + snapshot.accountTransitionRemoteAssets.values.flatMap {
+                    [$0.files.epub, $0.files.cover].compactMap { $0 }
+                }
+        ))
         self.automaticallySync = automaticallySync
-        snapshot = try stateStore.load()
-        status = enabled ? .idle : .disabled
+        status = enabled ? BookAssetSyncStatusResolver.status(for: snapshot.bookAssetFailures) : .disabled
         needsAccountConfirmation = enabled
 
         if enabled {
@@ -77,7 +99,9 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         SyncAccountTransition.resolve(policy: .keepLocalAndUploadAfterFetch, snapshot: &snapshot)
         needsAccountConfirmation = false
         persistSnapshot()
+        await applyDeferredRemoteChanges()
         start()
+        await resumeDurableAssetRetries()
     }
 
     func start(automaticallySync override: Bool? = nil, restorePending: Bool = true) {
@@ -178,6 +202,114 @@ actor CloudKitLibrarySync: LibrarySyncSink {
         try await engine.sendChanges(CKSyncEngine.SendChangesOptions())
     }
 
+    func requestBookAssets(contentIdentity: String) async {
+        snapshot.recordAssetFailure(
+            .retryable,
+            recordName: contentIdentity,
+            requiresDownloadRetry: true
+        )
+        persistSnapshot()
+        guard assetRetryQueue.enqueue(contentIdentity) else { return }
+        await drainAssetRetryQueue()
+    }
+
+    private func drainAssetRetryQueue() async {
+        defer { assetRetryQueue.finish() }
+        while !assetRetryQueue.queued.isEmpty {
+            guard !needsAccountConfirmation, !accountTransitionInProgress else { return }
+            let requested = assetRetryQueue.takeNext()
+            await performAssetRetry(for: requested)
+        }
+    }
+
+    private func resumeDurableAssetRetries() async {
+        var ownsDrain = false
+        for identity in snapshot.assetDownloadRetryRecordNames {
+            ownsDrain = assetRetryQueue.enqueue(identity) || ownsDrain
+        }
+        if ownsDrain { await drainAssetRetryQueue() }
+    }
+
+    private func performAssetRetry(for identities: Set<String>) async {
+        guard !identities.isEmpty,
+              !needsAccountConfirmation,
+              !accountTransitionInProgress,
+              let expectedAccount = snapshot.confirmedAccountRecordName else { return }
+        let expectedGeneration = snapshot.accountTransitionGeneration
+        if let engine { await engine.cancelOperations() }
+        guard !needsAccountConfirmation,
+              !accountTransitionInProgress,
+              snapshot.confirmedAccountRecordName == expectedAccount,
+              snapshot.accountTransitionGeneration == expectedGeneration else { return }
+        cleanupActiveUploads()
+        engine = nil
+        snapshot.engineState = nil
+        persistSnapshot()
+        start()
+        guard let retryEngine = engine else { return }
+        do {
+            try await retryEngine.fetchChanges(CKSyncEngine.FetchChangesOptions())
+        } catch {
+            recordRetryError(error, identities: identities)
+            return
+        }
+        guard retryAccountMatches(expectedAccount, generation: expectedGeneration) else {
+            if let engine { await engine.cancelOperations() }
+            cleanupActiveUploads()
+            engine = nil
+            return
+        }
+        do {
+            try await retryEngine.sendChanges(CKSyncEngine.SendChangesOptions())
+        } catch {
+            recordRetryError(error, identities: identities)
+            return
+        }
+        guard retryAccountMatches(expectedAccount, generation: expectedGeneration) else {
+            if let engine { await engine.cancelOperations() }
+            cleanupActiveUploads()
+            engine = nil
+            return
+        }
+    }
+
+    private func recordRetryError(_ error: Error, identities: Set<String>) {
+        let transferFailure: BookAssetTransferFailure
+        if let cloudError = error as? CKError,
+           case .retryable(let retryAfter) = CloudKitErrorClassifier.classify(cloudError) {
+            transferFailure = .retryable
+            apply(error: cloudError)
+            scheduleAssetRetry(identities, retryAfter: retryAfter)
+        } else {
+            transferFailure = .missingLocalData
+            status = .blocked(.missingLocalData)
+        }
+        for identity in identities {
+            snapshot.recordAssetFailure(
+                transferFailure,
+                recordName: identity,
+                requiresDownloadRetry: true
+            )
+        }
+        persistSnapshot()
+    }
+
+    private func scheduleAssetRetry(_ identities: Set<String>, retryAfter: Date?) {
+        let delay = max(1, retryAfter?.timeIntervalSinceNow ?? 5)
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            for identity in identities { await self?.requestBookAssets(contentIdentity: identity) }
+        }
+    }
+
+    private func retryAccountMatches(_ accountRecordName: String, generation: Int) -> Bool {
+        !needsAccountConfirmation
+            && !accountTransitionInProgress
+            && snapshot.confirmedAccountRecordName == accountRecordName
+            && snapshot.accountTransitionGeneration == generation
+    }
+
     func accountState() async -> SyncAccountState {
         guard status != .disabled else { return .couldNotDetermine }
         do {
@@ -240,6 +372,14 @@ actor CloudKitLibrarySync: LibrarySyncSink {
                 initialRecordName: currentUser.recordName,
                 verifiedRecordName: finalVerification.recordName
             )
+            let assetApplication = await applyStagedAccountAssets(
+                policy: policy,
+                initialLocalRecords: initialLocalRecords,
+                accountRecordName: finalVerification.recordName,
+                transitionGeneration: generation
+            )
+            try requireAccountTransition(generation)
+            finishTransitionAssets(assetApplication)
             snapshot.deferredRemoteRecords = Dictionary(
                 uniqueKeysWithValues: applicationResult.unresolvedRecords.map {
                     ($0.reference.recordName, $0)
@@ -270,11 +410,15 @@ actor CloudKitLibrarySync: LibrarySyncSink {
             try requireAccountTransition(generation)
             accountTransitionInProgress = false
             needsAccountConfirmation = false
-            status = .idle
+            status = BookAssetSyncStatusResolver.status(for: snapshot.bookAssetFailures)
             try persistSnapshotOrThrow()
             start()
+            await resumeDurableAssetRetries()
         } catch {
+            cleanupStagedDownloads(snapshot.accountTransitionRemoteAssets)
+            snapshot.accountTransitionRemoteAssets = [:]
             failAccountTransitionIfActive()
+            persistSnapshot()
             throw error
         }
     }
@@ -309,6 +453,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
             return
         }
         if let engine { Task { await engine.cancelOperations() } }
+        cleanupActiveUploads()
         engine = nil
         SyncAccountTransition.quarantine(snapshot: &snapshot)
         snapshot.confirmedAccountRecordName = nil
@@ -353,6 +498,166 @@ actor CloudKitLibrarySync: LibrarySyncSink {
             throw error
         }
     }
+
+    private func assetFailure(for error: Error) -> BookAssetTransferFailure {
+        BookAssetFailureClassifier.classify(error)
+    }
+
+    private func recordAssetFailure(
+        _ failure: BookAssetTransferFailure,
+        recordName: String,
+        requiresDownloadRetry: Bool = false
+    ) {
+        snapshot.recordAssetFailure(
+            failure,
+            recordName: recordName,
+            requiresDownloadRetry: requiresDownloadRetry
+        )
+        switch failure {
+        case .retryable:
+            status = .waitingToRetry(nil)
+        case .missingLocalData, .corrupt:
+            status = .blocked(.missingLocalData)
+        }
+    }
+
+    private func cleanupActiveUploads() {
+        for stages in activeUploadAssets.values {
+            for staged in stages.values { assetStaging.cleanup(staged) }
+        }
+        activeUploadAssets = [:]
+    }
+
+    private func takeActiveUpload(for record: CKRecord) -> BookAssetURLs? {
+        guard let epubURL = LibraryRecordCodec.bookAssets(in: record)?.epub else { return nil }
+        let recordName = record.recordID.recordName
+        let staged = activeUploadAssets[recordName]?[epubURL.path]
+        activeUploadAssets[recordName]?[epubURL.path] = nil
+        if activeUploadAssets[recordName]?.isEmpty == true { activeUploadAssets[recordName] = nil }
+        return staged
+    }
+
+    private func cleanupStagedDownloads(_ assets: [String: AccountOwnedBookAssets]) {
+        for staged in assets.values { assetStaging.cleanup(staged.files) }
+    }
+
+    private func applyAssetOutcomes(
+        _ outcomes: [String: BookAssetApplicationOutcome],
+        deliveredAssets: [String: AccountOwnedBookAssets]
+    ) {
+        for (identity, assets) in deliveredAssets {
+            guard snapshot.pendingRemoteAssets[identity] == assets else { continue }
+            let shouldCleanup = snapshot.recordAssetOutcome(
+                outcomes[identity] ?? .retryableFailure,
+                recordName: identity,
+                assets: assets
+            )
+            if shouldCleanup {
+                assetStaging.cleanup(assets.files)
+            }
+        }
+    }
+
+    private func publishOwnedAssets(
+        _ assets: [String: AccountOwnedBookAssets],
+        accountRecordName: String,
+        transitionGeneration: Int,
+        scope: RemoteApplicationScope
+    ) async -> [String: BookAssetApplicationOutcome] {
+        let eligible = assets.filter {
+            $0.value.belongs(to: accountRecordName, generation: transitionGeneration)
+        }
+        guard !eligible.isEmpty else { return [:] }
+        let preparation = await remoteChangeHandler(
+            eligible.map { .bookAssets(contentIdentity: $0.key, files: $0.value.files) },
+            scope
+        )
+        let transactions = preparation.assetOutcomes.compactMapValues { outcome -> String? in
+            guard case .provisional(let transactionID) = outcome else { return nil }
+            return transactionID
+        }
+        guard !transactions.isEmpty else { return preparation.assetOutcomes }
+        guard await verifyAssetAccount(accountRecordName, generation: transitionGeneration) else {
+            _ = await rollbackProvisionalAssets(transactions, scope: scope)
+            return Dictionary(uniqueKeysWithValues: eligible.keys.map { ($0, .retryableFailure) })
+        }
+        let finalization = await remoteChangeHandler(
+            transactions.map {
+                .finalizeBookAssets(contentIdentity: $0.key, transactionID: $0.value)
+            },
+            scope
+        )
+        let successfulTransactions = transactions.filter { identity, _ in
+            guard case .applied = finalization.assetOutcomes[identity] else { return false }
+            return true
+        }
+        let failedTransactions = transactions.filter { successfulTransactions[$0.key] == nil }
+        _ = await rollbackProvisionalAssets(failedTransactions, scope: scope)
+        guard !successfulTransactions.isEmpty else {
+            return preparation.assetOutcomes.merging(finalization.assetOutcomes) { _, final in final }
+        }
+        guard await verifyAssetAccount(accountRecordName, generation: transitionGeneration) else {
+            _ = await rollbackProvisionalAssets(successfulTransactions, scope: scope)
+            return Dictionary(uniqueKeysWithValues: eligible.keys.map { ($0, .retryableFailure) })
+        }
+        let commitResult = await remoteChangeHandler(
+            successfulTransactions.map {
+                .commitBookAssets(contentIdentity: $0.key, transactionID: $0.value)
+            },
+            scope
+        )
+        let failedCommits = successfulTransactions.filter { identity, _ in
+            commitResult.assetOutcomes[identity] != .committed
+        }
+        if !failedCommits.isEmpty { _ = await rollbackProvisionalAssets(failedCommits, scope: scope) }
+        var outcomes = preparation.assetOutcomes.merging(finalization.assetOutcomes) { _, final in final }
+        for identity in failedCommits.keys { outcomes[identity] = .retryableFailure }
+        return outcomes
+    }
+
+    private func verifyAssetAccount(_ accountRecordName: String, generation: Int) async -> Bool {
+        guard retryAccountMatches(accountRecordName, generation: generation),
+              let current = try? await container.userRecordID() else { return false }
+        return retryAccountMatches(accountRecordName, generation: generation)
+            && current.recordName == accountRecordName
+    }
+
+    private func rollbackProvisionalAssets(
+        _ transactions: [String: String],
+        scope: RemoteApplicationScope
+    ) async -> [String: BookAssetApplicationOutcome] {
+        let result = await remoteChangeHandler(
+            transactions.map {
+                .rollbackBookAssets(contentIdentity: $0.key, transactionID: $0.value)
+            },
+            scope
+        )
+        return result.assetOutcomes
+    }
+
+    private func applyDeferredRemoteChanges() async {
+        let assets = snapshot.pendingRemoteAssets
+        let changes = snapshot.deferredRemoteDeletions.map(LibraryRemoteChange.delete)
+            + snapshot.deferredRemoteRecords.values.map(LibraryRemoteChange.save)
+        guard !changes.isEmpty || !assets.isEmpty else { return }
+        let result = changes.isEmpty
+            ? RemoteApplicationResult.complete
+            : await remoteChangeHandler(changes, .normal)
+        snapshot.deferredRemoteRecords = Dictionary(
+            uniqueKeysWithValues: result.unresolvedRecords.map { ($0.reference.recordName, $0) }
+        )
+        snapshot.deferredRemoteDeletions = result.unresolvedDeletions
+        if let accountRecordName = snapshot.confirmedAccountRecordName {
+            let outcomes = await publishOwnedAssets(
+                assets,
+                accountRecordName: accountRecordName,
+                transitionGeneration: snapshot.accountTransitionGeneration,
+                scope: .normal
+            )
+            applyAssetOutcomes(outcomes, deliveredAssets: assets)
+        }
+        persistSnapshot()
+    }
 }
 
 extension CloudKitLibrarySync: CKSyncEngineDelegate {
@@ -376,7 +681,9 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         case .willFetchChanges, .willSendChanges:
             status = .syncing
         case .didFetchChanges, .didSendChanges:
-            if !needsAccountConfirmation { status = .idle }
+            if !needsAccountConfirmation {
+                status = BookAssetSyncStatusResolver.status(for: snapshot.bookAssetFailures)
+            }
         case .fetchedDatabaseChanges(let changes):
             if changes.deletions.contains(where: { $0.zoneID == LibraryRecordCodec.zoneID }) {
                 syncEngine.state.add(pendingDatabaseChanges: [
@@ -396,11 +703,45 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
         guard !needsAccountConfirmation, !accountTransitionInProgress else { return nil }
         let pending = syncEngine.state.pendingRecordZoneChanges.filter { context.options.scope.contains($0) }
+        let pendingSaveNames = Set(pending.compactMap { change -> String? in
+            guard case .saveRecord(let recordID) = change else { return nil }
+            return recordID.recordName
+        })
         let records = snapshot.pendingSaves
         let systemFields = snapshot.systemFields
+        var assetsByRecordName: [String: BookAssetURLs] = [:]
+        for (recordName, record) in records where pendingSaveNames.contains(recordName) {
+            guard case .book(let book) = record else { continue }
+            guard let source = await localBookAssetProvider(book), source.epub != nil else {
+                recordAssetFailure(.missingLocalData, recordName: recordName)
+                continue
+            }
+            do {
+                let staged = try assetStaging.stageUpload(source, recordName: recordName)
+                do {
+                    try assetStaging.validateUpload(staged, identity: recordName)
+                } catch {
+                    assetStaging.cleanup(staged)
+                    throw error
+                }
+                guard let epub = staged.epub else { continue }
+                assetsByRecordName[recordName] = staged
+                activeUploadAssets[recordName, default: [:]][epub.path] = staged
+                snapshot.bookAssetFailures[recordName] = nil
+            } catch {
+                recordAssetFailure(assetFailure(for: error), recordName: recordName)
+            }
+        }
+        persistSnapshot()
+        let stagedAssets = assetsByRecordName
         return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: pending) { recordID in
             guard let record = records[recordID.recordName] else { return nil }
-            return try? LibraryRecordCodec.encode(record, systemFields: systemFields[recordID.recordName])
+            if case .book = record, stagedAssets[recordID.recordName]?.epub == nil { return nil }
+            return try? LibraryRecordCodec.encode(
+                record,
+                systemFields: systemFields[recordID.recordName],
+                bookAssets: stagedAssets[recordID.recordName]
+            )
         }
     }
 
@@ -436,6 +777,34 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
             }
             snapshot.systemFields[record.recordID.recordName] = LibraryRecordCodec.systemFieldsData(for: record)
             records[reference.recordName] = value
+            if let temporaryAssets = LibraryRecordCodec.bookAssets(in: record) {
+                do {
+                    let staged = try assetStaging.stageDownload(
+                        temporaryAssets,
+                        recordName: reference.recordName
+                    )
+                    snapshot.pendingRemoteAssets[reference.recordName]
+                        .map { assetStaging.cleanup($0.files) }
+                    guard let accountRecordName = snapshot.confirmedAccountRecordName else {
+                        assetStaging.cleanup(staged)
+                        recordAssetFailure(.missingLocalData, recordName: reference.recordName)
+                        continue
+                    }
+                    snapshot.pendingRemoteAssets[reference.recordName] = AccountOwnedBookAssets(
+                        accountRecordName: accountRecordName,
+                        transitionGeneration: snapshot.accountTransitionGeneration,
+                        files: staged
+                    )
+                } catch {
+                    let failure = assetFailure(for: error)
+                    recordAssetFailure(
+                        failure,
+                        recordName: reference.recordName,
+                        requiresDownloadRetry: true
+                    )
+                    if failure == .retryable { scheduleAssetRetry([reference.recordName], retryAfter: nil) }
+                }
+            }
         }
         for deletion in event.deletions where deletion.recordID.zoneID == LibraryRecordCodec.zoneID {
             let reference = LibraryRecordReference(
@@ -443,20 +812,40 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
                 recordName: deletion.recordID.recordName
             )
             FetchedRecordReconciler.applyRemoteDeletion(reference, snapshot: &snapshot)
+            snapshot.pendingRemoteAssets.removeValue(forKey: reference.recordName)
+                .map { assetStaging.cleanup($0.files) }
+            snapshot.assetDownloadRetryRecordNames.remove(reference.recordName)
+            snapshot.bookAssetFailures[reference.recordName] = nil
             records[reference.recordName] = nil
             deletionReferences.removeAll { $0 == reference }
             deletionReferences.append(reference)
         }
         let saves = records.values.map(LibraryRemoteChange.save)
-        let changes = deletionReferences.map(LibraryRemoteChange.delete) + saves
-        if changes.isEmpty {
+        let deliveredAssetFiles = snapshot.pendingRemoteAssets
+        let downloadedAssets = deliveredAssetFiles.map {
+            LibraryRemoteChange.bookAssets(contentIdentity: $0.key, files: $0.value.files)
+        }
+        let metadataChanges = deletionReferences.map(LibraryRemoteChange.delete) + saves
+        persistSnapshot()
+        if metadataChanges.isEmpty && downloadedAssets.isEmpty {
             snapshot.deferredRemoteRecords = records
         } else {
-            let result = await remoteChangeHandler(changes, .normal)
+            let result = metadataChanges.isEmpty
+                ? RemoteApplicationResult.complete
+                : await remoteChangeHandler(metadataChanges, .normal)
             snapshot.deferredRemoteRecords = Dictionary(
                 uniqueKeysWithValues: result.unresolvedRecords.map { ($0.reference.recordName, $0) }
             )
             snapshot.deferredRemoteDeletions = result.unresolvedDeletions
+            if let accountRecordName = snapshot.confirmedAccountRecordName {
+                let assetOutcomes = await publishOwnedAssets(
+                    deliveredAssetFiles,
+                    accountRecordName: accountRecordName,
+                    transitionGeneration: snapshot.accountTransitionGeneration,
+                    scope: .normal
+                )
+                applyAssetOutcomes(assetOutcomes, deliveredAssets: deliveredAssetFiles)
+            }
         }
         persistSnapshot()
     }
@@ -470,6 +859,36 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
             snapshot.accountTransitionRemoteDeletions.removeAll { $0 == decoded.reference }
             snapshot.accountTransitionRemoteRecords[decoded.reference.recordName] = decoded
             snapshot.systemFields[record.recordID.recordName] = LibraryRecordCodec.systemFieldsData(for: record)
+            if let temporaryAssets = LibraryRecordCodec.bookAssets(in: record) {
+                do {
+                    let staged = try assetStaging.stageDownload(
+                        temporaryAssets,
+                        recordName: decoded.reference.recordName
+                    )
+                    snapshot.accountTransitionRemoteAssets[decoded.reference.recordName]
+                        .map { assetStaging.cleanup($0.files) }
+                    guard let accountRecordName = snapshot.accountTransitionAccountRecordName else {
+                        assetStaging.cleanup(staged)
+                        recordAssetFailure(.missingLocalData, recordName: decoded.reference.recordName)
+                        continue
+                    }
+                    snapshot.accountTransitionRemoteAssets[decoded.reference.recordName] = AccountOwnedBookAssets(
+                        accountRecordName: accountRecordName,
+                        transitionGeneration: snapshot.accountTransitionGeneration,
+                        files: staged
+                    )
+                } catch {
+                    let failure = assetFailure(for: error)
+                    recordAssetFailure(
+                        failure,
+                        recordName: decoded.reference.recordName,
+                        requiresDownloadRetry: true
+                    )
+                    if failure == .retryable {
+                        scheduleAssetRetry([decoded.reference.recordName], retryAfter: nil)
+                    }
+                }
+            }
         }
         for deletion in event.deletions where deletion.recordID.zoneID == LibraryRecordCodec.zoneID {
             let reference = LibraryRecordReference(
@@ -477,6 +896,10 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
                 recordName: deletion.recordID.recordName
             )
             snapshot.accountTransitionRemoteRecords[reference.recordName] = nil
+            snapshot.accountTransitionRemoteAssets.removeValue(forKey: reference.recordName)
+                .map { assetStaging.cleanup($0.files) }
+            snapshot.assetDownloadRetryRecordNames.remove(reference.recordName)
+            snapshot.bookAssetFailures[reference.recordName] = nil
             snapshot.accountTransitionRemoteDeletions.removeAll { $0 == reference }
             snapshot.accountTransitionRemoteDeletions.append(reference)
             snapshot.systemFields[reference.recordName] = nil
@@ -488,6 +911,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         syncEngine: CKSyncEngine
     ) {
         for record in event.savedRecords {
+            takeActiveUpload(for: record).map(assetStaging.cleanup)
             snapshot.systemFields[record.recordID.recordName] = LibraryRecordCodec.systemFieldsData(for: record)
             if let pending = snapshot.pendingSaves[record.recordID.recordName],
                let sent = try? LibraryRecordCodec.decode(record), pending == sent {
@@ -524,10 +948,30 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         syncEngine: CKSyncEngine
     ) {
         let recordID = failure.record.recordID
+        let stagedUpload = takeActiveUpload(for: failure.record)
+        defer { stagedUpload.map(assetStaging.cleanup) }
         if failure.error.code == .serverRecordChanged,
            let serverRecord = failure.error.serverRecord,
            let remote = try? LibraryRecordCodec.decode(serverRecord),
            let local = snapshot.pendingSaves[recordID.recordName] {
+            if case .book = local, let localEPUB = stagedUpload?.epub {
+                guard let remoteEPUB = LibraryRecordCodec.bookAssets(in: serverRecord)?.epub else {
+                    recordAssetFailure(.missingLocalData, recordName: recordID.recordName)
+                    persistSnapshot()
+                    return
+                }
+                do {
+                    guard try BookAssetStaging.filesMatch(localEPUB, remoteEPUB) else {
+                        recordAssetFailure(.corrupt, recordName: recordID.recordName)
+                        persistSnapshot()
+                        return
+                    }
+                } catch {
+                    recordAssetFailure(.missingLocalData, recordName: recordID.recordName)
+                    persistSnapshot()
+                    return
+                }
+            }
             snapshot.pendingSaves[recordID.recordName] = LibraryConflictResolver.merge(local: local, remote: remote)
             snapshot.systemFields[recordID.recordName] = LibraryRecordCodec.systemFieldsData(for: serverRecord)
             syncEngine.state.add(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -578,12 +1022,18 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
 
     private func beginAccountTransition() -> Int {
         SyncCurrentAccountOperations.reQuarantine(snapshot: &snapshot)
+        cleanupStagedDownloads(snapshot.pendingRemoteAssets)
+        cleanupStagedDownloads(snapshot.accountTransitionRemoteAssets)
+        snapshot.pendingRemoteAssets = [:]
+        snapshot.accountTransitionRemoteAssets = [:]
+        cleanupActiveUploads()
         snapshot.accountTransitionGeneration += 1
         engine = nil
         snapshot.engineState = nil
         snapshot.systemFields = [:]
         snapshot.accountTransitionRemoteRecords = [:]
         snapshot.accountTransitionRemoteDeletions = []
+        snapshot.accountTransitionRemoteAssets = [:]
         snapshot.accountTransitionAccountRecordName = nil
         needsAccountConfirmation = false
         accountTransitionInProgress = true
@@ -623,6 +1073,76 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         )
     }
 
+    private func applyStagedAccountAssets(
+        policy: AccountTransitionPolicy,
+        initialLocalRecords: [LibraryRecord],
+        accountRecordName: String,
+        transitionGeneration: Int
+    ) async -> (result: RemoteApplicationResult, delivered: [String: AccountOwnedBookAssets]) {
+        let metadataChanges = AccountTransitionRemoteReconciler.changes(
+            records: Array(snapshot.accountTransitionRemoteRecords.values),
+            deletions: snapshot.accountTransitionRemoteDeletions,
+            policy: policy,
+            initialLocalRecords: initialLocalRecords,
+            quarantinedSaves: Array(snapshot.quarantinedSaves.values),
+            quarantinedDeletes: snapshot.quarantinedDeletes
+        )
+        let allowedBookNames = Set(metadataChanges.compactMap { change -> String? in
+            guard case .save(let record) = change, case .book = record else { return nil }
+            return record.reference.recordName
+        })
+        let delivered = snapshot.accountTransitionRemoteAssets.filter { identity, owned in
+            allowedBookNames.contains(identity)
+                && owned.belongs(to: accountRecordName, generation: transitionGeneration)
+        }
+        guard !delivered.isEmpty else { return (.complete, [:]) }
+        transitionAssetApplicationInProgress = true
+        defer { transitionAssetApplicationInProgress = false }
+        let outcomes = await publishOwnedAssets(
+            delivered,
+            accountRecordName: accountRecordName,
+            transitionGeneration: transitionGeneration,
+            scope: .currentAccount(
+                accountRecordName: accountRecordName,
+                transitionGeneration: transitionGeneration
+            )
+        )
+        return (
+            RemoteApplicationResult(
+                unresolvedRecords: [],
+                unresolvedDeletions: [],
+                assetOutcomes: outcomes
+            ),
+            delivered
+        )
+    }
+
+    private func finishTransitionAssets(
+        _ application: (result: RemoteApplicationResult, delivered: [String: AccountOwnedBookAssets])
+    ) {
+        let deliveredNames = Set(application.delivered.keys)
+        for (identity, owned) in snapshot.accountTransitionRemoteAssets {
+            guard deliveredNames.contains(identity) else {
+                assetStaging.cleanup(owned.files)
+                continue
+            }
+            switch application.result.assetOutcomes[identity] ?? .retryableFailure {
+            case .applied, .committed:
+                assetStaging.cleanup(owned.files)
+                snapshot.assetDownloadRetryRecordNames.remove(identity)
+                snapshot.bookAssetFailures[identity] = nil
+            case .provisional, .rolledBack, .retryableFailure:
+                snapshot.pendingRemoteAssets[identity] = owned
+                snapshot.recordAssetFailure(.retryable, recordName: identity, requiresDownloadRetry: true)
+            case .unavailable:
+                assetStaging.cleanup(owned.files)
+                snapshot.assetDownloadRetryRecordNames.remove(identity)
+                snapshot.bookAssetFailures[identity] = .corrupt
+            }
+        }
+        snapshot.accountTransitionRemoteAssets = [:]
+    }
+
     private func failAccountTransitionIfActive() {
         guard accountTransitionInProgress else { return }
         if let engine { Task { await engine.cancelOperations() } }
@@ -632,6 +1152,11 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
 
     private func invalidateAccountTransition() {
         SyncCurrentAccountOperations.reQuarantine(snapshot: &snapshot)
+        if !transitionAssetApplicationInProgress {
+            cleanupStagedDownloads(snapshot.accountTransitionRemoteAssets)
+            snapshot.accountTransitionRemoteAssets = [:]
+        }
+        cleanupActiveUploads()
         snapshot.accountTransitionGeneration += 1
         engine = nil
         snapshot.engineState = nil
@@ -639,6 +1164,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         snapshot.confirmedAccountRecordName = nil
         snapshot.accountTransitionRemoteRecords = [:]
         snapshot.accountTransitionRemoteDeletions = []
+        snapshot.accountTransitionRemoteAssets = [:]
         snapshot.accountTransitionAccountRecordName = nil
         SyncAccountTransition.quarantine(snapshot: &snapshot)
         needsAccountConfirmation = true

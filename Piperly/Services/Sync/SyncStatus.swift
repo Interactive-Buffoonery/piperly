@@ -32,6 +32,38 @@ enum LibrarySyncStatus: Sendable, Equatable {
     case blocked(SyncFailure)
 }
 
+enum BookAssetSyncStatusResolver {
+    static func status(for failures: [String: BookAssetTransferFailure]) -> LibrarySyncStatus {
+        if failures.values.contains(where: { $0 == .missingLocalData || $0 == .corrupt }) {
+            return .blocked(.missingLocalData)
+        }
+        if failures.values.contains(.retryable) { return .waitingToRetry(nil) }
+        return .idle
+    }
+}
+
+struct BookAssetRetryQueue: Sendable {
+    private(set) var queued: Set<String> = []
+    private(set) var isDraining = false
+
+    mutating func enqueue(_ identity: String) -> Bool {
+        queued.insert(identity)
+        guard !isDraining else { return false }
+        isDraining = true
+        return true
+    }
+
+    mutating func takeNext() -> Set<String> {
+        let next = queued
+        queued.subtract(next)
+        return next
+    }
+
+    mutating func finish() {
+        isDraining = false
+    }
+}
+
 enum AccountTransitionPolicy: Sendable, Equatable {
     case discardPendingChanges
     case keepLocalAndUploadAfterFetch
@@ -284,5 +316,19 @@ enum AccountTransitionRemoteReconciler {
         }
         return deletions.map(LibraryRemoteChange.delete)
             + records.map(LibraryRemoteChange.save)
+    }
+
+    static func assetChanges(
+        for changes: [LibraryRemoteChange],
+        stagedAssets: [String: BookAssetURLs]
+    ) -> [LibraryRemoteChange] {
+        let savedBookNames = Set(changes.compactMap { change -> String? in
+            guard case .save(let record) = change, case .book = record else { return nil }
+            return record.reference.recordName
+        })
+        return stagedAssets.compactMap { identity, files in
+            guard savedBookNames.contains(identity) else { return nil }
+            return .bookAssets(contentIdentity: identity, files: files)
+        }
     }
 }

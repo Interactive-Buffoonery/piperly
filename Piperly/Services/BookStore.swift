@@ -31,10 +31,14 @@ class BookStore: ObservableObject {
     @Published var bookmarks: [Bookmark] = []
     @Published var savedWords: [SavedWord] = []
     @Published private(set) var syncOutboxStatus: LibraryOutboxStatus = .ready
+    @Published private(set) var bookAssetAvailability: [String: BookAssetAvailability] = [:]
 
     private let documentsURL: URL
     private let coversURL: URL
     private let importSnapshotsURL: URL
+    let assetStagingURL: URL
+    private let assetStaging: BookAssetStaging
+    private let provisionalAssets: ProvisionalBookAssetStore
     private let userDefaults: UserDefaults
     private let librarySync: any LibrarySyncing
     private let booksKey = "piperly_books"
@@ -72,6 +76,13 @@ class BookStore: ObservableObject {
         self.coversURL = coversURL
         self.importSnapshotsURL = documentsURL.deletingLastPathComponent()
             .appendingPathComponent(".PiperlyImportSnapshots", isDirectory: true)
+        self.assetStagingURL = documentsURL.deletingLastPathComponent()
+            .appendingPathComponent(".PiperlyAssetStaging", isDirectory: true)
+        self.assetStaging = BookAssetStaging(rootURL: assetStagingURL)
+        self.provisionalAssets = ProvisionalBookAssetStore(
+            rootURL: documentsURL.deletingLastPathComponent()
+                .appendingPathComponent(".PiperlyAssetProvisional", isDirectory: true)
+        )
         self.userDefaults = userDefaults
         self.librarySync = librarySync
         self.syncOutboxStatus = librarySync.currentOutboxStatus()
@@ -83,7 +94,9 @@ class BookStore: ObservableObject {
         Self.excludeFromBackup(documentsURL)
         Self.excludeFromBackup(coversURL)
         Self.excludeFromBackup(importSnapshotsURL)
+        Self.excludeFromBackup(assetStagingURL)
         loadBooks()
+        reconcileBookAssetAvailability()
         loadProfiles()
         loadSelectedProfileID()
         ensureDefaultProfile()
@@ -468,6 +481,7 @@ class BookStore: ObservableObject {
         }
 
         books.append(book)
+        bookAssetAvailability[book.contentIdentity] = .local
         saveBooks()
         return book
     }
@@ -546,6 +560,52 @@ class BookStore: ObservableObject {
 
     func bookURL(for book: Book) -> URL {
         documentsURL.appendingPathComponent(book.fileName)
+    }
+
+    func localBookAssets(for syncedBook: SyncedBook) -> BookAssetURLs? {
+        guard let book = books.first(where: { $0.contentIdentity == syncedBook.contentIdentity }) else {
+            return nil
+        }
+        let epubURL = bookURL(for: book)
+        guard FileManager.default.fileExists(atPath: epubURL.path) else { return nil }
+        let coverURL = book.coverImageName.map { coversURL.appendingPathComponent($0) }
+        return BookAssetURLs(
+            epub: epubURL,
+            cover: coverURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        )
+    }
+
+    func assetAvailability(for book: Book) -> BookAssetAvailability {
+        bookAssetAvailability[book.contentIdentity] ?? .remoteOnly
+    }
+
+    func retryAssets(for book: Book) {
+        bookAssetAvailability[book.contentIdentity] = .downloading
+        librarySync.requestBookAssets(contentIdentity: book.contentIdentity)
+    }
+
+    func evictAssets(for book: Book) {
+        try? FileManager.default.removeItem(at: bookURL(for: book))
+        if let coverImageName = book.coverImageName {
+            try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverImageName))
+        }
+        bookAssetAvailability[book.contentIdentity] = .remoteOnly
+    }
+
+    private func reconcileBookAssetAvailability() {
+        for book in books {
+            let url = bookURL(for: book)
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                bookAssetAvailability[book.contentIdentity] = .remoteOnly
+                continue
+            }
+            if (try? Self.contentIdentity(for: url)) == book.contentIdentity {
+                bookAssetAvailability[book.contentIdentity] = .local
+            } else {
+                try? FileManager.default.removeItem(at: url)
+                bookAssetAvailability[book.contentIdentity] = .unavailable
+            }
+        }
     }
 
     func coverImage(for book: Book) -> UIImage? {
@@ -780,6 +840,7 @@ class BookStore: ObservableObject {
             try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverName))
         }
         books.removeAll { $0.id == book.id }
+        bookAssetAvailability[book.contentIdentity] = nil
         readingStates.removeAll { $0.bookID == book.id }
         bookmarks.removeAll { $0.bookID == book.id }
         savedWords.removeAll { $0.bookID == book.id }
@@ -983,6 +1044,42 @@ class BookStore: ObservableObject {
             return record
         }.sorted { $0.remoteApplicationOrder < $1.remoteApplicationOrder }
         let unresolved = records.filter { !applyRemoteSave($0) }
+        var assetOutcomes: [String: BookAssetApplicationOutcome] = [:]
+        for change in changes {
+            switch change {
+            case .bookAssets(let contentIdentity, let files):
+                assetOutcomes[contentIdentity] = applyDownloadedAssets(
+                    files,
+                    contentIdentity: contentIdentity
+                )
+            case .finalizeBookAssets(let contentIdentity, let transactionID):
+                assetOutcomes[contentIdentity] = finalizeDownloadedAssets(
+                    contentIdentity: contentIdentity,
+                    transactionID: transactionID
+                )
+            case .commitBookAssets(let contentIdentity, let transactionID):
+                do {
+                    try provisionalAssets.commit(transactionID)
+                    assetOutcomes[contentIdentity] = .committed
+                } catch {
+                    assetOutcomes[contentIdentity] = .retryableFailure
+                }
+            case .rollbackBookAssets(let contentIdentity, let transactionID):
+                do {
+                    try provisionalAssets.rollback(transactionID)
+                    assetOutcomes[contentIdentity] = .rolledBack
+                } catch {
+                    assetOutcomes[contentIdentity] = .retryableFailure
+                }
+                if let book = books.first(where: { $0.contentIdentity == contentIdentity }) {
+                    bookAssetAvailability[contentIdentity] = FileManager.default.fileExists(
+                        atPath: bookURL(for: book).path
+                    ) ? .local : .remoteOnly
+                }
+            case .save, .delete:
+                break
+            }
+        }
 
         saveBooks()
         saveProfiles()
@@ -992,7 +1089,8 @@ class BookStore: ObservableObject {
         if !profiles.isEmpty { ensureDefaultProfile() }
         return RemoteApplicationResult(
             unresolvedRecords: unresolved,
-            unresolvedDeletions: unresolvedDeletions
+            unresolvedDeletions: unresolvedDeletions,
+            assetOutcomes: assetOutcomes
         )
     }
 
@@ -1007,8 +1105,10 @@ class BookStore: ObservableObject {
                     title: remote.title,
                     author: remote.author,
                     fileName: Self.storageFileName(for: remote.contentIdentity),
+                    coverImageName: remote.hasCover ? Self.coverFileName(for: remote.contentIdentity) : nil,
                     modifiedAt: remote.modifiedAt
                 ))
+                bookAssetAvailability[remote.contentIdentity] = .remoteOnly
                 return true
             }
             let local = SyncedBook(
@@ -1028,7 +1128,8 @@ class BookStore: ObservableObject {
                 title: merged.title,
                 author: merged.author,
                 fileName: existing.fileName,
-                coverImageName: existing.coverImageName,
+                coverImageName: existing.coverImageName
+                    ?? (merged.hasCover ? Self.coverFileName(for: merged.contentIdentity) : nil),
                 modifiedAt: merged.modifiedAt
             )
             return true
@@ -1168,6 +1269,63 @@ class BookStore: ObservableObject {
         )
     }
 
+    nonisolated private static func coverFileName(for contentIdentity: String) -> String {
+        "\(contentIdentity.lowercased()).jpg"
+    }
+
+    private func applyDownloadedAssets(
+        _ files: BookAssetURLs,
+        contentIdentity: String
+    ) -> BookAssetApplicationOutcome {
+        guard let index = books.firstIndex(where: { $0.contentIdentity == contentIdentity }) else {
+            return .retryableFailure
+        }
+        bookAssetAvailability[contentIdentity] = .downloading
+        let book = books[index]
+        let coverDestination = files.cover.map { _ in
+            coversURL.appendingPathComponent(Self.coverFileName(for: contentIdentity))
+        }
+        do {
+            let transactionID = try provisionalAssets.prepare(
+                files: files,
+                identity: contentIdentity,
+                epubDestination: bookURL(for: book),
+                coverDestination: coverDestination
+            )
+            return .provisional(transactionID: transactionID)
+        } catch BookAssetError.hashMismatch, BookAssetError.contentIdentityCollision {
+            bookAssetAvailability[contentIdentity] = .unavailable
+            return .unavailable
+        } catch {
+            bookAssetAvailability[contentIdentity] = .retryableFailure
+            return .retryableFailure
+        }
+    }
+
+    private func finalizeDownloadedAssets(
+        contentIdentity: String,
+        transactionID: String
+    ) -> BookAssetApplicationOutcome {
+        do {
+            let published = try provisionalAssets.finalize(transactionID)
+            if published.createdCover,
+               let index = books.firstIndex(where: { $0.contentIdentity == contentIdentity }) {
+                books[index].coverImageName = Self.coverFileName(for: contentIdentity)
+            }
+            bookAssetAvailability[contentIdentity] = .local
+            return .applied(
+                createdEPUB: published.createdEPUB,
+                createdCover: published.createdCover
+            )
+        } catch BookAssetError.hashMismatch, BookAssetError.contentIdentityCollision {
+            bookAssetAvailability[contentIdentity] = .unavailable
+            return .unavailable
+        } catch {
+            bookAssetAvailability[contentIdentity] = .retryableFailure
+            return .retryableFailure
+        }
+    }
+
     private func applyRemoteDelete(_ reference: LibraryRecordReference) -> Bool {
         switch reference.recordType {
         case "Book":
@@ -1177,6 +1335,7 @@ class BookStore: ObservableObject {
                 try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverImageName))
             }
             books.removeAll { $0.id == book.id }
+            bookAssetAvailability[book.contentIdentity] = nil
             readingStates.removeAll { $0.bookID == book.id }
             bookmarks.removeAll { $0.bookID == book.id }
             savedWords.removeAll { $0.bookID == book.id }
