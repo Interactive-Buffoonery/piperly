@@ -18,10 +18,37 @@ import SwiftUI
 
 @main
 struct PiperlyApp: App {
-    @StateObject private var bookStore = BookStore()
+    @StateObject private var bookStore: BookStore
     private let ttsEngine = TTSEngine()
     @State private var showVoiceSetup = false
     @Environment(\.scenePhase) private var scenePhase
+
+    @MainActor
+    init() {
+        let router = LibrarySyncRouter()
+        let store = BookStore(librarySync: router)
+        _bookStore = StateObject(wrappedValue: store)
+
+        guard CloudKitLibrarySync.isEnabled() else { return }
+        Task {
+            guard let cloudSync = try? CloudKitLibrarySync(
+                enabled: true,
+                localSnapshotProvider: { [weak store] in
+                    store?.librarySnapshotRecords() ?? []
+                },
+                remoteChangeHandler: { [weak store] changes, scope in
+                    guard let store else { return .complete }
+                    if scope.isCurrentAccount {
+                        return router.applyingCurrentAccountChanges(scope: scope) {
+                            store.applyRemoteChanges(changes)
+                        }
+                    }
+                    return store.applyRemoteChanges(changes)
+                }
+            ) else { return }
+            await router.use(cloudSync)
+        }
+    }
 
     var body: some Scene {
         WindowGroup {

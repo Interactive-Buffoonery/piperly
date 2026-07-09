@@ -26,6 +26,7 @@ struct Bookmark: Identifiable, Codable, Hashable {
     let progression: Double
     let sticker: BookmarkSticker
     let createdAt: Date
+    var modifiedAt: Date
 
     init(
         id: UUID = UUID(),
@@ -35,7 +36,8 @@ struct Bookmark: Identifiable, Codable, Hashable {
         title: String?,
         progression: Double,
         sticker: BookmarkSticker,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        modifiedAt: Date = .now
     ) {
         self.id = id
         self.profileID = profileID
@@ -45,6 +47,24 @@ struct Bookmark: Identifiable, Codable, Hashable {
         self.progression = progression
         self.sticker = sticker
         self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, profileID, bookID, locatorJSON, title, progression, sticker, createdAt, modifiedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        profileID = try container.decode(UUID.self, forKey: .profileID)
+        bookID = try container.decode(UUID.self, forKey: .bookID)
+        locatorJSON = try container.decode(String.self, forKey: .locatorJSON)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
+        progression = try container.decode(Double.self, forKey: .progression)
+        sticker = try container.decode(BookmarkSticker.self, forKey: .sticker)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? createdAt
     }
 }
 

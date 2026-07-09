@@ -43,8 +43,16 @@ currently selected does not.
 - The app needs the iCloud/CloudKit and remote-notification capabilities.
 - The engine state and pending changes are encoded in the local application
   support directory, separately from user-visible model data.
-- Account changes invalidate engine state, stop sends, and require a fresh
-  fetch after the parent confirms the currently signed-in account.
+- Account changes invalidate engine state and immediately quarantine pending
+  work so it cannot be sent to a different account. After the parent confirms
+  the currently signed-in account, Piperly starts a fetch-only engine and
+  reconciles remote data before allowing any send. The parent must explicitly
+  choose whether to discard the previous account's pending work or keep the
+  local work and upload it after that fresh fetch. Until a choice is made, sync
+  remains paused. Fetched changes are staged durably during this window rather
+  than applied to local models or files. Keeping local work suppresses fetched
+  tombstones for those captured or quarantined records; discarding local work
+  applies the staged remote state before sync resumes.
 
 The container identifier must be created for team `7CNK4YPCQX`, attached to the
 app identifier, tested in the development environment, and promoted to
@@ -58,11 +66,11 @@ or other user content.
 | Record type | Record name | Important fields |
 | --- | --- | --- |
 | `Book` | lowercase EPUB SHA-256 | local UUID, title, author, original extension, cover availability, modified date, EPUB asset, optional cover asset |
-| `ReaderProfile` | profile UUID | nickname, avatar symbol, color, created date, modified date |
+| `ReaderProfile` | `profile-<profile UUID>` | nickname, avatar symbol, color, created date, modified date |
 | `ReaderPreferences` | `preferences-<profile UUID>` | profile UUID, voice identifier, speech rate, font size, reader theme, voice-setup completion, modified date |
 | `ReadingState` | `reading-<profile UUID>-<book hash>` | profile UUID, book hash, progression, locator JSON, modified date |
-| `Bookmark` | bookmark UUID | profile UUID, book hash, locator JSON, title, progression, sticker, created date, modified date |
-| `SavedWord` | saved-word UUID | profile UUID, book hash, canonical word, display word, book title snapshot, tap count, saved date, last-tapped date, modified date |
+| `Bookmark` | `bookmark-<bookmark UUID>` | profile UUID, book hash, locator JSON, title, progression, sticker, created date, modified date |
+| `SavedWord` | `word-<saved-word UUID>` | profile UUID, book hash, canonical word, display word, book title snapshot, tap count, saved date, last-tapped date, modified date |
 
 Book-linked cloud records use the EPUB hash, not the local Book UUID. The Book
 record may carry the local UUID so a downloaded replica can preserve it, but
@@ -70,6 +78,8 @@ the hash is the cross-device join key and deduplication key.
 
 Record fields are additive after production deployment. Renaming or deleting a
 record type or field requires a new field and a compatibility period.
+Record names share one namespace within the custom zone, so every UUID-backed
+type has a type prefix even when UUID collisions are unlikely.
 
 ### Local sync boundary
 
@@ -92,15 +102,22 @@ Remote application must not enqueue the same records as new local changes.
 
 ### Send and fetch lifecycle
 
-1. A local mutation is written to disk.
+1. A local save or deletion is written to a durable, serialized outbox before
+   the local mutation returns to its caller.
 2. Its deterministic record ID is added to the pending-save queue, or to the
-   pending-delete queue for deletion.
+   pending-delete queue for deletion. The outbox entry is removed only after
+   the sync layer has durably accepted it.
+   If the outbox cannot be read or written, sync enters a blocked state and
+   the local mutation does not commit; unreadable queue data is never replaced
+   with an empty queue.
 3. The sync engine is told that pending work exists.
 4. When the engine requests changes, the sync layer supplies current records
    and staged assets for those IDs.
 5. Successful sends remove pending entries. Retryable failures remain queued
    with backoff. Permanent validation failures become a visible blocked state.
 6. Fetched changes and deletions are decoded, validated, and applied locally.
+   Child records whose parents have not arrived are retained durably and
+   retried after later records and fetch batches.
 7. Engine state is persisted after every state update.
 
 Partial failures are handled per record. `networkUnavailable`, `networkFailure`,
@@ -203,8 +220,9 @@ Each PR is based on the branch immediately before it.
    pending queues, record codecs, account/error states, fakes, and tests.
 5. `feat(icloud): sync book assets` — EPUB/cover asset lifecycle, verification,
    availability, progress, retry, eviction, deletion, conflicts, and tests.
-6. `feat(settings): add iCloud controls` — parent controls and status, recovery
-   UI, privacy documentation, schema promotion, and two-device checklist.
+6. `feat(settings): add iCloud controls` — parent controls and status, the
+   account-transition choice, recovery UI, privacy documentation, schema
+   promotion, and two-device checklist.
 
 ## Consequences
 

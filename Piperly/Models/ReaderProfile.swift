@@ -58,6 +58,8 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
     var fontSize: Double
     var readerTheme: String
     var hasCompletedVoiceSetup: Bool
+    var metadataModifiedAt: Date
+    var preferencesModifiedAt: Date
 
     init(
         id: UUID = UUID(),
@@ -69,7 +71,9 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
         speechRate: Double = Self.defaultSpeechRate,
         fontSize: Double = Self.defaultFontSize,
         readerTheme: String = Self.defaultReaderTheme,
-        hasCompletedVoiceSetup: Bool = false
+        hasCompletedVoiceSetup: Bool = false,
+        metadataModifiedAt: Date = .now,
+        preferencesModifiedAt: Date = .now
     ) throws {
         self.id = id
         self.name = try Self.validatedNickname(name)
@@ -81,6 +85,8 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
         self.fontSize = fontSize
         self.readerTheme = readerTheme
         self.hasCompletedVoiceSetup = hasCompletedVoiceSetup
+        self.metadataModifiedAt = metadataModifiedAt
+        self.preferencesModifiedAt = preferencesModifiedAt
     }
 
     init() {
@@ -94,6 +100,8 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
         fontSize = Self.defaultFontSize
         readerTheme = Self.defaultReaderTheme
         hasCompletedVoiceSetup = false
+        metadataModifiedAt = .now
+        preferencesModifiedAt = .now
     }
 
     mutating func updateNickname(_ name: String) throws {
@@ -142,6 +150,9 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
         case fontSize
         case readerTheme
         case hasCompletedVoiceSetup
+        case metadataModifiedAt
+        case preferencesModifiedAt
+        case modifiedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -161,5 +172,26 @@ struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
             ?? Self.defaultReaderTheme
         hasCompletedVoiceSetup = try container.decodeIfPresent(Bool.self, forKey: .hasCompletedVoiceSetup)
             ?? false
+        let legacyModifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? createdAt
+        metadataModifiedAt = try container.decodeIfPresent(Date.self, forKey: .metadataModifiedAt)
+            ?? legacyModifiedAt
+        preferencesModifiedAt = try container.decodeIfPresent(Date.self, forKey: .preferencesModifiedAt)
+            ?? legacyModifiedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(avatarSymbol, forKey: .avatarSymbol)
+        try container.encode(colorName, forKey: .colorName)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(voiceIdentifier, forKey: .voiceIdentifier)
+        try container.encode(speechRate, forKey: .speechRate)
+        try container.encode(fontSize, forKey: .fontSize)
+        try container.encode(readerTheme, forKey: .readerTheme)
+        try container.encode(hasCompletedVoiceSetup, forKey: .hasCompletedVoiceSetup)
+        try container.encode(metadataModifiedAt, forKey: .metadataModifiedAt)
+        try container.encode(preferencesModifiedAt, forKey: .preferencesModifiedAt)
     }
 }

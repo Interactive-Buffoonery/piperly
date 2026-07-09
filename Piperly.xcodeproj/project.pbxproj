@@ -14,15 +14,18 @@
 		203DF207BABAB9FE753A085B /* TableOfContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15436967F2E7E08C3F4C37D4 /* TableOfContentsSheet.swift */; };
 		20C1E80632CEF51395EA5F53 /* WordChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7224C03C200554F5861400 /* WordChip.swift */; };
 		2123F3B71AD6460312BAC3A6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 37668E902B9B08AB7690046F /* PrivacyInfo.xcprivacy */; };
+		2AE312EBA1F3BEB9D7B15CEE /* LibraryRecordCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2F068169DAE06D75030A39 /* LibraryRecordCodec.swift */; };
 		3999B9FA53792DA07DC6F6A2 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = 17B713292E77005A7751B9DC /* ReadiumNavigator */; };
 		3AC16D4D89F0CBC50AC41C91 /* PiperlyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEE3796984A778CA18D6B83F /* PiperlyTests.swift */; };
 		3B10D4AA0162D1197528A3E0 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8F3144A8110DA7D4264D5545 /* LaunchScreen.storyboard */; };
 		3CF38A165C6ED0FFF26DDB03 /* the-secret-garden.epub in Resources */ = {isa = PBXBuildFile; fileRef = CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */; };
 		4599435ED40B97ABFEE6DF62 /* WordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABACED436F78084BF8A2BAEA /* WordsView.swift */; };
 		48B1869DE73286878F0EABC7 /* WordTapCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE753ECD378C1FB1B62B5BEE /* WordTapCoordinator.swift */; };
+		4CB3CB697D6FC2D125D0CADC /* LibraryRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C236C568C7927FEA271E2B08 /* LibraryRecord.swift */; };
 		4FF6E8B0F50C76A327C6F2F8 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505AE8E196D11F1F4CEC38BA /* Book.swift */; };
 		509EE15C974BA348E532B3FA /* TTSEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */; };
 		52EE85A98AEF0DA058B3482D /* ReaderProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07DB7B7BEB14F0757464F4FD /* ReaderProfile.swift */; };
+		540553AA18B7BD706C08CA22 /* SyncStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79209FD4DBEB0A7745E96BCA /* SyncStatus.swift */; };
 		552ECE15A6B18EA34CCCD77F /* PiperlyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4D52458E36471558AFE41A /* PiperlyUITests.swift */; };
 		5993B684DE4B64E826F6BDE0 /* SavedWord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B8090D26F5F0FCD944BCCD /* SavedWord.swift */; };
 		5FC02FE57992316415BAA4FF /* VoicePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F33AE51FAB9D371EE0F1F67 /* VoicePickerSheet.swift */; };
@@ -37,10 +40,15 @@
 		96A0782B38BA02C7827B1F6F /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B5EA42469618622432905D /* Typography.swift */; };
 		A4D9861B907C32BA65FA94BA /* ReaderToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */; };
 		A9B8672F77616A3D902F1BB5 /* BookCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020FF465ED5DAE55F3F23078 /* BookCard.swift */; };
+		AA8EF4C5E8B7096587E9AC6C /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA411DA826F78E32B4DA71 /* CloudKitLibrarySync.swift */; };
 		AE1CBD6D4C45DD851FA3DDC9 /* PiperlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0575D688D631F115AF497590 /* PiperlyApp.swift */; };
+		AEB761A1B95187D81344E32E /* LibraryConflictResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 144FD302072287A2F625E295 /* LibraryConflictResolver.swift */; };
+		B24843B385E539F6569F539E /* CloudKitSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342D7030508E0F3805E6C75 /* CloudKitSyncTests.swift */; };
+		B523FF1F444626551DA6B19A /* LibrarySyncing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C922ABB693CC6E51B89A685 /* LibrarySyncing.swift */; };
 		C16B65EFFFBD4432864334EA /* ReaderTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B48C597C42056AFD320ACB1 /* ReaderTheme.swift */; };
 		C8CD69CC9A21D1069657FB65 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 456BD662A32FF2E09E8B91CA /* Assets.xcassets */; };
 		C8EB86567BED41A31D9493EB /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32263DACC627AF31FFB42A6F /* Colors.swift */; };
+		D08A7543219A4B94086FC580 /* SyncStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B5EEAF793B1FBB4652973E /* SyncStateStore.swift */; };
 		D70FB9ABBE67AD59491D9F22 /* ReaderNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E04B476A4331F7545247076 /* ReaderNavigator.swift */; };
 		DC10B557D03A8F34EB5681B6 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = FB84F84F12F294A465FEFEB0 /* ReadiumShared */; };
 		E6C03BC61FD764CBCFB96B15 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50E2DE40A7757EF922301E5 /* ReaderView.swift */; };
@@ -73,8 +81,10 @@
 		07DB7B7BEB14F0757464F4FD /* ReaderProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderProfile.swift; sourceTree = "<group>"; };
 		0B48C597C42056AFD320ACB1 /* ReaderTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderTheme.swift; sourceTree = "<group>"; };
 		0F33AE51FAB9D371EE0F1F67 /* VoicePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoicePickerSheet.swift; sourceTree = "<group>"; };
+		144FD302072287A2F625E295 /* LibraryConflictResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryConflictResolver.swift; sourceTree = "<group>"; };
 		15436967F2E7E08C3F4C37D4 /* TableOfContentsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableOfContentsSheet.swift; sourceTree = "<group>"; };
 		180FD98DD38FFD512B905060 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1D2F068169DAE06D75030A39 /* LibraryRecordCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryRecordCodec.swift; sourceTree = "<group>"; };
 		1E04B476A4331F7545247076 /* ReaderNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderNavigator.swift; sourceTree = "<group>"; };
 		2051654FEEB7BC3200F4830D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		219B546B88E956F5EC6324D7 /* reader-theme.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "reader-theme.css"; sourceTree = "<group>"; };
@@ -88,22 +98,29 @@
 		67C736D8D95AF555808BAB07 /* WordListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListSheet.swift; sourceTree = "<group>"; };
 		6D67EDBA545BF502AADA33A5 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		79007FAFBAC9B7FCDF89D151 /* ReaderToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderToolbar.swift; sourceTree = "<group>"; };
+		79209FD4DBEB0A7745E96BCA /* SyncStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatus.swift; sourceTree = "<group>"; };
 		8F3144A8110DA7D4264D5545 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		907A4ACDFF28240D2A04EC58 /* ImportButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportButton.swift; sourceTree = "<group>"; };
+		90EA411DA826F78E32B4DA71 /* CloudKitLibrarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitLibrarySync.swift; sourceTree = "<group>"; };
+		93B5EEAF793B1FBB4652973E /* SyncStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStateStore.swift; sourceTree = "<group>"; };
+		9C922ABB693CC6E51B89A685 /* LibrarySyncing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySyncing.swift; sourceTree = "<group>"; };
 		9DB2CC0ED8AAE37072017ABF /* ReadingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingState.swift; sourceTree = "<group>"; };
 		AA3C687F79D0D61F50394188 /* PiperlyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PiperlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABACED436F78084BF8A2BAEA /* WordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordsView.swift; sourceTree = "<group>"; };
 		AEC8DDABC8527ECA9066D42E /* word-tap.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "word-tap.js"; sourceTree = "<group>"; };
 		B0B5EA42469618622432905D /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		B342D7030508E0F3805E6C75 /* CloudKitSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncTests.swift; sourceTree = "<group>"; };
 		B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSEngine.swift; sourceTree = "<group>"; };
 		BB264E643F353A189D2BDFC4 /* StickerPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerPicker.swift; sourceTree = "<group>"; };
 		C1B8090D26F5F0FCD944BCCD /* SavedWord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWord.swift; sourceTree = "<group>"; };
+		C236C568C7927FEA271E2B08 /* LibraryRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryRecord.swift; sourceTree = "<group>"; };
 		CA7DA1D35BE11C0F88B3203D /* the-secret-garden.epub */ = {isa = PBXFileReference; path = "the-secret-garden.epub"; sourceTree = "<group>"; };
 		CD4617B4737EF21A2663B076 /* BookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookStore.swift; sourceTree = "<group>"; };
 		CEE3796984A778CA18D6B83F /* PiperlyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyTests.swift; sourceTree = "<group>"; };
 		CF7224C03C200554F5861400 /* WordChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordChip.swift; sourceTree = "<group>"; };
 		CFADC6967714E5F36F446A79 /* ReadingSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingSettingsSheet.swift; sourceTree = "<group>"; };
 		D9F98151594647A2B03041EC /* PiperlyUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PiperlyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB8BC2605DA2DA30847D4501 /* Piperly.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Piperly.entitlements; sourceTree = "<group>"; };
 		EA4D52458E36471558AFE41A /* PiperlyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiperlyUITests.swift; sourceTree = "<group>"; };
 		EE753ECD378C1FB1B62B5BEE /* WordTapCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordTapCoordinator.swift; sourceTree = "<group>"; };
 		F2A1B958B2C979E3FC7F5F17 /* BookmarkListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkListSheet.swift; sourceTree = "<group>"; };
@@ -128,6 +145,7 @@
 		08E2BD084CDA80547AB4D334 /* Piperly */ = {
 			isa = PBXGroup;
 			children = (
+				DB8BC2605DA2DA30847D4501 /* Piperly.entitlements */,
 				3748B5FADB0987FCE8E5F1A1 /* App */,
 				66B02D397374D2014B9C2592 /* Models */,
 				BB9A5A1F59DA7F83FD23C1C6 /* Resources */,
@@ -252,6 +270,20 @@
 			path = PiperlyUITests;
 			sourceTree = "<group>";
 		};
+		B63D8F9DD8FB16D8DDBBC8DD /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				90EA411DA826F78E32B4DA71 /* CloudKitLibrarySync.swift */,
+				144FD302072287A2F625E295 /* LibraryConflictResolver.swift */,
+				C236C568C7927FEA271E2B08 /* LibraryRecord.swift */,
+				1D2F068169DAE06D75030A39 /* LibraryRecordCodec.swift */,
+				9C922ABB693CC6E51B89A685 /* LibrarySyncing.swift */,
+				93B5EEAF793B1FBB4652973E /* SyncStateStore.swift */,
+				79209FD4DBEB0A7745E96BCA /* SyncStatus.swift */,
+			);
+			path = Sync;
+			sourceTree = "<group>";
+		};
 		BB9A5A1F59DA7F83FD23C1C6 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -268,6 +300,7 @@
 		E08365D0FFA5F691EF0C82C9 /* PiperlyTests */ = {
 			isa = PBXGroup;
 			children = (
+				B342D7030508E0F3805E6C75 /* CloudKitSyncTests.swift */,
 				CEE3796984A778CA18D6B83F /* PiperlyTests.swift */,
 			);
 			path = PiperlyTests;
@@ -288,6 +321,7 @@
 			children = (
 				CD4617B4737EF21A2663B076 /* BookStore.swift */,
 				B76C4471CF32D1EEEE0468DA /* TTSEngine.swift */,
+				B63D8F9DD8FB16D8DDBBC8DD /* Sync */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -459,6 +493,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B24843B385E539F6569F539E /* CloudKitSyncTests.swift in Sources */,
 				3AC16D4D89F0CBC50AC41C91 /* PiperlyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -480,9 +515,14 @@
 				F55EF49167FD7539DAA7D369 /* BookStore.swift in Sources */,
 				0E530D72404395441FD653A0 /* Bookmark.swift in Sources */,
 				6C211085478661C47382156D /* BookmarkListSheet.swift in Sources */,
+				AA8EF4C5E8B7096587E9AC6C /* CloudKitLibrarySync.swift in Sources */,
 				C8EB86567BED41A31D9493EB /* Colors.swift in Sources */,
 				06D163B795C07C40FDD4C639 /* ContentView.swift in Sources */,
 				876B3E27B8C741FF25C8D629 /* ImportButton.swift in Sources */,
+				AEB761A1B95187D81344E32E /* LibraryConflictResolver.swift in Sources */,
+				4CB3CB697D6FC2D125D0CADC /* LibraryRecord.swift in Sources */,
+				2AE312EBA1F3BEB9D7B15CEE /* LibraryRecordCodec.swift in Sources */,
+				B523FF1F444626551DA6B19A /* LibrarySyncing.swift in Sources */,
 				F6C0D6F691FDBE460E9C4C03 /* LibraryView.swift in Sources */,
 				AE1CBD6D4C45DD851FA3DDC9 /* PiperlyApp.swift in Sources */,
 				D70FB9ABBE67AD59491D9F22 /* ReaderNavigator.swift in Sources */,
@@ -495,6 +535,8 @@
 				5993B684DE4B64E826F6BDE0 /* SavedWord.swift in Sources */,
 				1A5A241B59677748491E3A21 /* SettingsView.swift in Sources */,
 				67DA759D33D6283C457B577B /* StickerPicker.swift in Sources */,
+				D08A7543219A4B94086FC580 /* SyncStateStore.swift in Sources */,
+				540553AA18B7BD706C08CA22 /* SyncStatus.swift in Sources */,
 				509EE15C974BA348E532B3FA /* TTSEngine.swift in Sources */,
 				203DF207BABAB9FE753A085B /* TableOfContentsSheet.swift in Sources */,
 				96A0782B38BA02C7827B1F6F /* Typography.swift in Sources */,
@@ -528,6 +570,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Piperly/Piperly.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -710,6 +753,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Piperly/Piperly.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

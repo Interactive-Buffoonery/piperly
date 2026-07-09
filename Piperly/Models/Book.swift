@@ -23,6 +23,7 @@ struct Book: Identifiable, Codable {
     let author: String
     let fileName: String
     var coverImageName: String?
+    var modifiedAt: Date
 
     init(
         id: UUID = UUID(),
@@ -30,7 +31,8 @@ struct Book: Identifiable, Codable {
         title: String,
         author: String,
         fileName: String,
-        coverImageName: String? = nil
+        coverImageName: String? = nil,
+        modifiedAt: Date = .now
     ) {
         self.id = id
         self.contentIdentity = contentIdentity
@@ -38,5 +40,21 @@ struct Book: Identifiable, Codable {
         self.author = author
         self.fileName = fileName
         self.coverImageName = coverImageName
+        self.modifiedAt = modifiedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, contentIdentity, title, author, fileName, coverImageName, modifiedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        contentIdentity = try container.decode(String.self, forKey: .contentIdentity)
+        title = try container.decode(String.self, forKey: .title)
+        author = try container.decode(String.self, forKey: .author)
+        fileName = try container.decode(String.self, forKey: .fileName)
+        coverImageName = try container.decodeIfPresent(String.self, forKey: .coverImageName)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? .distantPast
     }
 }

@@ -26,6 +26,7 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable {
     var tapCount: Int
     let savedAt: Date
     var lastTappedAt: Date
+    var modifiedAt: Date
 
     init(
         id: UUID = UUID(),
@@ -36,7 +37,8 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable {
         bookTitle: String,
         tapCount: Int = 1,
         savedAt: Date = .now,
-        lastTappedAt: Date = .now
+        lastTappedAt: Date = .now,
+        modifiedAt: Date = .now
     ) {
         self.id = id
         self.profileID = profileID
@@ -47,5 +49,24 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable {
         self.tapCount = tapCount
         self.savedAt = savedAt
         self.lastTappedAt = lastTappedAt
+        self.modifiedAt = modifiedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, profileID, word, displayWord, bookID, bookTitle, tapCount, savedAt, lastTappedAt, modifiedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        profileID = try container.decode(UUID.self, forKey: .profileID)
+        word = try container.decode(String.self, forKey: .word)
+        displayWord = try container.decode(String.self, forKey: .displayWord)
+        bookID = try container.decode(UUID.self, forKey: .bookID)
+        bookTitle = try container.decode(String.self, forKey: .bookTitle)
+        tapCount = try container.decode(Int.self, forKey: .tapCount)
+        savedAt = try container.decode(Date.self, forKey: .savedAt)
+        lastTappedAt = try container.decode(Date.self, forKey: .lastTappedAt)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? lastTappedAt
     }
 }

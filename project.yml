@@ -93,6 +93,16 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Piperly
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.education
         SWIFT_STRICT_CONCURRENCY: complete
+        CODE_SIGN_ENTITLEMENTS: Piperly/Piperly.entitlements
+    entitlements:
+      path: Piperly/Piperly.entitlements
+      properties:
+        aps-environment: development
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.piperly.app
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.ubiquity-kvstore-identifier: "$(TeamIdentifierPrefix)com.piperly.app"
     preBuildScripts:
       - name: SwiftLint
         basedOnDependencyAnalysis: false
