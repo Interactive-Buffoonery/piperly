@@ -287,6 +287,80 @@ enum FetchedRecordReconciler {
     }
 }
 
+// Bounded retention for the snapshot's deferred/quarantine buckets and delete
+// tombstones. Without this, a child whose parent never arrives sits in the
+// deferred bucket forever and a sent-then-cleared delete has no lasting record,
+// so an older cross-device save can resurrect it.
+enum SyncSnapshotMaintenance {
+    static let maxBucketEntries = 512
+    static let tombstoneLifetime: TimeInterval = 30 * 24 * 60 * 60 // 30 days
+
+    // Records a delete so a later, older incoming save for the same record name
+    // can be rejected. Bounded by count (drop-oldest) and age.
+    static func recordTombstone(
+        _ recordName: String,
+        at date: Date,
+        snapshot: inout SyncStateSnapshot
+    ) {
+        snapshot.tombstones[recordName] = date
+        pruneTombstones(now: date, snapshot: &snapshot)
+    }
+
+    // True when a save for this record name is older than a live tombstone, i.e.
+    // it predates a delete we already applied and must not be resurrected.
+    static func isBlockedByTombstone(
+        _ recordName: String,
+        incomingModifiedAt: Date,
+        now: Date,
+        snapshot: SyncStateSnapshot
+    ) -> Bool {
+        guard let deletedAt = snapshot.tombstones[recordName] else { return false }
+        guard now.timeIntervalSince(deletedAt) < tombstoneLifetime else { return false }
+        return incomingModifiedAt <= deletedAt
+    }
+
+    static func prune(now: Date, snapshot: inout SyncStateSnapshot) {
+        pruneTombstones(now: now, snapshot: &snapshot)
+        capOldest(&snapshot.deferredRemoteRecords)
+        capOldest(&snapshot.quarantinedSaves)
+        capOldest(&snapshot.accountTransitionRemoteRecords)
+    }
+
+    private static func pruneTombstones(now: Date, snapshot: inout SyncStateSnapshot) {
+        snapshot.tombstones = snapshot.tombstones.filter {
+            now.timeIntervalSince($0.value) < tombstoneLifetime
+        }
+        if snapshot.tombstones.count > maxBucketEntries {
+            let keep = snapshot.tombstones.sorted { $0.value > $1.value }.prefix(maxBucketEntries)
+            snapshot.tombstones = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+        }
+    }
+
+    // Keeps the newest-by-record entries; ties broken by record name for
+    // determinism (no wall clock available in this pure layer).
+    private static func capOldest(_ bucket: inout [String: LibraryRecord]) {
+        guard bucket.count > maxBucketEntries else { return }
+        let keep = bucket.sorted {
+            let lhs = $0.value.modifiedAt, rhs = $1.value.modifiedAt
+            return lhs == rhs ? $0.key > $1.key : lhs > rhs
+        }.prefix(maxBucketEntries)
+        bucket = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+    }
+}
+
+private extension LibraryRecord {
+    var modifiedAt: Date {
+        switch self {
+        case .book(let value): value.modifiedAt
+        case .readerProfile(let value): value.modifiedAt
+        case .readerPreferences(let value): value.modifiedAt
+        case .readingState(let value): value.modifiedAt
+        case .bookmark(let value): value.modifiedAt
+        case .savedWord(let value): value.modifiedAt
+        }
+    }
+}
+
 enum SyncAccountTransitionValidator {
     static func validate(initialRecordName: String, verifiedRecordName: String) throws {
         guard initialRecordName == verifiedRecordName else {

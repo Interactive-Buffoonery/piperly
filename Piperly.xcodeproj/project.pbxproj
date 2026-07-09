@@ -46,6 +46,7 @@
 		AA8EF4C5E8B7096587E9AC6C /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90EA411DA826F78E32B4DA71 /* CloudKitLibrarySync.swift */; };
 		AE1CBD6D4C45DD851FA3DDC9 /* PiperlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0575D688D631F115AF497590 /* PiperlyApp.swift */; };
 		AEB761A1B95187D81344E32E /* LibraryConflictResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 144FD302072287A2F625E295 /* LibraryConflictResolver.swift */; };
+		B1228B0DE8DF29035196E3F2 /* SyncCorrectnessFixTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D83651E39845265FB35587A /* SyncCorrectnessFixTests.swift */; };
 		B24843B385E539F6569F539E /* CloudKitSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342D7030508E0F3805E6C75 /* CloudKitSyncTests.swift */; };
 		B523FF1F444626551DA6B19A /* LibrarySyncing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C922ABB693CC6E51B89A685 /* LibrarySyncing.swift */; };
 		C16B65EFFFBD4432864334EA /* ReaderTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B48C597C42056AFD320ACB1 /* ReaderTheme.swift */; };
@@ -92,6 +93,7 @@
 		15436967F2E7E08C3F4C37D4 /* TableOfContentsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableOfContentsSheet.swift; sourceTree = "<group>"; };
 		180FD98DD38FFD512B905060 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1D2F068169DAE06D75030A39 /* LibraryRecordCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryRecordCodec.swift; sourceTree = "<group>"; };
+		1D83651E39845265FB35587A /* SyncCorrectnessFixTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCorrectnessFixTests.swift; sourceTree = "<group>"; };
 		1E04B476A4331F7545247076 /* ReaderNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderNavigator.swift; sourceTree = "<group>"; };
 		2051654FEEB7BC3200F4830D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		219B546B88E956F5EC6324D7 /* reader-theme.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "reader-theme.css"; sourceTree = "<group>"; };
@@ -317,6 +319,7 @@
 				B342D7030508E0F3805E6C75 /* CloudKitSyncTests.swift */,
 				0726ED52E3805394C07CBDB3 /* ICloudSettingsTests.swift */,
 				CEE3796984A778CA18D6B83F /* PiperlyTests.swift */,
+				1D83651E39845265FB35587A /* SyncCorrectnessFixTests.swift */,
 			);
 			path = PiperlyTests;
 			sourceTree = "<group>";
@@ -512,6 +515,7 @@
 				B24843B385E539F6569F539E /* CloudKitSyncTests.swift in Sources */,
 				827FE5E3F83B6832BE3CA3EE /* ICloudSettingsTests.swift in Sources */,
 				3AC16D4D89F0CBC50AC41C91 /* PiperlyTests.swift in Sources */,
+				B1228B0DE8DF29035196E3F2 /* SyncCorrectnessFixTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

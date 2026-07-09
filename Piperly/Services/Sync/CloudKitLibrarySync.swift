@@ -563,6 +563,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
 
     private func persistSnapshot() {
         guard !isStopped else { return }
+        SyncSnapshotMaintenance.prune(now: .now, snapshot: &snapshot)
         do {
             try stateStore.save(snapshot)
         } catch {
@@ -572,6 +573,7 @@ actor CloudKitLibrarySync: LibrarySyncSink {
 
     private func persistSnapshotOrThrow() throws {
         guard !isStopped else { throw SyncLifecycleError.stopped }
+        SyncSnapshotMaintenance.prune(now: .now, snapshot: &snapshot)
         do {
             try stateStore.save(snapshot)
         } catch {
@@ -870,6 +872,15 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
                 engine?.state.add(pendingRecordZoneChanges: [.deleteRecord(record.recordID)])
                 continue
             }
+            if SyncSnapshotMaintenance.isBlockedByTombstone(
+                reference.recordName,
+                incomingModifiedAt: modification.record.modificationDate ?? .distantPast,
+                now: .now,
+                snapshot: snapshot
+            ) {
+                records[reference.recordName] = nil
+                continue
+            }
             let value: LibraryRecord
             if let pending = snapshot.pendingSaves[record.recordID.recordName] {
                 value = LibraryConflictResolver.merge(local: pending, remote: decoded)
@@ -918,6 +929,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
                 .map { assetStaging.cleanup($0.files) }
             snapshot.assetDownloadRetryRecordNames.remove(reference.recordName)
             snapshot.bookAssetFailures[reference.recordName] = nil
+            SyncSnapshotMaintenance.recordTombstone(reference.recordName, at: .now, snapshot: &snapshot)
             records[reference.recordName] = nil
             deletionReferences.removeAll { $0 == reference }
             deletionReferences.append(reference)
@@ -1028,6 +1040,7 @@ extension CloudKitLibrarySync: CKSyncEngineDelegate {
         }
         for recordID in event.deletedRecordIDs {
             snapshot.pendingDeletes.removeAll { $0.recordName == recordID.recordName }
+            SyncSnapshotMaintenance.recordTombstone(recordID.recordName, at: .now, snapshot: &snapshot)
             snapshot.systemFields[recordID.recordName] = nil
             if let pending = snapshot.pendingSaves[recordID.recordName] {
                 syncEngine.state.add(pendingRecordZoneChanges: [

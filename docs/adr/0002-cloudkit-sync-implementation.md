@@ -133,8 +133,12 @@ schema/permission errors are surfaced distinctly.
 - **Reader Profile:** newest modified date wins for nickname, avatar, and color.
   Deletion wins over an older edit.
 - **Reader Preferences:** field set from the newest modified date wins.
-- **Reading State:** highest `modifiedAt` wins. A locator and progression are
-  written together so they cannot come from different versions.
+- **Reading State:** highest `modifiedAt` wins, except that progression never
+  regresses at the same locator. Because `modifiedAt` is an untrusted device wall
+  clock, a same-locator decrease is treated as clock skew and the higher
+  progression is kept; a genuine move to a different locator may lower it. A
+  locator and progression are written together so they cannot come from different
+  versions.
 - **Bookmark:** records are independent. Same UUID uses newest modified date.
 - **Saved Word:** same UUID uses newest display metadata, maximum tap count, the
   earliest saved date, and the latest last-tapped date.
