@@ -45,7 +45,7 @@ struct WordChip: View {
                 if savedWord.tapCount > 1 {
                     Text("\(savedWord.tapCount)")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Piperly.Colors.background)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(Piperly.Colors.accent)

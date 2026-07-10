@@ -18,6 +18,7 @@ import SwiftUI
 
 struct BookCard: View {
     let book: Book
+    var progress: Double
     var coverImage: UIImage?
     var onDelete: (() -> Void)?
     @State private var showingMenu = false
@@ -82,7 +83,7 @@ struct BookCard: View {
                         .frame(height: 4)
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Piperly.Colors.accent)
-                        .frame(width: geo.size.width * book.lastReadProgression, height: 4)
+                        .frame(width: geo.size.width * progress, height: 4)
                 }
             }
             .frame(height: 4)

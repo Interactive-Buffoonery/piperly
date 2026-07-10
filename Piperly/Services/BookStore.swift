@@ -22,16 +22,66 @@ import SwiftUI
 @MainActor
 class BookStore: ObservableObject {
     @Published var books: [Book] = []
+    @Published var profiles: [ReaderProfile] = []
+    @Published var selectedProfileID: UUID?
+    @Published var readingStates: [ReadingState] = []
     @Published var bookmarks: [Bookmark] = []
     @Published var savedWords: [SavedWord] = []
 
     private let documentsURL: URL
     private let coversURL: URL
     private let booksKey = "piperly_books"
+    private let profilesKey = "piperly_reader_profiles"
+    private let selectedProfileKey = "piperly_selected_profile_id"
+    private let readingStatesKey = "piperly_reading_states"
     private let bookmarksKey = "piperly_bookmarks"
     private let savedWordsKey = "piperly_saved_words"
     private var debouncedBooksSave: Task<Void, Never>?
+    private var debouncedReadingStatesSave: Task<Void, Never>?
     private var debouncedWordsSave: Task<Void, Never>?
+
+    /// Keys whose persisted bytes were non-empty but decoded to nothing (total
+    /// corruption). We refuse to overwrite them with an empty array so a bad
+    /// upgrade can't erase recoverable data. Cleared once real data returns.
+    private var corruptedStoreKeys: Set<String> = []
+
+    /// Element-wise tolerant array decode: skips individual records that fail
+    /// (legacy/corrupt) instead of dropping the whole array. Flags total loss
+    /// so `persistArray` won't clobber the bytes.
+    private func loadArray<T: Decodable>(_ type: T.Type, forKey key: String) -> [T]? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        if let decoded = try? JSONDecoder().decode([T].self, from: data) {
+            corruptedStoreKeys.remove(key)
+            return decoded
+        }
+        // Whole-array decode failed on one bad element; recover the rest.
+        var recovered: [T] = []
+        if let raw = try? JSONDecoder().decode([FailableCodable<T>].self, from: data) {
+            recovered = raw.compactMap(\.value)
+        }
+        if recovered.isEmpty && !data.isEmpty {
+            corruptedStoreKeys.insert(key)
+        } else {
+            corruptedStoreKeys.remove(key)
+        }
+        return recovered
+    }
+
+    /// Legacy records persisted before profiles existed decode with a sentinel
+    /// `profileID`; rehome them onto the active profile so they survive upgrade
+    /// instead of being orphaned.
+    private func backfillProfileID<T: ProfileScoped>(_ values: [T]) -> [T] {
+        let active = activeProfileID
+        return values.map { $0.profileID == ProfileScopedDefaults.legacyProfileID ? $0.withProfileID(active) : $0 }
+    }
+
+    private func persistArray<T: Encodable>(_ values: [T], forKey key: String) {
+        if values.isEmpty && corruptedStoreKeys.contains(key) { return }
+        if !values.isEmpty { corruptedStoreKeys.remove(key) }
+        if let data = try? JSONEncoder().encode(values) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -43,6 +93,10 @@ class BookStore: ObservableObject {
         Self.excludeFromBackup(documentsURL)
         Self.excludeFromBackup(coversURL)
         loadBooks()
+        loadProfiles()
+        loadSelectedProfileID()
+        ensureDefaultProfile()
+        loadReadingStates()
         loadBookmarks()
         loadSavedWords()
     }
@@ -57,17 +111,121 @@ class BookStore: ObservableObject {
     }
 
     func loadBooks() {
-        guard let data = UserDefaults.standard.data(forKey: booksKey),
-              let saved = try? JSONDecoder().decode([Book].self, from: data) else {
-            return
-        }
+        guard let saved = loadArray(Book.self, forKey: booksKey) else { return }
         books = saved
     }
 
     func saveBooks() {
-        if let data = try? JSONEncoder().encode(books) {
-            UserDefaults.standard.set(data, forKey: booksKey)
+        persistArray(books, forKey: booksKey)
+    }
+
+    func loadProfiles() {
+        guard let saved = loadArray(ReaderProfile.self, forKey: profilesKey) else { return }
+        profiles = saved
+    }
+
+    func saveProfiles() {
+        persistArray(profiles, forKey: profilesKey)
+    }
+
+    func loadSelectedProfileID() {
+        guard let rawValue = UserDefaults.standard.string(forKey: selectedProfileKey),
+              let id = UUID(uuidString: rawValue) else {
+            return
         }
+        selectedProfileID = id
+    }
+
+    func saveSelectedProfileID() {
+        guard let selectedProfileID else { return }
+        UserDefaults.standard.set(selectedProfileID.uuidString, forKey: selectedProfileKey)
+    }
+
+    /// Guarantees there is always at least one profile and a valid selection.
+    /// Called once at launch so `activeProfile` can stay a pure read.
+    func ensureDefaultProfile() {
+        if profiles.isEmpty {
+            profiles = [ReaderProfile()]
+            saveProfiles()
+        }
+
+        let hasValidSelection = selectedProfileID.map { id in profiles.contains { $0.id == id } } ?? false
+        if !hasValidSelection {
+            selectedProfileID = profiles[0].id
+            saveSelectedProfileID()
+        }
+    }
+
+    var activeProfile: ReaderProfile {
+        if let selectedProfileID, let match = profiles.first(where: { $0.id == selectedProfileID }) {
+            return match
+        }
+        return profiles[0]
+    }
+
+    private var activeProfileID: UUID {
+        activeProfile.id
+    }
+
+    func selectProfile(_ profileID: UUID) {
+        guard profiles.contains(where: { $0.id == profileID }) else { return }
+        selectedProfileID = profileID
+        saveSelectedProfileID()
+    }
+
+    @discardableResult
+    func addProfile(name: String, avatarSymbol: String, colorName: String) -> ReaderProfile {
+        let profile = ReaderProfile(
+            name: Self.sanitizedProfileName(name),
+            avatarSymbol: avatarSymbol,
+            colorName: colorName
+        )
+        profiles.append(profile)
+        selectedProfileID = profile.id
+        saveProfiles()
+        saveSelectedProfileID()
+        return profile
+    }
+
+    func updateProfile(_ profileID: UUID, name: String, avatarSymbol: String, colorName: String) {
+        guard let index = profiles.firstIndex(where: { $0.id == profileID }) else { return }
+        profiles[index].name = Self.sanitizedProfileName(name)
+        profiles[index].avatarSymbol = avatarSymbol
+        profiles[index].colorName = colorName
+        saveProfiles()
+    }
+
+    func deleteProfile(_ profileID: UUID) {
+        guard profiles.count > 1, profiles.contains(where: { $0.id == profileID }) else { return }
+
+        profiles.removeAll { $0.id == profileID }
+        readingStates.removeAll { $0.profileID == profileID }
+        bookmarks.removeAll { $0.profileID == profileID }
+        savedWords.removeAll { $0.profileID == profileID }
+
+        if selectedProfileID == profileID {
+            selectedProfileID = profiles[0].id
+            saveSelectedProfileID()
+        }
+
+        saveProfiles()
+        saveReadingStates()
+        saveBookmarks()
+        saveSavedWords()
+    }
+
+    private static func sanitizedProfileName(_ name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? ReaderProfile.defaultName : trimmed
+    }
+
+    func loadReadingStates() {
+        guard let saved = loadArray(ReadingState.self, forKey: readingStatesKey) else { return }
+        readingStates = saved
+    }
+
+    func saveReadingStates() {
+        persistArray(readingStates, forKey: readingStatesKey)
     }
 
     private func scheduleSaveBooks() {
@@ -76,6 +234,15 @@ class BookStore: ObservableObject {
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             self?.saveBooks()
+        }
+    }
+
+    private func scheduleSaveReadingStates() {
+        debouncedReadingStatesSave?.cancel()
+        debouncedReadingStatesSave = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            self?.saveReadingStates()
         }
     }
 
@@ -94,9 +261,12 @@ class BookStore: ObservableObject {
     func flushPendingSaves() {
         debouncedBooksSave?.cancel()
         debouncedBooksSave = nil
+        debouncedReadingStatesSave?.cancel()
+        debouncedReadingStatesSave = nil
         debouncedWordsSave?.cancel()
         debouncedWordsSave = nil
         saveBooks()
+        saveReadingStates()
         saveSavedWords()
     }
 
@@ -144,37 +314,56 @@ class BookStore: ObservableObject {
     }
 
     func updateProgress(for bookID: UUID, progression: Double) {
-        if let index = books.firstIndex(where: { $0.id == bookID }) {
-            books[index].lastReadProgression = progression
-            scheduleSaveBooks()
+        let profileID = activeProfileID
+        if let index = readingStates.firstIndex(where: { $0.bookID == bookID && $0.profileID == profileID }) {
+            readingStates[index].lastReadProgression = progression
+            readingStates[index].updatedAt = .now
+        } else {
+            readingStates.append(ReadingState(
+                profileID: profileID,
+                bookID: bookID,
+                lastReadProgression: progression
+            ))
         }
+        scheduleSaveReadingStates()
     }
 
     func updateLocator(for bookID: UUID, locatorJSON: String) {
-        if let index = books.firstIndex(where: { $0.id == bookID }) {
-            books[index].lastReadLocatorJSON = locatorJSON
-            scheduleSaveBooks()
+        let profileID = activeProfileID
+        if let index = readingStates.firstIndex(where: { $0.bookID == bookID && $0.profileID == profileID }) {
+            readingStates[index].lastReadLocatorJSON = locatorJSON
+            readingStates[index].updatedAt = .now
+        } else {
+            readingStates.append(ReadingState(
+                profileID: profileID,
+                bookID: bookID,
+                lastReadLocatorJSON: locatorJSON
+            ))
         }
+        scheduleSaveReadingStates()
+    }
+
+    func readingState(for bookID: UUID) -> ReadingState? {
+        let profileID = activeProfileID
+        return readingStates.first { $0.bookID == bookID && $0.profileID == profileID }
     }
 
     // MARK: - Bookmarks
 
     func loadBookmarks() {
-        guard let data = UserDefaults.standard.data(forKey: bookmarksKey),
-              let saved = try? JSONDecoder().decode([Bookmark].self, from: data) else {
-            return
-        }
-        bookmarks = saved
+        guard let saved = loadArray(Bookmark.self, forKey: bookmarksKey) else { return }
+        let needsProfileBackfill = saved.contains { $0.profileID == ProfileScopedDefaults.legacyProfileID }
+        bookmarks = backfillProfileID(saved)
+        if needsProfileBackfill { saveBookmarks() }
     }
 
     func saveBookmarks() {
-        if let data = try? JSONEncoder().encode(bookmarks) {
-            UserDefaults.standard.set(data, forKey: bookmarksKey)
-        }
+        persistArray(bookmarks, forKey: bookmarksKey)
     }
 
     func addBookmark(for bookID: UUID, locatorJSON: String, title: String?, progression: Double, sticker: BookmarkSticker) {
         let bookmark = Bookmark(
+            profileID: activeProfileID,
             bookID: bookID,
             locatorJSON: locatorJSON,
             title: title,
@@ -191,43 +380,50 @@ class BookStore: ObservableObject {
     }
 
     func bookmarks(for bookID: UUID) -> [Bookmark] {
-        bookmarks.filter { $0.bookID == bookID }.sorted { $0.progression < $1.progression }
+        let profileID = activeProfileID
+        return bookmarks.filter { $0.bookID == bookID && $0.profileID == profileID }
+            .sorted { $0.progression < $1.progression }
     }
 
     func isBookmarked(bookID: UUID, progression: Double) -> Bool {
-        bookmarks.contains { $0.bookID == bookID && abs($0.progression - progression) < 0.001 }
+        let profileID = activeProfileID
+        return bookmarks.contains {
+            $0.bookID == bookID && $0.profileID == profileID && abs($0.progression - progression) < 0.001
+        }
     }
 
     func findBookmark(bookID: UUID, progression: Double) -> Bookmark? {
-        bookmarks.first { $0.bookID == bookID && abs($0.progression - progression) < 0.001 }
+        let profileID = activeProfileID
+        return bookmarks.first {
+            $0.bookID == bookID && $0.profileID == profileID && abs($0.progression - progression) < 0.001
+        }
     }
 
     // MARK: - Saved Words
 
     func loadSavedWords() {
-        guard let data = UserDefaults.standard.data(forKey: savedWordsKey),
-              let saved = try? JSONDecoder().decode([SavedWord].self, from: data) else {
-            return
-        }
-        savedWords = saved
+        guard let saved = loadArray(SavedWord.self, forKey: savedWordsKey) else { return }
+        let needsProfileBackfill = saved.contains { $0.profileID == ProfileScopedDefaults.legacyProfileID }
+        savedWords = backfillProfileID(saved)
+        if needsProfileBackfill { saveSavedWords() }
     }
 
     func saveSavedWords() {
-        if let data = try? JSONEncoder().encode(savedWords) {
-            UserDefaults.standard.set(data, forKey: savedWordsKey)
-        }
+        persistArray(savedWords, forKey: savedWordsKey)
     }
 
     @discardableResult
     func saveWordReturningIsNew(_ word: String, bookID: UUID, bookTitle: String) -> Bool {
         let canonical = word.lowercased()
-        if let index = savedWords.firstIndex(where: { $0.word == canonical && $0.bookID == bookID }) {
+        let profileID = activeProfileID
+        if let index = savedWords.firstIndex(where: { $0.word == canonical && $0.bookID == bookID && $0.profileID == profileID }) {
             savedWords[index].tapCount += 1
             savedWords[index].lastTappedAt = .now
             scheduleSaveWords()
             return false
         } else {
             let saved = SavedWord(
+                profileID: profileID,
                 word: canonical,
                 displayWord: word,
                 bookID: bookID,
@@ -245,8 +441,14 @@ class BookStore: ObservableObject {
     }
 
     func words(for bookID: UUID) -> [SavedWord] {
-        savedWords.filter { $0.bookID == bookID }
+        let profileID = activeProfileID
+        return savedWords.filter { $0.bookID == bookID && $0.profileID == profileID }
             .sorted { $0.lastTappedAt > $1.lastTappedAt }
+    }
+
+    var wordsForActiveProfile: [SavedWord] {
+        let profileID = activeProfileID
+        return savedWords.filter { $0.profileID == profileID }
     }
 
     // MARK: - Samples
@@ -294,7 +496,13 @@ class BookStore: ObservableObject {
             try? FileManager.default.removeItem(at: coversURL.appendingPathComponent(coverName))
         }
         books.removeAll { $0.id == book.id }
+        readingStates.removeAll { $0.bookID == book.id }
+        bookmarks.removeAll { $0.bookID == book.id }
+        savedWords.removeAll { $0.bookID == book.id }
         saveBooks()
+        saveReadingStates()
+        saveBookmarks()
+        saveSavedWords()
     }
 
     func openPublication(at url: URL) async throws -> Publication {
@@ -352,4 +560,14 @@ class BookStore: ObservableObject {
 enum BookStoreError: Error {
     case invalidURL
     case unreadableBook
+}
+
+/// Decodes to `nil` instead of throwing, so a bad element in an array doesn't
+/// fail the whole decode. Used for tolerant persisted-store loading.
+private struct FailableCodable<T: Decodable>: Decodable {
+    let value: T?
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        value = try? container.decode(T.self)
+    }
 }

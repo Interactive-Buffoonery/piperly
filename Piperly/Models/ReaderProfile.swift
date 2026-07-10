@@ -16,24 +16,28 @@
 
 import Foundation
 
-struct Book: Identifiable, Codable {
+struct ReaderProfile: Identifiable, Codable, Hashable, Sendable {
+    static let defaultName = "Reader"
+    static let defaultAvatarSymbol = "person.crop.circle.fill"
+    static let defaultColorName = "accent"
+
     let id: UUID
-    let title: String
-    let author: String
-    let fileName: String
-    var coverImageName: String?
+    var name: String
+    var avatarSymbol: String
+    var colorName: String
+    let createdAt: Date
 
     init(
         id: UUID = UUID(),
-        title: String,
-        author: String,
-        fileName: String,
-        coverImageName: String? = nil
+        name: String = Self.defaultName,
+        avatarSymbol: String = Self.defaultAvatarSymbol,
+        colorName: String = Self.defaultColorName,
+        createdAt: Date = .now
     ) {
         self.id = id
-        self.title = title
-        self.author = author
-        self.fileName = fileName
-        self.coverImageName = coverImageName
+        self.name = name
+        self.avatarSymbol = avatarSymbol
+        self.colorName = colorName
+        self.createdAt = createdAt
     }
 }

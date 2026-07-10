@@ -17,8 +17,22 @@
 import Foundation
 import SwiftUI
 
-struct Bookmark: Identifiable, Codable, Hashable {
+/// Shared behavior for records scoped to a reader profile. Lets BookStore
+/// rehome legacy records (persisted before profiles existed) onto the active
+/// profile after a tolerant decode.
+enum ProfileScopedDefaults {
+    /// Sentinel assigned when a persisted record predates `profileID`.
+    static let legacyProfileID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+}
+
+protocol ProfileScoped {
+    var profileID: UUID { get }
+    func withProfileID(_ id: UUID) -> Self
+}
+
+struct Bookmark: Identifiable, Codable, Hashable, ProfileScoped {
     let id: UUID
+    let profileID: UUID
     let bookID: UUID
     let locatorJSON: String
     let title: String?
@@ -28,6 +42,7 @@ struct Bookmark: Identifiable, Codable, Hashable {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID,
         bookID: UUID,
         locatorJSON: String,
         title: String?,
@@ -36,12 +51,31 @@ struct Bookmark: Identifiable, Codable, Hashable {
         createdAt: Date = .now
     ) {
         self.id = id
+        self.profileID = profileID
         self.bookID = bookID
         self.locatorJSON = locatorJSON
         self.title = title
         self.progression = progression
         self.sticker = sticker
         self.createdAt = createdAt
+    }
+
+    /// Legacy blobs predate `profileID`; default it to a sentinel so the record
+    /// survives decode. BookStore rehomes the sentinel onto the active profile.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        profileID = try c.decodeIfPresent(UUID.self, forKey: .profileID) ?? ProfileScopedDefaults.legacyProfileID
+        bookID = try c.decode(UUID.self, forKey: .bookID)
+        locatorJSON = try c.decode(String.self, forKey: .locatorJSON)
+        title = try c.decodeIfPresent(String.self, forKey: .title)
+        progression = try c.decode(Double.self, forKey: .progression)
+        sticker = try c.decode(BookmarkSticker.self, forKey: .sticker)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+    }
+
+    func withProfileID(_ id: UUID) -> Bookmark {
+        Bookmark(id: self.id, profileID: id, bookID: bookID, locatorJSON: locatorJSON, title: title, progression: progression, sticker: sticker, createdAt: createdAt)
     }
 }
 

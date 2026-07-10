@@ -16,24 +16,27 @@
 
 import Foundation
 
-struct Book: Identifiable, Codable {
+struct ReadingState: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
-    let title: String
-    let author: String
-    let fileName: String
-    var coverImageName: String?
+    let profileID: UUID
+    let bookID: UUID
+    var lastReadProgression: Double
+    var lastReadLocatorJSON: String?
+    var updatedAt: Date
 
     init(
         id: UUID = UUID(),
-        title: String,
-        author: String,
-        fileName: String,
-        coverImageName: String? = nil
+        profileID: UUID,
+        bookID: UUID,
+        lastReadProgression: Double = 0.0,
+        lastReadLocatorJSON: String? = nil,
+        updatedAt: Date = .now
     ) {
         self.id = id
-        self.title = title
-        self.author = author
-        self.fileName = fileName
-        self.coverImageName = coverImageName
+        self.profileID = profileID
+        self.bookID = bookID
+        self.lastReadProgression = lastReadProgression
+        self.lastReadLocatorJSON = lastReadLocatorJSON
+        self.updatedAt = updatedAt
     }
 }

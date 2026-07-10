@@ -40,19 +40,19 @@ enum Piperly {
         static let background = Color(hex: 0x1C1C2E)
         static let surface = Color(hex: 0x252540)
         static let surfaceElevated = Color(hex: 0x2E2E4A)
-        static let border = Color(hex: 0x3A3A55)
+        static let border = Color(hex: 0x80809A)
 
         // Text
         static let textPrimary = Color(hex: 0xE8E8F0)
-        static let textSecondary = Color(hex: 0x9090A8)
-        static let textTertiary = Color(hex: 0x606078)
+        static let textSecondary = Color(hex: 0xB0B0C2)
+        static let textTertiary = Color(hex: 0x9A9AB0)
 
         // Semantic
         static let accent = Color(hex: 0x7CD4C8)
         static let success = Color(hex: 0x7BC8A4)
         static let warning = Color(hex: 0xD4A76A)
-        static let error = Color(hex: 0xD47C7C)
-        static let info = Color(hex: 0x9B8EC4)
+        static let error = Color(hex: 0xD98686)
+        static let info = Color(hex: 0xA49ACC)
 
         // Extended palette
         static let teal = Color(hex: 0x7CD4C8)

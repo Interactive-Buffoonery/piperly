@@ -52,6 +52,17 @@ struct ContentView: View {
 
                     Spacer()
 
+                    Picker("Reader Profile", selection: activeProfileSelection) {
+                        ForEach(bookStore.profiles) { profile in
+                            Label(profile.name, systemImage: profile.avatarSymbol)
+                                .tag(profile.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .buttonStyle(.bordered)
+                    .tint(Piperly.Colors.accent)
+                    .accessibilityLabel("Reader Profile")
+
                     HStack(spacing: 12) {
                         Button {
                             showingSettings = true
@@ -95,5 +106,12 @@ struct ContentView: View {
                 SettingsView(ttsEngine: ttsEngine)
             }
         }
+    }
+
+    private var activeProfileSelection: Binding<UUID> {
+        Binding(
+            get: { bookStore.activeProfile.id },
+            set: { bookStore.selectProfile($0) }
+        )
     }
 }
