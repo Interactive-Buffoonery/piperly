@@ -352,7 +352,9 @@ class BookStore: ObservableObject {
 
     func loadBookmarks() {
         guard let saved = loadArray(Bookmark.self, forKey: bookmarksKey) else { return }
+        let needsProfileBackfill = saved.contains { $0.profileID == ProfileScopedDefaults.legacyProfileID }
         bookmarks = backfillProfileID(saved)
+        if needsProfileBackfill { saveBookmarks() }
     }
 
     func saveBookmarks() {
@@ -401,7 +403,9 @@ class BookStore: ObservableObject {
 
     func loadSavedWords() {
         guard let saved = loadArray(SavedWord.self, forKey: savedWordsKey) else { return }
+        let needsProfileBackfill = saved.contains { $0.profileID == ProfileScopedDefaults.legacyProfileID }
         savedWords = backfillProfileID(saved)
+        if needsProfileBackfill { saveSavedWords() }
     }
 
     func saveSavedWords() {

@@ -96,7 +96,7 @@ struct BookmarkTests {
 
 // MARK: - Legacy / corrupt decode (S1 data-loss guard)
 
-@Suite("LegacyDecode")
+@Suite("LegacyDecode", .serialized)
 struct LegacyDecodeTests {
     // Legacy blobs persisted before profiles existed have no profileID key.
     @Test func legacyBookmarkWithoutProfileIDSurvives() throws {
@@ -143,6 +143,52 @@ struct LegacyDecodeTests {
         store.saveSavedWords()  // empty save must be refused
         let after = UserDefaults.standard.data(forKey: key)
         #expect(after == Data("[{\"garbage\":true}]".utf8))
+    }
+
+    @Test @MainActor func legacyProfileDataStaysWithProfileThatClaimedIt() throws {
+        let profilesKey = "piperly_reader_profiles"
+        let selectedProfileKey = "piperly_selected_profile_id"
+        let bookmarksKey = "piperly_bookmarks"
+        let savedWordsKey = "piperly_saved_words"
+        let firstProfile = ReaderProfile(name: "First")
+        let secondProfile = ReaderProfile(name: "Second")
+        let bookmarkID = UUID()
+        let bookID = UUID()
+        let legacyBookmarkJSON = """
+        [{"id":"\(bookmarkID.uuidString)","bookID":"\(bookID.uuidString)","locatorJSON":"{}","progression":0.5,"sticker":"star","createdAt":0}]
+        """
+        let legacyWordJSON = """
+        [{
+          "id":"\(UUID().uuidString)",
+          "word":"cat",
+          "displayWord":"cat",
+          "bookID":"\(bookID.uuidString)",
+          "bookTitle":"T",
+          "tapCount":1,
+          "savedAt":0,
+          "lastTappedAt":0
+        }]
+        """
+
+        UserDefaults.standard.set(try JSONEncoder().encode([firstProfile, secondProfile]), forKey: profilesKey)
+        UserDefaults.standard.set(firstProfile.id.uuidString, forKey: selectedProfileKey)
+        UserDefaults.standard.set(Data(legacyBookmarkJSON.utf8), forKey: bookmarksKey)
+        UserDefaults.standard.set(Data(legacyWordJSON.utf8), forKey: savedWordsKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: profilesKey)
+            UserDefaults.standard.removeObject(forKey: selectedProfileKey)
+            UserDefaults.standard.removeObject(forKey: bookmarksKey)
+            UserDefaults.standard.removeObject(forKey: savedWordsKey)
+        }
+
+        let firstLaunch = BookStore()
+        #expect(firstLaunch.bookmarks.first?.profileID == firstProfile.id)
+        #expect(firstLaunch.savedWords.first?.profileID == firstProfile.id)
+        firstLaunch.selectProfile(secondProfile.id)
+
+        let secondLaunch = BookStore()
+        #expect(secondLaunch.bookmarks.first?.profileID == firstProfile.id)
+        #expect(secondLaunch.savedWords.first?.profileID == firstProfile.id)
     }
 }
 
