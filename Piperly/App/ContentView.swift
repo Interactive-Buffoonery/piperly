@@ -71,6 +71,7 @@ struct ContentView: View {
                                 .font(.title2)
                                 .foregroundStyle(Piperly.Colors.accent)
                         }
+                        .accessibilityLabel("Settings")
 
                         if selectedTab == .library {
                             Button {

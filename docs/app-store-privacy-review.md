@@ -5,7 +5,7 @@ child-safety posture for public review.
 
 ## Audit Conclusion
 
-Piperly can continue to declare no tracking and no collected data in
+Piperly can continue to declare no tracking and no developer-collected data in
 `Piperly/Resources/PrivacyInfo.xcprivacy`.
 
 The app stores reading state locally and does not include external catalog
@@ -14,6 +14,12 @@ social features, or a developer-hosted backend. The current manifest's
 UserDefaults required-reason declaration remains accurate because the app uses
 UserDefaults and `@AppStorage` for app-created settings and local reading
 metadata.
+
+When a parent enables iCloud sync, EPUB files, book titles, reader profiles,
+reading state, bookmarks, saved words, and reader preferences are sent only to
+the user's private CloudKit database. They use the family's Apple iCloud
+account and storage quota. Piperly does not use CloudKit sharing, user discovery,
+analytics, or a developer-hosted account service.
 
 ## Actual Data Flows
 
@@ -39,6 +45,16 @@ metadata.
 
 - Imported EPUB files are copied into `Documents/Books`.
 - Extracted cover images are written into `Documents/Covers`.
+
+### Private iCloud data
+
+- iCloud sync is off until a parent enables it through the parent gate.
+- Synced data stays in the user's private CloudKit database. Piperly's developer
+  does not receive it through an analytics, account, or backend service.
+- Turning sync off stops network activity and preserves local data.
+- Account changes require a fresh fetch and an explicit parent choice before
+  pending work can be uploaded to the newly signed-in account.
+- EPUB files and their related data count against the user's iCloud quota.
 
 ### Readium and third-party dependencies
 
@@ -102,11 +118,17 @@ Use this as a publishable starting point for the public privacy policy:
 > preferences, and voice preferences. This information is used only to provide
 > the reading experience inside the app.
 >
+> If a parent enables iCloud sync, Piperly stores EPUB files, book titles,
+> reader profiles, reading state, bookmarks, saved words, and reader preferences
+> in the family's private iCloud account so they can be used on the family's
+> devices. This information counts against the account's iCloud storage quota.
+>
 > Piperly does not include advertising, third-party analytics, social networking,
 > account creation, external catalog browsing, or in-app purchases.
 >
-> To remove local reading data, delete books from the app or delete Piperly from
-> the device.
+> Turning iCloud sync off keeps reading data already stored on the device and
+> does not delete cloud data. To remove local reading data, delete books from
+> the app or delete Piperly from the device.
 
 ## Repo Evidence Checked
 
