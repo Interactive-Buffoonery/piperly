@@ -150,8 +150,8 @@ struct LegacyDecodeTests {
         let selectedProfileKey = "piperly_selected_profile_id"
         let bookmarksKey = "piperly_bookmarks"
         let savedWordsKey = "piperly_saved_words"
-        let firstProfile = ReaderProfile(name: "First")
-        let secondProfile = ReaderProfile(name: "Second")
+        let firstProfile = try ReaderProfile(name: "First")
+        let secondProfile = try ReaderProfile(name: "Second")
         let bookmarkID = UUID()
         let bookID = UUID()
         let legacyBookmarkJSON = """
