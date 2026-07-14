@@ -26,24 +26,10 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable, ProfileScoped {
     var tapCount: Int
     let savedAt: Date
     var lastTappedAt: Date
-
-    /// Legacy blobs predate `profileID`; default it to a sentinel so the record
-    /// survives decode. BookStore rehomes the sentinel onto the active profile.
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(UUID.self, forKey: .id)
-        profileID = try c.decodeIfPresent(UUID.self, forKey: .profileID) ?? ProfileScopedDefaults.legacyProfileID
-        word = try c.decode(String.self, forKey: .word)
-        displayWord = try c.decode(String.self, forKey: .displayWord)
-        bookID = try c.decode(UUID.self, forKey: .bookID)
-        bookTitle = try c.decode(String.self, forKey: .bookTitle)
-        tapCount = try c.decode(Int.self, forKey: .tapCount)
-        savedAt = try c.decode(Date.self, forKey: .savedAt)
-        lastTappedAt = try c.decode(Date.self, forKey: .lastTappedAt)
-    }
+    var modifiedAt: Date
 
     func withProfileID(_ id: UUID) -> SavedWord {
-        SavedWord(id: self.id, profileID: id, word: word, displayWord: displayWord, bookID: bookID, bookTitle: bookTitle, tapCount: tapCount, savedAt: savedAt, lastTappedAt: lastTappedAt)
+        SavedWord(id: self.id, profileID: id, word: word, displayWord: displayWord, bookID: bookID, bookTitle: bookTitle, tapCount: tapCount, savedAt: savedAt, lastTappedAt: lastTappedAt, modifiedAt: modifiedAt)
     }
 
     init(
@@ -55,7 +41,8 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable, ProfileScoped {
         bookTitle: String,
         tapCount: Int = 1,
         savedAt: Date = .now,
-        lastTappedAt: Date = .now
+        lastTappedAt: Date = .now,
+        modifiedAt: Date = .now
     ) {
         self.id = id
         self.profileID = profileID
@@ -66,5 +53,26 @@ struct SavedWord: Identifiable, Codable, Hashable, Sendable, ProfileScoped {
         self.tapCount = tapCount
         self.savedAt = savedAt
         self.lastTappedAt = lastTappedAt
+        self.modifiedAt = modifiedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, profileID, word, displayWord, bookID, bookTitle, tapCount, savedAt, lastTappedAt, modifiedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        // Legacy blobs predate profileID; default to a sentinel so the record
+        // survives decode. BookStore rehomes it onto the active profile.
+        profileID = try container.decodeIfPresent(UUID.self, forKey: .profileID) ?? ProfileScopedDefaults.legacyProfileID
+        word = try container.decode(String.self, forKey: .word)
+        displayWord = try container.decode(String.self, forKey: .displayWord)
+        bookID = try container.decode(UUID.self, forKey: .bookID)
+        bookTitle = try container.decode(String.self, forKey: .bookTitle)
+        tapCount = try container.decode(Int.self, forKey: .tapCount)
+        savedAt = try container.decode(Date.self, forKey: .savedAt)
+        lastTappedAt = try container.decode(Date.self, forKey: .lastTappedAt)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? lastTappedAt
     }
 }

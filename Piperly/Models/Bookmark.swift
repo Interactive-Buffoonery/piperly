@@ -39,6 +39,7 @@ struct Bookmark: Identifiable, Codable, Hashable, ProfileScoped {
     let progression: Double
     let sticker: BookmarkSticker
     let createdAt: Date
+    var modifiedAt: Date
 
     init(
         id: UUID = UUID(),
@@ -48,7 +49,8 @@ struct Bookmark: Identifiable, Codable, Hashable, ProfileScoped {
         title: String?,
         progression: Double,
         sticker: BookmarkSticker,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        modifiedAt: Date = .now
     ) {
         self.id = id
         self.profileID = profileID
@@ -58,24 +60,30 @@ struct Bookmark: Identifiable, Codable, Hashable, ProfileScoped {
         self.progression = progression
         self.sticker = sticker
         self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
     }
 
-    /// Legacy blobs predate `profileID`; default it to a sentinel so the record
-    /// survives decode. BookStore rehomes the sentinel onto the active profile.
+    private enum CodingKeys: String, CodingKey {
+        case id, profileID, bookID, locatorJSON, title, progression, sticker, createdAt, modifiedAt
+    }
+
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(UUID.self, forKey: .id)
-        profileID = try c.decodeIfPresent(UUID.self, forKey: .profileID) ?? ProfileScopedDefaults.legacyProfileID
-        bookID = try c.decode(UUID.self, forKey: .bookID)
-        locatorJSON = try c.decode(String.self, forKey: .locatorJSON)
-        title = try c.decodeIfPresent(String.self, forKey: .title)
-        progression = try c.decode(Double.self, forKey: .progression)
-        sticker = try c.decode(BookmarkSticker.self, forKey: .sticker)
-        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        // Legacy blobs predate profileID; default to a sentinel so the record
+        // survives decode. BookStore rehomes it onto the active profile.
+        profileID = try container.decodeIfPresent(UUID.self, forKey: .profileID) ?? ProfileScopedDefaults.legacyProfileID
+        bookID = try container.decode(UUID.self, forKey: .bookID)
+        locatorJSON = try container.decode(String.self, forKey: .locatorJSON)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
+        progression = try container.decode(Double.self, forKey: .progression)
+        sticker = try container.decode(BookmarkSticker.self, forKey: .sticker)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? createdAt
     }
 
     func withProfileID(_ id: UUID) -> Bookmark {
-        Bookmark(id: self.id, profileID: id, bookID: bookID, locatorJSON: locatorJSON, title: title, progression: progression, sticker: sticker, createdAt: createdAt)
+        Bookmark(id: self.id, profileID: id, bookID: bookID, locatorJSON: locatorJSON, title: title, progression: progression, sticker: sticker, createdAt: createdAt, modifiedAt: modifiedAt)
     }
 }
 
