@@ -37,10 +37,6 @@ struct ReaderView: View {
     @State private var showWordBubble = false
     @State private var isNewWord = false
     @State private var showingWordList = false
-    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
-    @AppStorage("speechRate") private var speechRate: Double = 0.45
-    @AppStorage("readerFontSize") private var fontSize: Double = 22
-    @AppStorage("readerTheme") private var selectedTheme: String = ReaderTheme.piperly.rawValue
     @StateObject private var wordTapCoordinator = WordTapCoordinator()
     @State private var navigator: EPUBNavigatorViewController?
     @State private var currentLocator: Locator?
@@ -263,11 +259,11 @@ struct ReaderView: View {
     }
 
     private var theme: ReaderTheme {
-        ReaderTheme(rawValue: selectedTheme) ?? .piperly
+        bookStore.activeReaderTheme
     }
 
     private var readerPreferences: EPUBPreferences {
-        theme.epubPreferences(fontSize: fontSize)
+        theme.epubPreferences(fontSize: bookStore.activeFontSize)
     }
 
     private var restoredLocator: Locator? {
@@ -286,8 +282,8 @@ struct ReaderView: View {
         }
         ttsEngine.speak(
             word: word,
-            voiceIdentifier: selectedVoiceIdentifier,
-            rate: Float(speechRate)
+            voiceIdentifier: bookStore.activeVoiceIdentifier,
+            rate: Float(bookStore.activeSpeechRate)
         )
     }
 

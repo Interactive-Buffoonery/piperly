@@ -20,7 +20,6 @@ import SwiftUI
 struct PiperlyApp: App {
     @StateObject private var bookStore = BookStore()
     private let ttsEngine = TTSEngine()
-    @AppStorage("hasCompletedVoiceSetup") private var hasCompletedVoiceSetup = false
     @State private var showVoiceSetup = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -31,13 +30,14 @@ struct PiperlyApp: App {
                 .task {
                     await bookStore.importSampleBooksIfNeeded()
                 }
-                .onAppear {
-                    if !hasCompletedVoiceSetup {
+                .onChange(of: bookStore.selectedProfileID, initial: true) {
+                    if !bookStore.activeProfile.hasCompletedVoiceSetup {
                         showVoiceSetup = true
                     }
                 }
                 .sheet(isPresented: $showVoiceSetup) {
                     VoiceSetupSheet(ttsEngine: ttsEngine)
+                        .environmentObject(bookStore)
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase != .active {

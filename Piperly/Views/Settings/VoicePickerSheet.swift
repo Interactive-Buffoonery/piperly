@@ -31,7 +31,7 @@ struct VoicePickerSheet: View {
 
 struct VoicePickerList: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
+    @EnvironmentObject private var bookStore: BookStore
     @State private var voices: [Voice] = []
 
     let ttsEngine: TTSEngine
@@ -61,8 +61,8 @@ struct VoicePickerList: View {
                         ForEach(voices) { voice in
                             VoiceCard(
                                 voice: voice,
-                                isSelected: voice.id == selectedVoiceIdentifier,
-                                onSelect: { selectedVoiceIdentifier = voice.id },
+                                isSelected: voice.id == bookStore.activeVoiceIdentifier,
+                                onSelect: { bookStore.activeVoiceIdentifierBinding.wrappedValue = voice.id },
                                 onPreview: {
                                     ttsEngine.speak(
                                         word: "Hi, I'm \(voice.name)!",
@@ -103,9 +103,9 @@ struct VoicePickerList: View {
 
     private func refreshVoices() {
         voices = Voice.availableVoices()
-        if !voices.contains(where: { $0.id == selectedVoiceIdentifier }),
+        if !voices.contains(where: { $0.id == bookStore.activeVoiceIdentifier }),
            let first = voices.first {
-            selectedVoiceIdentifier = first.id
+            bookStore.activeVoiceIdentifierBinding.wrappedValue = first.id
         }
     }
 }

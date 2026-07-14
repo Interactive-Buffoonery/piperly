@@ -19,8 +19,6 @@ import SwiftUI
 struct WordsView: View {
     @EnvironmentObject var bookStore: BookStore
     let ttsEngine: TTSEngine
-    @AppStorage("selectedVoiceIdentifier") private var selectedVoiceIdentifier: String = ""
-    @AppStorage("speechRate") private var speechRate: Double = 0.45
     @State private var viewMode: ViewMode = .all
 
     enum ViewMode: String, CaseIterable {
@@ -133,8 +131,8 @@ struct WordsView: View {
     private func speakWord(_ word: SavedWord) {
         ttsEngine.speak(
             word: word.displayWord,
-            voiceIdentifier: selectedVoiceIdentifier,
-            rate: Float(speechRate)
+            voiceIdentifier: bookStore.activeVoiceIdentifier,
+            rate: Float(bookStore.activeSpeechRate)
         )
     }
 
