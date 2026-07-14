@@ -52,16 +52,29 @@ struct ContentView: View {
 
                     Spacer()
 
-                    Picker("Reader Profile", selection: activeProfileSelection) {
+                    Menu {
                         ForEach(bookStore.profiles) { profile in
-                            Label(profile.name, systemImage: profile.avatarSymbol)
-                                .tag(profile.id)
+                            Button {
+                                bookStore.selectProfile(profile.id)
+                            } label: {
+                                Label(
+                                    profile.name,
+                                    systemImage: profile.id == bookStore.activeProfile.id ? "checkmark" : profile.avatarSymbol
+                                )
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Label(bookStore.activeProfile.name, systemImage: bookStore.activeProfile.avatarSymbol)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption)
                         }
                     }
-                    .pickerStyle(.menu)
+                    .foregroundStyle(Piperly.Colors.accent)
                     .buttonStyle(.bordered)
                     .tint(Piperly.Colors.accent)
                     .accessibilityLabel("Reader Profile")
+                    .accessibilityValue(bookStore.activeProfile.name)
 
                     HStack(spacing: 12) {
                         Button {
@@ -107,12 +120,5 @@ struct ContentView: View {
                 SettingsView(ttsEngine: ttsEngine)
             }
         }
-    }
-
-    private var activeProfileSelection: Binding<UUID> {
-        Binding(
-            get: { bookStore.activeProfile.id },
-            set: { bookStore.selectProfile($0) }
-        )
     }
 }
