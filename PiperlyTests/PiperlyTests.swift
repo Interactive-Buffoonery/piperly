@@ -1,4 +1,3 @@
-// swiftlint:disable force_unwrapping
 import Testing
 import Foundation
 @testable import Piperly
@@ -8,22 +7,47 @@ import Foundation
 @Suite("Book")
 struct BookTests {
     @Test func defaultValues() {
-        let book = Book(title: "Test", author: "Author", fileName: "test.epub")
+        let book = Book(
+            contentIdentity: "abc123",
+            title: "Test",
+            author: "Author",
+            fileName: "test.epub"
+        )
         #expect(book.coverImageName == nil)
     }
 
     @Test func codableRoundTrip() throws {
-        let book = Book(title: "The Secret Garden", author: "Frances Hodgson Burnett", fileName: "secret-garden.epub")
+        let book = Book(
+            contentIdentity: "abc123",
+            title: "The Secret Garden",
+            author: "Frances Hodgson Burnett",
+            fileName: "secret-garden.epub"
+        )
         let data = try JSONEncoder().encode(book)
         let decoded = try JSONDecoder().decode(Book.self, from: data)
         #expect(decoded.id == book.id)
+        #expect(decoded.contentIdentity == book.contentIdentity)
         #expect(decoded.title == book.title)
         #expect(decoded.author == book.author)
         #expect(decoded.fileName == book.fileName)
     }
 
+    // Legacy blobs predate contentIdentity; decode must not throw (which under
+    // try? decode([Book].self) would wipe the whole library on upgrade).
+    @Test func decodingLegacyBookWithoutContentIdentitySurvives() throws {
+        let id = UUID()
+        let legacyJSON = """
+        {"id":"\(id.uuidString)","title":"Old Book","author":"A","fileName":"\(id.uuidString)-old.epub"}
+        """
+        let decoded = try JSONDecoder().decode(Book.self, from: Data(legacyJSON.utf8))
+        #expect(decoded.id == id)
+        #expect(decoded.contentIdentity.isEmpty)
+        #expect(decoded.fileName == "\(id.uuidString)-old.epub")
+    }
+
     @Test func codableWithAllFields() throws {
         let book = Book(
+            contentIdentity: "abc123",
             title: "Test",
             author: "Author",
             fileName: "test.epub",
@@ -590,40 +614,259 @@ struct VoiceTests {
 
 @Suite("BookStoreImport")
 struct BookStoreImportTests {
-    @Test func uniqueFileNamePreservesOriginalName() {
-        let name = BookStore.uniqueFileName(for: "alice.epub")
-        #expect(name.hasSuffix("-alice.epub"))
+    @Test @MainActor func startupClearsStaleImportSnapshots() throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("piperly-stale-snapshots-\(UUID().uuidString)", isDirectory: true)
+        let booksDirectory = rootURL.appendingPathComponent("Books", isDirectory: true)
+        let coversDirectory = rootURL.appendingPathComponent("Covers", isDirectory: true)
+        let snapshotsDirectory = rootURL.appendingPathComponent(".PiperlyImportSnapshots", isDirectory: true)
+        try FileManager.default.createDirectory(at: snapshotsDirectory, withIntermediateDirectories: true)
+        try Data("stale epub bytes".utf8).write(
+            to: snapshotsDirectory.appendingPathComponent("stale.epub")
+        )
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        let defaultsName = "PiperlyTests.BookStoreStartupCleanup.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        _ = BookStore(
+            documentsURL: booksDirectory,
+            coversURL: coversDirectory,
+            userDefaults: defaults
+        )
+
+        #expect(FileManager.default.fileExists(atPath: snapshotsDirectory.path))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: snapshotsDirectory.path).isEmpty)
     }
 
-    @Test func uniqueFileNameDiffersForSameSource() {
-        let first = BookStore.uniqueFileName(for: "alice.epub")
-        let second = BookStore.uniqueFileName(for: "alice.epub")
-        #expect(first != second)
+    @Test func sameBytesProduceSameIdentity() throws {
+        let firstURL = try temporaryFile(containing: Data("same bytes".utf8))
+        let secondURL = try temporaryFile(containing: Data("same bytes".utf8))
+        defer {
+            try? FileManager.default.removeItem(at: firstURL)
+            try? FileManager.default.removeItem(at: secondURL)
+        }
+
+        #expect(try BookStore.contentIdentity(for: firstURL) == BookStore.contentIdentity(for: secondURL))
     }
 
-    @Test func uniqueFileNameHasUUIDPrefix() {
-        let name = BookStore.uniqueFileName(for: "alice.epub")
-        let prefix = name.replacingOccurrences(of: "-alice.epub", with: "")
-        #expect(UUID(uuidString: prefix) != nil)
+    @Test func differentBytesProduceDifferentIdentities() throws {
+        let firstURL = try temporaryFile(containing: Data("first".utf8))
+        let secondURL = try temporaryFile(containing: Data("second".utf8))
+        defer {
+            try? FileManager.default.removeItem(at: firstURL)
+            try? FileManager.default.removeItem(at: secondURL)
+        }
+
+        #expect(try BookStore.contentIdentity(for: firstURL) != BookStore.contentIdentity(for: secondURL))
+    }
+
+    @Test func identityIncludesBytesBeyondFirstReadChunk() throws {
+        let prefix = Data(repeating: 0x41, count: 1_048_576)
+        let firstURL = try temporaryFile(containing: prefix + Data([0x42]))
+        let secondURL = try temporaryFile(containing: prefix + Data([0x43]))
+        defer {
+            try? FileManager.default.removeItem(at: firstURL)
+            try? FileManager.default.removeItem(at: secondURL)
+        }
+
+        #expect(try BookStore.contentIdentity(for: firstURL) != BookStore.contentIdentity(for: secondURL))
+    }
+
+    @Test func identityIsDeterministicLowercaseHex() throws {
+        let fileURL = try temporaryFile(containing: Data("hello".utf8))
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+
+        let identity = try BookStore.contentIdentity(for: fileURL)
+        #expect(identity == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
+        #expect(identity.allSatisfy { $0.isHexDigit && !$0.isUppercase })
+        #expect(BookStore.storageFileName(for: identity) == "\(identity).epub")
     }
 
     @Test @MainActor func rejectsUnreadableEPUBWithoutAddingBook() async throws {
-        let store = BookStore()
-        let sourceName = "garbage-\(UUID().uuidString).epub"
-        let sourceURL = FileManager.default.temporaryDirectory.appendingPathComponent(sourceName)
-        try Data("not an epub".utf8).write(to: sourceURL)
-        defer { try? FileManager.default.removeItem(at: sourceURL) }
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("piperly-unreadable-\(UUID().uuidString)", isDirectory: true)
+        let booksDirectory = rootURL.appendingPathComponent("Books", isDirectory: true)
+        let coversDirectory = rootURL.appendingPathComponent("Covers", isDirectory: true)
+        try FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: rootURL) }
 
-        let countBefore = store.books.count
+        let defaultsName = "PiperlyTests.BookStoreUnreadable.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        let store = BookStore(
+            documentsURL: booksDirectory,
+            coversURL: coversDirectory,
+            userDefaults: defaults
+        )
+
+        let sourceURL = rootURL.appendingPathComponent("garbage.epub")
+        try Data("not an epub".utf8).write(to: sourceURL)
+        let expectedStoredName = BookStore.storageFileName(for: try BookStore.contentIdentity(for: sourceURL))
+        let contentsBefore = try FileManager.default.contentsOfDirectory(atPath: booksDirectory.path)
+
         await #expect(throws: BookStoreError.self) {
             _ = try await store.importBook(from: sourceURL)
         }
-        #expect(store.books.count == countBefore)
+        #expect(store.books.isEmpty)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: booksDirectory.path) == contentsBefore)
+        #expect(!FileManager.default.fileExists(
+            atPath: booksDirectory.appendingPathComponent(expectedStoredName).path
+        ))
+        let snapshotsDirectory = rootURL.appendingPathComponent(".PiperlyImportSnapshots", isDirectory: true)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: snapshotsDirectory.path).isEmpty)
+    }
 
-        let booksDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Books", isDirectory: true)
-        let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: booksDir.path)) ?? []
-        #expect(!leftovers.contains { $0.hasSuffix(sourceName) })
+    @Test @MainActor func duplicateImportReturnsExistingBookWithoutExtraFilesOrMetadata() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("piperly-import-\(UUID().uuidString)", isDirectory: true)
+        let sourceDirectory = rootURL.appendingPathComponent("Sources", isDirectory: true)
+        let booksDirectory = rootURL.appendingPathComponent("Books", isDirectory: true)
+        let coversDirectory = rootURL.appendingPathComponent("Covers", isDirectory: true)
+        try FileManager.default.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        let defaultsName = "PiperlyTests.BookStoreImport.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        let store = BookStore(
+            documentsURL: booksDirectory,
+            coversURL: coversDirectory,
+            userDefaults: defaults
+        )
+
+        let bundledBook = try #require(Bundle.main.url(forResource: "the-secret-garden", withExtension: "epub"))
+        let firstSource = sourceDirectory.appendingPathComponent("first.epub")
+        let secondSource = sourceDirectory.appendingPathComponent("renamed.epub")
+        try FileManager.default.copyItem(at: bundledBook, to: firstSource)
+        try FileManager.default.copyItem(at: bundledBook, to: secondSource)
+
+        let first = try await store.importBook(from: firstSource)
+        let second = try await store.importBook(from: secondSource)
+
+        #expect(first.id == second.id)
+        #expect(first.contentIdentity == second.contentIdentity)
+        #expect(store.books.count == 1)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: booksDirectory.path) == [first.fileName])
+        let coverFiles = try FileManager.default.contentsOfDirectory(atPath: coversDirectory.path)
+        #expect(coverFiles.count <= 1)
+    }
+
+    @Test @MainActor func reimportRestoresMissingDeterministicFile() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("piperly-repair-\(UUID().uuidString)", isDirectory: true)
+        let sourceDirectory = rootURL.appendingPathComponent("Sources", isDirectory: true)
+        let booksDirectory = rootURL.appendingPathComponent("Books", isDirectory: true)
+        let coversDirectory = rootURL.appendingPathComponent("Covers", isDirectory: true)
+        try FileManager.default.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        let defaultsName = "PiperlyTests.BookStoreRepair.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        let store = BookStore(
+            documentsURL: booksDirectory,
+            coversURL: coversDirectory,
+            userDefaults: defaults
+        )
+
+        let bundledBook = try #require(Bundle.main.url(forResource: "the-secret-garden", withExtension: "epub"))
+        let firstSource = sourceDirectory.appendingPathComponent("first.epub")
+        let secondSource = sourceDirectory.appendingPathComponent("second.epub")
+        try FileManager.default.copyItem(at: bundledBook, to: firstSource)
+        try FileManager.default.copyItem(at: bundledBook, to: secondSource)
+
+        let original = try await store.importBook(from: firstSource)
+        let storedURL = store.bookURL(for: original)
+        try FileManager.default.removeItem(at: storedURL)
+        #expect(!FileManager.default.fileExists(atPath: storedURL.path))
+
+        let repaired = try await store.importBook(from: secondSource)
+
+        #expect(repaired.id == original.id)
+        #expect(store.books.count == 1)
+        #expect(FileManager.default.fileExists(atPath: storedURL.path))
+        #expect(try Data(contentsOf: storedURL) == Data(contentsOf: bundledBook))
+    }
+
+    @Test @MainActor func concurrentSameContentImportsPublishOneBookAndFile() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("piperly-concurrent-\(UUID().uuidString)", isDirectory: true)
+        let sourceDirectory = rootURL.appendingPathComponent("Sources", isDirectory: true)
+        let booksDirectory = rootURL.appendingPathComponent("Books", isDirectory: true)
+        let coversDirectory = rootURL.appendingPathComponent("Covers", isDirectory: true)
+        try FileManager.default.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        let defaultsName = "PiperlyTests.BookStoreConcurrent.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        let store = BookStore(
+            documentsURL: booksDirectory,
+            coversURL: coversDirectory,
+            userDefaults: defaults
+        )
+
+        let bundledBook = try #require(Bundle.main.url(forResource: "the-secret-garden", withExtension: "epub"))
+        let firstSource = sourceDirectory.appendingPathComponent("first.epub")
+        let secondSource = sourceDirectory.appendingPathComponent("second.epub")
+        try FileManager.default.copyItem(at: bundledBook, to: firstSource)
+        try FileManager.default.copyItem(at: bundledBook, to: secondSource)
+
+        async let first = store.importBook(from: firstSource)
+        async let second = store.importBook(from: secondSource)
+        let (firstBook, secondBook) = try await (first, second)
+
+        #expect(firstBook.id == secondBook.id)
+        #expect(store.books.count == 1)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: booksDirectory.path) == [firstBook.fileName])
+        let snapshotsDirectory = rootURL.appendingPathComponent(".PiperlyImportSnapshots", isDirectory: true)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: snapshotsDirectory.path).isEmpty)
+    }
+
+    @Test @MainActor func matchingIdentityNeverOverwritesDifferentStoredBytes() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("piperly-collision-\(UUID().uuidString)", isDirectory: true)
+        let booksDirectory = rootURL.appendingPathComponent("Books", isDirectory: true)
+        let coversDirectory = rootURL.appendingPathComponent("Covers", isDirectory: true)
+        try FileManager.default.createDirectory(at: booksDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        let defaultsName = "PiperlyTests.BookStoreCollision.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        let store = BookStore(
+            documentsURL: booksDirectory,
+            coversURL: coversDirectory,
+            userDefaults: defaults
+        )
+
+        let sourceURL = rootURL.appendingPathComponent("source.epub")
+        let sourceBytes = Data("source bytes".utf8)
+        try sourceBytes.write(to: sourceURL)
+        let identity = try BookStore.contentIdentity(for: sourceURL)
+        let storedName = BookStore.storageFileName(for: identity)
+        let storedURL = booksDirectory.appendingPathComponent(storedName)
+        let storedBytes = Data("different stored bytes".utf8)
+        try storedBytes.write(to: storedURL)
+        store.books = [Book(
+            contentIdentity: identity,
+            title: "Existing",
+            author: "Author",
+            fileName: storedName
+        )]
+
+        await #expect(throws: BookStoreError.self) {
+            _ = try await store.importBook(from: sourceURL)
+        }
+        #expect(try Data(contentsOf: storedURL) == storedBytes)
+        #expect(store.books.count == 1)
+    }
+
+    private func temporaryFile(containing data: Data) throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try data.write(to: url)
+        return url
     }
 }
 

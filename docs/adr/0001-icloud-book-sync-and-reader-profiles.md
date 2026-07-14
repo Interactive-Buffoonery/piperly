@@ -28,4 +28,4 @@ Piperly will make iCloud sync a private, family/account-scoped feature:
 
 ## Consequences
 
-Book identity must become stable across devices, likely by hashing EPUB contents during import. The sync implementation must handle iCloud file availability, download progress, evicted files, deletion semantics, and conflicts. Privacy review and App Store privacy answers must be updated once iCloud sync is enabled because book titles, reading state, and saved words are child-adjacent data even when they remain in the user's private iCloud account.
+Book identity is the lowercase SHA-256 hash of the imported EPUB bytes. Future CloudKit `Book` records must use this content identity as their record name, while the local UUID can continue to connect on-device reading data. The sync implementation must handle iCloud file availability, download progress, evicted files, deletion semantics, and conflicts. Privacy review and App Store privacy answers must be updated once iCloud sync is enabled because book titles, reading state, and saved words are child-adjacent data even when they remain in the user's private iCloud account.

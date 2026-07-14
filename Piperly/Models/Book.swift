@@ -18,6 +18,7 @@ import Foundation
 
 struct Book: Identifiable, Codable {
     let id: UUID
+    let contentIdentity: String
     let title: String
     let author: String
     let fileName: String
@@ -25,15 +26,30 @@ struct Book: Identifiable, Codable {
 
     init(
         id: UUID = UUID(),
+        contentIdentity: String,
         title: String,
         author: String,
         fileName: String,
         coverImageName: String? = nil
     ) {
         self.id = id
+        self.contentIdentity = contentIdentity
         self.title = title
         self.author = author
         self.fileName = fileName
         self.coverImageName = coverImageName
+    }
+
+    /// Legacy blobs predate `contentIdentity`; default it to "" so the book
+    /// survives decode. BookStore backfills the real hash (and migrates the
+    /// filename) on load. See BookStore.backfillContentIdentities().
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        contentIdentity = try c.decodeIfPresent(String.self, forKey: .contentIdentity) ?? ""
+        title = try c.decode(String.self, forKey: .title)
+        author = try c.decode(String.self, forKey: .author)
+        fileName = try c.decode(String.self, forKey: .fileName)
+        coverImageName = try c.decodeIfPresent(String.self, forKey: .coverImageName)
     }
 }
