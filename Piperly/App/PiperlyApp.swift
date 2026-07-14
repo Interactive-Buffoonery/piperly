@@ -36,6 +36,10 @@ struct PiperlyApp: App {
                 localSnapshotProvider: { [weak store] in
                     store?.librarySnapshotRecords() ?? []
                 },
+                localBookAssetProvider: { [weak store] book in
+                    store?.localBookAssets(for: book)
+                },
+                assetStagingURL: store.assetStagingURL,
                 remoteChangeHandler: { [weak store] changes, scope in
                     guard let store else { return .complete }
                     if scope.isCurrentAccount {

@@ -4,6 +4,25 @@
 import CloudKit
 import Foundation
 
+enum BookAssetTransferFailure: String, Codable, Sendable, Equatable {
+    case retryable
+    case missingLocalData
+    case corrupt
+    /// A permanent, user-actionable failure (e.g. iCloud quota exceeded) that
+    /// must not be silently retried on backoff.
+    case blocked
+}
+
+struct AccountOwnedBookAssets: Codable, Sendable, Equatable {
+    let accountRecordName: String
+    let transitionGeneration: Int
+    let files: BookAssetURLs
+
+    func belongs(to accountRecordName: String, generation: Int) -> Bool {
+        self.accountRecordName == accountRecordName && transitionGeneration == generation
+    }
+}
+
 struct SyncStateSnapshot: Codable, Sendable {
     var engineState: CKSyncEngine.State.Serialization?
     var pendingSaves: [String: LibraryRecord]
@@ -11,12 +30,16 @@ struct SyncStateSnapshot: Codable, Sendable {
     var systemFields: [String: Data]
     var deferredRemoteRecords: [String: LibraryRecord]
     var deferredRemoteDeletions: [LibraryRecordReference]
+    var pendingRemoteAssets: [String: AccountOwnedBookAssets]
+    var assetDownloadRetryRecordNames: Set<String>
+    var bookAssetFailures: [String: BookAssetTransferFailure]
     var quarantinedSaves: [String: LibraryRecord]
     var quarantinedDeletes: [LibraryRecordReference]
     var confirmedAccountRecordName: String?
     var didSeedExistingLibrary: Bool
     var accountTransitionRemoteRecords: [String: LibraryRecord]
     var accountTransitionRemoteDeletions: [LibraryRecordReference]
+    var accountTransitionRemoteAssets: [String: AccountOwnedBookAssets]
     var accountTransitionGeneration: Int
     var accountTransitionAccountRecordName: String?
     var currentAccountSaves: [String: LibraryRecord]
@@ -32,12 +55,16 @@ struct SyncStateSnapshot: Codable, Sendable {
         systemFields: [:],
         deferredRemoteRecords: [:],
         deferredRemoteDeletions: [],
+        pendingRemoteAssets: [:],
+        assetDownloadRetryRecordNames: [],
+        bookAssetFailures: [:],
         quarantinedSaves: [:],
         quarantinedDeletes: [],
         confirmedAccountRecordName: nil,
         didSeedExistingLibrary: false,
         accountTransitionRemoteRecords: [:],
         accountTransitionRemoteDeletions: [],
+        accountTransitionRemoteAssets: [:],
         accountTransitionGeneration: 0,
         accountTransitionAccountRecordName: nil,
         currentAccountSaves: [:],
@@ -52,6 +79,8 @@ struct SyncStateSnapshot: Codable, Sendable {
         case deferredRemoteRecords, quarantinedSaves, quarantinedDeletes, confirmedAccountRecordName
         case didSeedExistingLibrary
         case deferredRemoteDeletions, accountTransitionRemoteRecords, accountTransitionRemoteDeletions
+        case pendingRemoteAssets, assetDownloadRetryRecordNames, bookAssetFailures
+        case accountTransitionRemoteAssets
         case accountTransitionGeneration, accountTransitionAccountRecordName
         case currentAccountSaves, currentAccountDeletes
         case currentAccountRecordName, currentAccountTransitionGeneration
@@ -65,12 +94,16 @@ struct SyncStateSnapshot: Codable, Sendable {
         systemFields: [String: Data],
         deferredRemoteRecords: [String: LibraryRecord],
         deferredRemoteDeletions: [LibraryRecordReference],
+        pendingRemoteAssets: [String: AccountOwnedBookAssets],
+        assetDownloadRetryRecordNames: Set<String>,
+        bookAssetFailures: [String: BookAssetTransferFailure],
         quarantinedSaves: [String: LibraryRecord],
         quarantinedDeletes: [LibraryRecordReference],
         confirmedAccountRecordName: String?,
         didSeedExistingLibrary: Bool,
         accountTransitionRemoteRecords: [String: LibraryRecord],
         accountTransitionRemoteDeletions: [LibraryRecordReference],
+        accountTransitionRemoteAssets: [String: AccountOwnedBookAssets],
         accountTransitionGeneration: Int,
         accountTransitionAccountRecordName: String?,
         currentAccountSaves: [String: LibraryRecord],
@@ -85,12 +118,16 @@ struct SyncStateSnapshot: Codable, Sendable {
         self.systemFields = systemFields
         self.deferredRemoteRecords = deferredRemoteRecords
         self.deferredRemoteDeletions = deferredRemoteDeletions
+        self.pendingRemoteAssets = pendingRemoteAssets
+        self.assetDownloadRetryRecordNames = assetDownloadRetryRecordNames
+        self.bookAssetFailures = bookAssetFailures
         self.quarantinedSaves = quarantinedSaves
         self.quarantinedDeletes = quarantinedDeletes
         self.confirmedAccountRecordName = confirmedAccountRecordName
         self.didSeedExistingLibrary = didSeedExistingLibrary
         self.accountTransitionRemoteRecords = accountTransitionRemoteRecords
         self.accountTransitionRemoteDeletions = accountTransitionRemoteDeletions
+        self.accountTransitionRemoteAssets = accountTransitionRemoteAssets
         self.accountTransitionGeneration = accountTransitionGeneration
         self.accountTransitionAccountRecordName = accountTransitionAccountRecordName
         self.currentAccountSaves = currentAccountSaves
@@ -114,6 +151,18 @@ struct SyncStateSnapshot: Codable, Sendable {
             [LibraryRecordReference].self,
             forKey: .deferredRemoteDeletions
         ) ?? []
+        pendingRemoteAssets = try container.decodeIfPresent(
+            [String: AccountOwnedBookAssets].self,
+            forKey: .pendingRemoteAssets
+        ) ?? [:]
+        assetDownloadRetryRecordNames = try container.decodeIfPresent(
+            Set<String>.self,
+            forKey: .assetDownloadRetryRecordNames
+        ) ?? []
+        bookAssetFailures = try container.decodeIfPresent(
+            [String: BookAssetTransferFailure].self,
+            forKey: .bookAssetFailures
+        ) ?? [:]
         quarantinedSaves = try container.decodeIfPresent(
             [String: LibraryRecord].self,
             forKey: .quarantinedSaves
@@ -136,6 +185,10 @@ struct SyncStateSnapshot: Codable, Sendable {
             [LibraryRecordReference].self,
             forKey: .accountTransitionRemoteDeletions
         ) ?? []
+        accountTransitionRemoteAssets = try container.decodeIfPresent(
+            [String: AccountOwnedBookAssets].self,
+            forKey: .accountTransitionRemoteAssets
+        ) ?? [:]
         accountTransitionGeneration = try container.decodeIfPresent(
             Int.self,
             forKey: .accountTransitionGeneration
@@ -161,6 +214,43 @@ struct SyncStateSnapshot: Codable, Sendable {
             forKey: .currentAccountTransitionGeneration
         )
         tombstones = try container.decodeIfPresent([String: Date].self, forKey: .tombstones) ?? [:]
+    }
+}
+
+extension SyncStateSnapshot {
+    mutating func recordAssetFailure(
+        _ failure: BookAssetTransferFailure,
+        recordName: String,
+        requiresDownloadRetry: Bool = false
+    ) {
+        bookAssetFailures[recordName] = failure
+        if requiresDownloadRetry { assetDownloadRetryRecordNames.insert(recordName) }
+    }
+
+    mutating func recordAssetOutcome(
+        _ outcome: BookAssetApplicationOutcome,
+        recordName: String,
+        assets: AccountOwnedBookAssets
+    ) -> Bool {
+        switch outcome {
+        case .provisional, .rolledBack:
+            pendingRemoteAssets[recordName] = assets
+            return false
+        case .applied, .committed:
+            pendingRemoteAssets[recordName] = nil
+            assetDownloadRetryRecordNames.remove(recordName)
+            bookAssetFailures[recordName] = nil
+            return true
+        case .retryableFailure:
+            pendingRemoteAssets[recordName] = assets
+            recordAssetFailure(.retryable, recordName: recordName, requiresDownloadRetry: true)
+            return false
+        case .unavailable:
+            pendingRemoteAssets[recordName] = nil
+            assetDownloadRetryRecordNames.remove(recordName)
+            bookAssetFailures[recordName] = .corrupt
+            return true
+        }
     }
 }
 
